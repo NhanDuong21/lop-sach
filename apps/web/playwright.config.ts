@@ -14,6 +14,16 @@ export default defineConfig({
     trace: 'retain-on-failure',
     ...devices['Desktop Chrome'],
   },
+  projects: topologyOrigin
+    ? [{ name: 'production-topology', testMatch: 'production-topology.spec.ts' }]
+    : [
+        { name: 'weekly-workflow', testMatch: 'weekly-workflow.spec.ts' },
+        {
+          name: 'quality-gates',
+          testMatch: ['offline-current-week.spec.ts', 'impossible-schedule.spec.ts'],
+          dependencies: ['weekly-workflow'],
+        },
+      ],
   ...(topologyOrigin
     ? {}
     : {

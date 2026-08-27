@@ -7,3 +7,5 @@ V1 bao gồm onboarding, lớp/tổ/học sinh/task, absence theo ngày, tuần 
 UI dùng tiếng Việt, light mode và không emoji. Product name và classroom name là hai khái niệm riêng; lớp mặc định là 10C8.
 
 Availability model gồm duty-week absence cho một ngày và ba student restrictions: `NO_HEAVY_TASKS`, `TASK_EXCLUSION`, `EXEMPT_DATE_RANGE`.
+
+Tuần trực là date-only. Nhiều công việc cùng ngày là một soft constraint có thể nới với cảnh báo rõ ràng; V1 không có thời gian bắt đầu, kết thúc hoặc time bucket. Published week không regenerate; publish luôn kiểm tra lại context revisions/hash và toàn bộ hard constraints hiện tại.

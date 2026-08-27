@@ -1,7 +1,12 @@
 import { expect, test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
 test('installs the app shell without caching API or auth responses', async ({ page }) => {
   await page.goto('/login');
+  const accessibility = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(accessibility.violations, JSON.stringify(accessibility.violations, null, 2)).toEqual([]);
   await page.evaluate(() => navigator.serviceWorker.ready);
   const manifest = (await (await page.request.get('/manifest.webmanifest')).json()) as {
     display: string;

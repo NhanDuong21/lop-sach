@@ -9,7 +9,7 @@
 
 ## Lệnh chính
 
-`pnpm dev`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm check`.
+`pnpm dev`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm check`, `pnpm test:e2e`, `pnpm audit:prod`.
 
 ## Bất biến
 
@@ -29,4 +29,4 @@
 
 ## Definition of done
 
-Milestone chỉ được commit sau khi test, lint, typecheck và build liên quan đều xanh. Cập nhật `docs/exec-plans/initial-delivery.md` sau mỗi milestone. Significant changes phải có ExecPlan sống.
+Milestone chỉ được commit sau khi text/format, test, lint, typecheck và build liên quan đều xanh. Milestone UI phải chạy E2E tương ứng; dependency production không được còn advisory high. Cập nhật `docs/exec-plans/initial-delivery.md` sau mỗi milestone. Significant changes phải có ExecPlan sống.

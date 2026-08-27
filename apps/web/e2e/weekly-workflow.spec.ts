@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 import { readFile } from 'node:fs/promises';
 
 test('creates, publishes, completes and exports a weekly schedule at 360 px', async ({ page }) => {
@@ -76,6 +77,10 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Tuần này' })).toBeVisible();
   await expect(page.getByText('Bản phát hành 1')).toBeVisible();
+  const accessibility = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(accessibility.violations, JSON.stringify(accessibility.violations, null, 2)).toEqual([]);
   await expect
     .poll(() =>
       page.evaluate(

@@ -75,6 +75,22 @@ Sau đó chạy `ops/scripts/smoke-test.sh` và `ops/scripts/topology-smoke-test
 
 Không chuyển gate thành `VERIFIED` nếu test bị skip, thiếu biến, chỉ chạy local hoặc chưa đi qua đúng Vercel/Nginx production chain.
 
+## CI/CD thủ công
+
+CI từ repository root chạy frozen install, repository text/executable-mode policy, format, lint, typecheck, unit/integration tests, production build, API runtime import, cài Chromium và ba local E2E. Playwright report được lưu bảy ngày khi E2E thất bại. Production dependency audit không được còn advisory mức high.
+
+Workflow `Deploy API` chỉ có `workflow_dispatch`, không tự deploy khi push. Tạo GitHub environments `staging` và `production`, bật required reviewers cho production và đặt các environment secrets:
+
+- `VPS_HOST`: hostname/IP của VPS.
+- `VPS_PORT`: cổng SSH, thường là `22`.
+- `VPS_USER`: deploy user có quyền sudo giới hạn cho quy trình cài release và systemd service này.
+- `VPS_DEPLOY_KEY`: private key chỉ dành cho deploy user.
+- `VPS_KNOWN_HOSTS`: host-key line đã xác minh ngoài band; không dùng `StrictHostKeyChecking=no` hoặc `ssh-keyscan` mù trong workflow.
+
+Job validate phải xanh trước job deploy. Job deploy build lại artifact từ đúng commit, chỉ đóng gói root workspace metadata, API dist và dist của hai shared packages, upload vào `/tmp`, rồi gọi `deploy-api.sh` với release ID là full commit SHA. GitHub environment approval là điểm phê duyệt thao tác production không thể coi là repository-side validation.
+
+Trước lần chạy đầu, admin phải tạo user/group `lop-sach`, các thư mục `/opt/lop-sach/releases`, `/etc/lop-sach/api.env`, cài systemd/Nginx candidate sau khi review, và xác minh quyền sudo tối thiểu. Không lưu deploy key, known-hosts, env file hoặc smoke password trong repository/artifact.
+
 ## Atlas Free bị pause
 
 Dấu hiệu an toàn là `/health/live` vẫn trả 200 nhưng `/health/ready` trả `503` với code `DEPENDENCY_UNAVAILABLE`. Log chỉ được nói dependency timeout/unavailable sau redaction, không lộ Mongo URI.

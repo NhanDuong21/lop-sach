@@ -1,0 +1,75 @@
+name: Deploy API
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Deployment environment protected by GitHub
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lop-sach-api-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit:prod
+      - run: pnpm check
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: ${{ inputs.environment }}
+    env:
+      RELEASE_ID: ${{ github.sha }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Build release archive
+        run: >-
+          tar -czf "lop-sach-api-${RELEASE_ID}.tar.gz"
+          package.json pnpm-lock.yaml pnpm-workspace.yaml
+          apps/api/package.json apps/api/dist
+          packages/contracts/package.json packages/contracts/dist
+          packages/scheduler/package.json packages/scheduler/dist
+      - name: Configure pinned SSH host key
+        env:
+          VPS_DEPLOY_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$VPS_DEPLOY_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Upload inactive release and deploy script
+        run: |
+          scp -P "$VPS_PORT" "lop-sach-api-${RELEASE_ID}.tar.gz" "$VPS_USER@$VPS_HOST:/tmp/"
+          scp -P "$VPS_PORT" ops/scripts/deploy-api.sh "$VPS_USER@$VPS_HOST:/tmp/deploy-api-${RELEASE_ID}.sh"
+          ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "trap 'rm -f /tmp/deploy-api-${RELEASE_ID}.sh /tmp/lop-sach-api-${RELEASE_ID}.tar.gz' EXIT; sudo bash /tmp/deploy-api-${RELEASE_ID}.sh /tmp/lop-sach-api-${RELEASE_ID}.tar.gz ${RELEASE_ID}"

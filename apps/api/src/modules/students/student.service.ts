@@ -188,11 +188,12 @@ export async function patchStudent(
     const student = await findStudent(classroom._id, studentId, session);
     assertStudentVersion(student, input.expectedVersion);
     const start =
-      input.participationStart !== undefined
+      (input.participationStart !== undefined
         ? input.participationStart
-        : student.participationStart;
+        : student.participationStart) ?? null;
     const end =
-      input.participationEnd !== undefined ? input.participationEnd : student.participationEnd;
+      (input.participationEnd !== undefined ? input.participationEnd : student.participationEnd) ??
+      null;
     if (start !== null && end !== null && end < start)
       throw new HttpProblem(422, 'VALIDATION_FAILED', 'Khoảng tham gia không hợp lệ.');
     if (input.displayName !== undefined) student.displayName = input.displayName;

@@ -9,7 +9,8 @@
   },
   "scripts": {
     "build": "pnpm -r --if-present build",
-    "check": "pnpm check:text && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:api-runtime",
+    "audit:prod": "pnpm audit --prod --audit-level high",
+    "check": "pnpm check:text && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:api-runtime",
     "check:text": "node scripts/check-repository-text.mjs",
     "dev": "pnpm --parallel --filter @lop-sach/api --filter @lop-sach/web dev",
     "format": "prettier --write .",
