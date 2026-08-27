@@ -1,14 +1,15 @@
 import { mondayOfWeek, parseDateOnly, type DutyGroupSelectionBasis } from '@lop-sach/contracts';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarPlus } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/ui/Button.js';
 import { LoadingState } from '../../components/ui/LoadingState.js';
 import { Notice } from '../../components/ui/Notice.js';
+import { StatusBadge } from '../../components/ui/StatusBadge.js';
 import { ApiError } from '../../lib/api-client.js';
 import { getClassroom } from '../classroom/classroom.api.js';
-import { createDutyWeek } from './duty-weeks.api.js';
+import { createDutyWeek, listDutyWeeks } from './duty-weeks.api.js';
 
 function todayInClassroomTimezone(): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -23,6 +24,7 @@ function todayInClassroomTimezone(): string {
 
 export function NewWeekPage(): React.JSX.Element {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const classroom = useQuery({ queryKey: ['classroom'], queryFn: getClassroom });
   const [weekStart, setWeekStart] = useState(() => {
@@ -36,16 +38,23 @@ export function NewWeekPage(): React.JSX.Element {
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [selectionBasis, setSelectionBasis] = useState<DutyGroupSelectionBasis>('MANUAL');
   const [selectionNote, setSelectionNote] = useState('');
+  const existingWeek = useQuery({
+    queryKey: ['duty-weeks', 'by-start', weekStart],
+    queryFn: () => listDutyWeeks({ from: weekStart, to: weekStart }),
+  });
   const create = useMutation({
     mutationFn: createDutyWeek,
     onSuccess: (week) => {
+      void queryClient.invalidateQueries({ queryKey: ['duty-weeks'] });
       void navigate(`/weeks/${week.id}`);
     },
   });
-  if (classroom.isPending) return <LoadingState label="Đang tải dữ liệu lớp" />;
+  if (classroom.isPending || existingWeek.isPending)
+    return <LoadingState label="Đang kiểm tra tuần trực" />;
   if (!classroom.data) return <Notice tone="error">Không tải được dữ liệu lớp.</Notice>;
   const activeGroups = classroom.data.groups.filter((group) => group.active);
   const effectiveGroupId = selectedGroupId || activeGroups[0]?.id || '';
+  const existing = existingWeek.data?.[0];
   return (
     <div className="page-stack">
       <header className="page-heading">
@@ -68,9 +77,15 @@ export function NewWeekPage(): React.JSX.Element {
               : 'Không thể tạo tuần. Hãy thử lại.'}
           </Notice>
         ) : null}
+        {existingWeek.isError ? (
+          <Notice tone="error">
+            Không thể kiểm tra tuần này đã được tạo chưa. Hãy tải lại trang trước khi tiếp tục.
+          </Notice>
+        ) : null}
         <form
           onSubmit={(event) => {
             event.preventDefault();
+            if (existing || existingWeek.isError) return;
             create.mutate({
               weekStart,
               selectedGroupId: effectiveGroupId,
@@ -96,51 +111,77 @@ export function NewWeekPage(): React.JSX.Element {
                 required
               />
             </div>
-            <div>
-              <label htmlFor="selected-group">Tổ trực</label>
-              <select
-                id="selected-group"
-                value={effectiveGroupId}
-                onChange={(event) => setSelectedGroupId(event.target.value)}
-                required
-              >
-                {activeGroups.map((group) => (
-                  <option value={group.id} key={group.id}>
-                    {group.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="selection-basis">Vì sao chọn tổ này?</label>
-              <select
-                id="selection-basis"
-                value={selectionBasis}
-                onChange={(event) =>
-                  setSelectionBasis(event.target.value as DutyGroupSelectionBasis)
-                }
-              >
-                <option value="MANUAL">Bạn tự chọn</option>
-                <option value="ROTATION">Luân phiên</option>
-                <option value="LOWEST_RANKING">Ưu tiên tổ ít trực</option>
-                <option value="TEACHER_ASSIGNED">Giáo viên chỉ định</option>
-                <option value="OTHER">Khác</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="selection-note">Ghi chú</label>
-              <input
-                id="selection-note"
-                value={selectionNote}
-                maxLength={500}
-                onChange={(event) => setSelectionNote(event.target.value)}
-                placeholder="Không bắt buộc"
-              />
-            </div>
+            {!existing ? (
+              <>
+                <div>
+                  <label htmlFor="selected-group">Tổ trực</label>
+                  <select
+                    id="selected-group"
+                    value={effectiveGroupId}
+                    onChange={(event) => setSelectedGroupId(event.target.value)}
+                    required
+                  >
+                    {activeGroups.map((group) => (
+                      <option value={group.id} key={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="selection-basis">Vì sao chọn tổ này?</label>
+                  <select
+                    id="selection-basis"
+                    value={selectionBasis}
+                    onChange={(event) =>
+                      setSelectionBasis(event.target.value as DutyGroupSelectionBasis)
+                    }
+                  >
+                    <option value="MANUAL">Bạn tự chọn</option>
+                    <option value="ROTATION">Luân phiên</option>
+                    <option value="LOWEST_RANKING">Ưu tiên tổ ít trực</option>
+                    <option value="TEACHER_ASSIGNED">Giáo viên chỉ định</option>
+                    <option value="OTHER">Khác</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="selection-note">Ghi chú</label>
+                  <input
+                    id="selection-note"
+                    value={selectionNote}
+                    maxLength={500}
+                    onChange={(event) => setSelectionNote(event.target.value)}
+                    placeholder="Không bắt buộc"
+                  />
+                </div>
+              </>
+            ) : null}
           </div>
-          <Button type="submit" disabled={create.isPending || !effectiveGroupId}>
-            Bắt đầu chuẩn bị tuần
-          </Button>
+          {existing ? (
+            <div className="existing-week-panel">
+              <div>
+                <StatusBadge tone={existing.status === 'DRAFT' ? 'warning' : 'success'}>
+                  {existing.status === 'DRAFT'
+                    ? 'Bản nháp'
+                    : existing.status === 'PUBLISHED'
+                      ? 'Đã công bố'
+                      : 'Đã hoàn thành'}
+                </StatusBadge>
+                <strong>Tuần này đã được tạo cho {existing.groupSnapshot.name}.</strong>
+                <span>Đổi ngày Thứ Hai ở trên nếu bạn muốn chuẩn bị một tuần khác.</span>
+              </div>
+              <Link className="button button-primary" to={`/weeks/${existing.id}`}>
+                {existing.status === 'DRAFT' ? 'Tiếp tục chuẩn bị' : 'Xem tuần đã có'}
+              </Link>
+            </div>
+          ) : (
+            <Button
+              type="submit"
+              disabled={create.isPending || !effectiveGroupId || existingWeek.isError}
+            >
+              Bắt đầu chuẩn bị tuần
+            </Button>
+          )}
         </form>
       </section>
     </div>

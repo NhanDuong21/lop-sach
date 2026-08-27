@@ -58,6 +58,11 @@ export function CurrentWeekPage({
     queryFn: () => listDutyWeeks({ from: weekStart, to: weekStart }),
     enabled: online,
   });
+  const draftWeeks = useQuery({
+    queryKey: ['duty-weeks', 'drafts'],
+    queryFn: () => listDutyWeeks({ status: 'DRAFT' }),
+    enabled: online,
+  });
   const onlineWeek = weeks.data?.[0];
   useEffect(() => {
     if (!onlineWeek || onlineWeek.status === 'DRAFT') return;
@@ -117,9 +122,13 @@ export function CurrentWeekPage({
       </div>
     );
   }
-  if (weeks.isPending) return <LoadingState label="Đang tải lịch tuần này" />;
+  if (weeks.isPending || draftWeeks.isPending)
+    return <LoadingState label="Đang tải lịch tuần này" />;
   if (weeks.isError) return <Notice tone="error">Không tải được lịch tuần này.</Notice>;
   const week = onlineWeek;
+  const resumableDrafts = [...(draftWeeks.data ?? [])]
+    .filter((draft) => draft.id !== week?.id)
+    .sort((left, right) => left.weekStart.localeCompare(right.weekStart));
   const weekEnd = week?.taskOccurrences
     .filter((occurrence) => occurrence.enabled)
     .map((occurrence) => occurrence.date)
@@ -135,6 +144,43 @@ export function CurrentWeekPage({
         <h1>Tuần này</h1>
         <p>Việc cần làm hôm nay và bước tiếp theo của tuần trực.</p>
       </header>
+      {draftWeeks.isError ? (
+        <Notice tone="warning">Chưa tải được các tuần đang chuẩn bị. Hãy thử tải lại trang.</Notice>
+      ) : null}
+      {resumableDrafts.length > 0 ? (
+        <section className="card draft-resume-section" aria-labelledby="draft-weeks-title">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Chưa công bố</p>
+              <h2 id="draft-weeks-title">Tuần đang chuẩn bị</h2>
+              <p>
+                Bản nháp được lưu tự động; bạn có thể tiếp tục sau khi thoát hoặc tải lại trang.
+              </p>
+            </div>
+          </div>
+          <div className="draft-resume-list">
+            {resumableDrafts.map((draft) => {
+              const draftEnd = draft.taskOccurrences
+                .filter((occurrence) => occurrence.enabled)
+                .map((occurrence) => occurrence.date)
+                .sort()
+                .at(-1);
+              return (
+                <article className="draft-resume-row" key={draft.id}>
+                  <div>
+                    <strong>Tuần {formatWeekRange(draft.weekStart, draftEnd)}</strong>
+                    <span>Tổ trực: {draft.groupSnapshot.name}</span>
+                  </div>
+                  <StatusBadge tone="warning">Bản nháp</StatusBadge>
+                  <Link className="button button-primary" to={`/weeks/${draft.id}`}>
+                    Tiếp tục chuẩn bị
+                  </Link>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
       {!week ? (
         <section className="card empty-state">
           <CalendarDays size={32} aria-hidden="true" />

@@ -1498,6 +1498,44 @@ a:visited {
   border-radius: 11px;
   background: #fff8e9;
 }
+.draft-resume-section {
+  border-color: #d8c98f;
+  background: #fffdf4;
+}
+.draft-resume-list {
+  display: grid;
+  gap: 0.65rem;
+}
+.draft-resume-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #e7dfbd;
+  border-radius: 10px;
+  background: white;
+}
+.draft-resume-row > div,
+.existing-week-panel > div {
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+.draft-resume-row span:not(.status-badge),
+.existing-week-panel span:not(.status-badge) {
+  color: #5c6a61;
+}
+.existing-week-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #d8c98f;
+  border-radius: 11px;
+  background: #fffdf4;
+}
 .next-step-panel p {
   margin: 0.25rem 0 0.85rem;
   color: #665a39;
@@ -1791,6 +1829,20 @@ a:visited {
   .compact-day-task {
     grid-template-columns: 1fr;
     gap: 0.1rem;
+  }
+  .draft-resume-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .draft-resume-row .button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  .existing-week-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .existing-week-panel .button {
+    width: 100%;
   }
   .balance-summary {
     max-width: none;
