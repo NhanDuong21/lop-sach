@@ -4,7 +4,7 @@
 
 - Bắt đầu: 2026-08-27
 - Nhánh: `main`
-- Milestone hiện tại: 7 — Duty-week lifecycle
+- Milestone hiện tại: 8 — Weekly UI
 - Production topology: `DEFERRED_EXTERNAL_CREDENTIALS`
 
 ## Milestones
@@ -19,8 +19,8 @@
 | 4. Master-data UI              | Hoàn tất                 | `feat(web): complete onboarding and classroom management`       | 28 tests + API runtime import; full `pnpm check` xanh       |
 | 5. Scheduler core/hash         | Hoàn tất                 | `feat(scheduler): add canonical deterministic generation`       | 17 scheduler tests; full `pnpm check` xanh                  |
 | 6. Fairness/replacements       | Hoàn tất                 | `feat(scheduler): add bounded fairness and explainable ranking` | 25 scheduler tests; full `pnpm check` xanh                  |
-| 7. Duty-week lifecycle         | Đang thực hiện           | Chưa có                                                         | Chưa chạy                                                   |
-| 8. Weekly UI                   | Chưa bắt đầu             | Chưa có                                                         | Chưa chạy                                                   |
+| 7. Duty-week lifecycle         | Hoàn tất                 | `feat(duty-weeks): add stale-safe weekly lifecycle`             | 11 duty-week API/size tests; full `pnpm check` xanh         |
+| 8. Weekly UI                   | Đang thực hiện           | Chưa có                                                         | Chưa chạy                                                   |
 | 9. History/export/backup       | Chưa bắt đầu             | Chưa có                                                         | Chưa chạy                                                   |
 | 10. PWA/offline                | Chưa bắt đầu             | Chưa có                                                         | Chưa chạy                                                   |
 | 11. Quality/docs               | Chưa bắt đầu             | Chưa có                                                         | Chưa chạy                                                   |
@@ -53,6 +53,7 @@
 - In-app Browser không có instance khả dụng trong phiên nên không có tuyên bố visual Browser smoke. Responsive layout được kiểm tra bằng component/build gates và CSS breakpoint 760/480 px; interactive Browser verification vẫn phải chạy khi surface khả dụng hoặc trong E2E milestone.
 - Milestone 5: scheduler framework-independent đã có canonical JSON với object-key sorting, semantic-set normalization và SHA-256 đa runtime từ `@noble/hashes`; FNV-1a chỉ dùng cho deterministic candidate tie-breaking. Context hash bao gồm engine version, generation revision và classroom/student/task/week revisions. Hard eligibility chỉ dùng group/active/participation, duty-week absence, ba persistent restriction types và hard gender rule; không có start time, end time, time bucket hay same-day hard constraint. Manual/locked assignment hợp lệ được giữ; fixed assignment không hợp lệ làm generation fail rõ ràng. 17 scheduler tests xanh, gồm SHA-256 known vector, permutation-invariant hash/output, version/revision mutation, outdated-client reload response, lock preservation, impossible schedule và repeated invariant permutations. Full `pnpm check` xanh với 45 tests toàn repository và API compiled runtime import.
 - Milestone 6: fairness dùng aggregate actual/opportunity với prior `P=4`; baseline chỉ giữ tám eligible completed-week summaries gần nhất và deterministic loại tuần thứ chín. Candidate scoring áp dụng đúng trọng số đã duyệt, controlled relaxation theo bốn cấp và warning có cấu trúc; nhiều assignment cùng ngày vẫn là soft constraint. Local improvement chỉ swap assignment `AUTO` chưa lock, có giới hạn `min(500, 4 × slotCount²)`, chỉ nhận strict improvement và validate hard constraints sau mỗi accepted swap/lần cuối. Replacement dùng cùng hard filters, xếp hạng deterministic, sinh giải thích tiếng Việt từ fact thật và chỉ đổi slot đích. Fairness score/label/cap khi unassigned đã được triển khai. 25 scheduler tests xanh, gồm new-student shrinkage, eight-week truncation, same-day relaxation, local improvement và replacement isolation; full `pnpm check` xanh với 53 tests toàn repository.
+- Milestone 7: API đã có đầy đủ duty-week aggregate/lifecycle, recurring và one-off occurrences, weekly absences, manual/lock/swap/replacement, backend canonical generation, explicit manual preflight, publish/complete transitions và actual-performer ledger. Publish dựng lại SHA-256 context, phát hiện master-data staleness và chạy lại toàn bộ hard validator; client version cũ nhận `SCHEDULER_VERSION_OUTDATED` cùng `RELOAD_REQUIRED`. Đổi tổ bị chặn khi còn lock; nếu không thì xóa toàn assignments, loại absences tổ cũ và đặt `requiresGeneration`. Baseline aggregate toàn lịch sử nhưng chỉ embed tám recent summaries; không embed duty-week cũ. Change log compact 50 entry theo chained SHA-256 khi chạm 200; document guard là 8 MiB cùng giới hạn 64 occurrences/128 slots/32 fingerprints. Integration tests bao phủ unique/race version, stale publish, hard-constraint publish preflight, immutable completion, group clearing, manual preflight, one-off/replacement/swap; size tests bao phủ BSON guard, history compaction và eight-week baseline. Full repository gate xanh.
 
 ## Remaining work
 

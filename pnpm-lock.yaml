@@ -41,6 +41,9 @@ importers:
       '@lop-sach/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@lop-sach/scheduler':
+        specifier: workspace:*
+        version: link:../../packages/scheduler
       argon2:
         specifier: 0.44.0
         version: 0.44.0

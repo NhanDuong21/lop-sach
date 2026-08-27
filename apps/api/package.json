@@ -9,11 +9,12 @@
     "dev": "tsx watch src/server.ts",
     "owner": "tsx src/cli/owner.ts",
     "start": "node dist/server.js",
-    "test": "pnpm --filter @lop-sach/contracts build && vitest run --passWithNoTests",
+    "test": "pnpm --filter @lop-sach/contracts build && pnpm --filter @lop-sach/scheduler build && vitest run --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@lop-sach/contracts": "workspace:*",
+    "@lop-sach/scheduler": "workspace:*",
     "argon2": "0.44.0",
     "cookie-parser": "1.4.7",
     "express": "5.1.0",

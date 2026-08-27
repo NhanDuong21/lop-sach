@@ -5,10 +5,20 @@ export class HttpProblem extends Error {
     public readonly status: number,
     public readonly code: ErrorCode,
     detail: string,
-  ) { super(detail); }
+    public readonly extensions: Pick<
+      ProblemDetails,
+      'action' | 'serverSchedulerEngineVersion'
+    > = {},
+  ) {
+    super(detail);
+  }
 }
 
-export function problemDetails(problem: HttpProblem, instance: string, requestId: string): ProblemDetails {
+export function problemDetails(
+  problem: HttpProblem,
+  instance: string,
+  requestId: string,
+): ProblemDetails {
   return {
     type: `urn:lop-sach:error:${problem.code.toLowerCase()}`,
     title: problem.code,
@@ -17,5 +27,6 @@ export function problemDetails(problem: HttpProblem, instance: string, requestId
     detail: problem.message,
     instance,
     requestId,
+    ...problem.extensions,
   };
 }
