@@ -32,7 +32,7 @@ export function WeekExportActions({
     } catch {
       setFeedback({
         tone: 'error',
-        text: 'Không thể sao chép tự động. Hãy dùng nút Xuất văn bản.',
+        text: 'Không thể sao chép tự động trên trình duyệt này. Bạn vẫn có thể tải ảnh PNG.',
       });
     }
   };
@@ -68,24 +68,25 @@ export function WeekExportActions({
   };
 
   return (
-    <section className="card export-actions" aria-label="Sao chép và xuất lịch">
-      <div>
-        <h2>Gửi lịch cho lớp</h2>
-        <p>Sao chép nội dung tiếng Việt hoặc tải ảnh để gửi vào nhóm chat.</p>
+    <section id="share" className="card export-actions" aria-label="Chia sẻ lịch với lớp">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Gửi lịch cho lớp</p>
+          <h2>Chia sẻ lịch</h2>
+          <p>Gửi ảnh trực tiếp trên điện thoại, hoặc sao chép nội dung cho nhóm lớp.</p>
+        </div>
+        <button
+          className="button"
+          type="button"
+          disabled={pending}
+          onClick={() => void exportPng(true)}
+        >
+          <Share2 size={17} aria-hidden="true" /> Chia sẻ lịch
+        </button>
       </div>
       <div className="button-row">
         <button className="button button-secondary" type="button" onClick={() => void copyText()}>
-          <Copy size={17} aria-hidden="true" /> Sao chép văn bản
-        </button>
-        <button
-          className="button button-secondary"
-          type="button"
-          onClick={() => {
-            downloadTextFile(text, `${filename}.txt`);
-            setFeedback({ tone: 'success', text: `Đã tải ${filename}.txt.` });
-          }}
-        >
-          <Download size={17} aria-hidden="true" /> Xuất văn bản
+          <Copy size={17} aria-hidden="true" /> Sao chép nội dung
         </button>
         <button
           className="button button-secondary"
@@ -93,16 +94,21 @@ export function WeekExportActions({
           disabled={pending}
           onClick={() => void exportPng(false)}
         >
-          <Download size={17} aria-hidden="true" /> Xuất PNG
+          <Download size={17} aria-hidden="true" /> Tải ảnh PNG
         </button>
-        <button
-          className="button"
-          type="button"
-          disabled={pending}
-          onClick={() => void exportPng(true)}
-        >
-          <Share2 size={17} aria-hidden="true" /> Chia sẻ PNG
-        </button>
+        <details className="export-more">
+          <summary>Tùy chọn khác</summary>
+          <button
+            className="text-action"
+            type="button"
+            onClick={() => {
+              downloadTextFile(text, `${filename}.txt`);
+              setFeedback({ tone: 'success', text: `Đã tải ${filename}.txt.` });
+            }}
+          >
+            Tải tệp văn bản (.txt)
+          </button>
+        </details>
       </div>
       {feedback ? <Notice tone={feedback.tone}>{feedback.text}</Notice> : null}
     </section>

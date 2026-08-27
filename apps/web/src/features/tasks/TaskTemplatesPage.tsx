@@ -2,13 +2,15 @@ import type { TaskTemplate } from '@lop-sach/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, ClipboardList, Plus } from 'lucide-react';
 import { useState } from 'react';
+import { ClassroomTabs } from '../../components/layout/ClassroomTabs.js';
+import { ActionMenu } from '../../components/ui/ActionMenu.js';
 import { Button } from '../../components/ui/Button.js';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.js';
 import { LoadingState } from '../../components/ui/LoadingState.js';
 import { ModalDialog } from '../../components/ui/ModalDialog.js';
 import { Notice } from '../../components/ui/Notice.js';
 import { StatusBadge } from '../../components/ui/StatusBadge.js';
-import { eligibilityLabels, workloadLabels } from '../../lib/vietnamese-labels.js';
+import { eligibilityLabels, schoolDayLabels, workloadLabels } from '../../lib/vietnamese-labels.js';
 import { getClassroom } from '../classroom/classroom.api.js';
 import { TaskForm } from './TaskForm.js';
 import {
@@ -30,6 +32,8 @@ export function TaskTemplatesPage({
   const tasks = useQuery({ queryKey: ['tasks'], queryFn: listTasks });
   const [editing, setEditing] = useState<TaskTemplate | 'new'>();
   const [activeTarget, setActiveTarget] = useState<TaskTemplate>();
+  const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
+  const [reordering, setReordering] = useState(false);
   const update = useMutation({
     mutationFn: ({
       input,
@@ -64,21 +68,35 @@ export function TaskTemplatesPage({
   if (!classroom.data || !tasks.data)
     return <Notice tone="error">Không tải được danh sách công việc.</Notice>;
   const move = (index: number, offset: -1 | 1): void => {
-    const next = [...tasks.data];
+    const next = [...tasks.data].sort((left, right) => left.order - right.order);
     const target = index + offset;
     if (target < 0 || target >= next.length) return;
     const [moving] = next.splice(index, 1);
     if (moving) next.splice(target, 0, moving);
     reorder.mutate(next.map((task) => task.id));
   };
+  const ordered = [...tasks.data].sort((left, right) => left.order - right.order);
+  const visibleTasks = ordered.filter((task) =>
+    statusFilter === 'ACTIVE' ? task.active : !task.active,
+  );
+  const activeCount = tasks.data.filter((task) => task.active).length;
+  const inactiveCount = tasks.data.length - activeCount;
+  const dayText = (task: TaskTemplate): string => {
+    if (task.schoolDays.length === classroom.data.schoolDays.length)
+      return `${schoolDayLabels[task.schoolDays[0] ?? 'MONDAY']}–${schoolDayLabels[task.schoolDays.at(-1) ?? 'MONDAY']}`;
+    return task.schoolDays.map((day) => schoolDayLabels[day]).join(', ');
+  };
   return (
     <div className="page-stack">
       {compact ? null : (
-        <header className="page-heading">
-          <p className="eyebrow">Thiết lập</p>
-          <h1>Công việc trực nhật</h1>
-          <p>Khối lượng và số người giúp hệ thống xếp lịch cân bằng.</p>
-        </header>
+        <>
+          <ClassroomTabs />
+          <header className="page-heading">
+            <p className="eyebrow">Lớp học</p>
+            <h1>Công việc trực nhật</h1>
+            <p>Độ nặng chỉ dùng để chia việc cân bằng, không phải điểm thi đua.</p>
+          </header>
+        </>
       )}
       <section className="card">
         <div className="section-heading">
@@ -86,75 +104,118 @@ export function TaskTemplatesPage({
             <h2>Danh sách công việc</h2>
             <p>Điều kiện nam hoặc nữ chỉ áp dụng khi bạn chủ động chọn.</p>
           </div>
-          <Button
-            onClick={() => {
-              update.reset();
-              setEditing('new');
-            }}
-          >
-            <Plus size={17} />
-            Thêm công việc
-          </Button>
+          <div className="button-row">
+            <Button
+              variant="secondary"
+              onClick={() => setReordering((current) => !current)}
+              disabled={statusFilter !== 'ACTIVE' || visibleTasks.length < 2}
+            >
+              {reordering ? 'Xong sắp xếp' : 'Sắp xếp'}
+            </Button>
+            <Button
+              onClick={() => {
+                update.reset();
+                setEditing('new');
+              }}
+            >
+              <Plus size={17} />
+              Thêm công việc
+            </Button>
+          </div>
         </div>
+        <div className="segmented-filter" aria-label="Lọc trạng thái công việc">
+          <button
+            type="button"
+            aria-pressed={statusFilter === 'ACTIVE'}
+            onClick={() => setStatusFilter('ACTIVE')}
+          >
+            Đang dùng ({activeCount})
+          </button>
+          <button
+            type="button"
+            aria-pressed={statusFilter === 'INACTIVE'}
+            onClick={() => setStatusFilter('INACTIVE')}
+          >
+            Đã tạm ngừng ({inactiveCount})
+          </button>
+        </div>
+        {reordering ? (
+          <Notice>Thứ tự này được dùng khi hiển thị lịch. Thay đổi được lưu ngay.</Notice>
+        ) : null}
         {update.isError || activeMutation.isError || reorder.isError ? (
           <Notice tone="error">Không thể lưu công việc. Hãy tải lại dữ liệu và thử lại.</Notice>
         ) : null}
         <div className="entity-list">
-          {tasks.data.length === 0 ? (
+          {visibleTasks.length === 0 ? (
             <div className="empty-state">
               <ClipboardList size={28} />
               <h3>Chưa có công việc</h3>
             </div>
           ) : (
-            tasks.data.map((task, index) => (
-              <article className="entity-row" key={task.id}>
-                <div>
-                  <strong>{task.name}</strong>
-                  <p>
-                    {task.requiredStudents} người · {workloadLabels[task.workloadLevel]} ·{' '}
-                    {task.schoolDays.length} ngày/tuần · {eligibilityLabels[task.eligibilityRule]}
-                  </p>
-                </div>
-                <StatusBadge tone={task.active ? 'success' : 'neutral'}>
-                  {task.active ? 'Đang áp dụng' : 'Ngừng áp dụng'}
-                </StatusBadge>
-                <div className="icon-actions">
-                  <Button
-                    variant="secondary"
-                    aria-label={`Đưa ${task.name} lên`}
-                    onClick={() => move(index, -1)}
-                    disabled={index === 0 || reorder.isPending}
-                  >
-                    <ArrowUp size={17} />
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    aria-label={`Đưa ${task.name} xuống`}
-                    onClick={() => move(index, 1)}
-                    disabled={index === tasks.data.length - 1 || reorder.isPending}
-                  >
-                    <ArrowDown size={17} />
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      update.reset();
-                      setEditing(task);
-                    }}
-                  >
-                    Sửa
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() =>
-                      task.active ? setActiveTarget(task) : activeMutation.mutate(task)
-                    }
-                  >
-                    {task.active ? 'Ngừng áp dụng' : 'Áp dụng lại'}
-                  </Button>
-                </div>
-              </article>
-            ))
+            visibleTasks.map((task) => {
+              const index = ordered.findIndex((item) => item.id === task.id);
+              return (
+                <article className="entity-row" key={task.id}>
+                  <div>
+                    <strong>{task.name}</strong>
+                    <p>
+                      {task.requiredStudents} bạn · {workloadLabels[task.workloadLevel]} ·{' '}
+                      {dayText(task)} · {eligibilityLabels[task.eligibilityRule]}
+                    </p>
+                  </div>
+                  {!task.active ? <StatusBadge>Đã tạm ngừng</StatusBadge> : null}
+                  <div className="icon-actions">
+                    {reordering ? (
+                      <>
+                        <Button
+                          variant="secondary"
+                          aria-label={`Đưa ${task.name} lên`}
+                          onClick={() => move(index, -1)}
+                          disabled={index === 0 || reorder.isPending}
+                        >
+                          <ArrowUp size={17} />
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          aria-label={`Đưa ${task.name} xuống`}
+                          onClick={() => move(index, 1)}
+                          disabled={index === ordered.length - 1 || reorder.isPending}
+                        >
+                          <ArrowDown size={17} />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          variant="secondary"
+                          onClick={() => {
+                            update.reset();
+                            setEditing(task);
+                          }}
+                        >
+                          Sửa
+                        </Button>
+                        <ActionMenu
+                          label={`Tùy chọn cho ${task.name}`}
+                          items={[
+                            task.active
+                              ? {
+                                  label: 'Tạm ngừng',
+                                  danger: true,
+                                  onSelect: () => setActiveTarget(task),
+                                }
+                              : {
+                                  label: 'Dùng lại công việc',
+                                  onSelect: () => activeMutation.mutate(task),
+                                },
+                          ]}
+                        />
+                      </>
+                    )}
+                  </div>
+                </article>
+              );
+            })
           )}
         </div>
       </section>
@@ -192,9 +253,9 @@ export function TaskTemplatesPage({
       </ModalDialog>
       <ConfirmDialog
         open={Boolean(activeTarget)}
-        title="Ngừng áp dụng công việc?"
+        title="Tạm ngừng công việc?"
         description={`“${activeTarget?.name ?? 'Công việc này'}” sẽ không xuất hiện trong các tuần mới. Lịch sử cũ vẫn được giữ.`}
-        confirmLabel="Ngừng áp dụng"
+        confirmLabel="Tạm ngừng"
         onCancel={() => setActiveTarget(undefined)}
         onConfirm={() => {
           const task = activeTarget;

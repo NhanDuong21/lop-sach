@@ -1,7 +1,6 @@
 import type { DutyWeek } from '@lop-sach/contracts';
-import { CircleHelp, Lock, LockOpen, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
-import { Button } from '../../components/ui/Button.js';
+import { ActionMenu } from '../../components/ui/ActionMenu.js';
 
 type Assignment = DutyWeek['assignments'][number];
 type StudentSnapshot = DutyWeek['studentSnapshots'][number];
@@ -33,7 +32,7 @@ export function AssignmentEditor({
   return (
     <div className={`assignment-row${swapSelected ? ' assignment-selected' : ''}`}>
       <div className="assignment-field">
-        <label htmlFor={`assignment-${slotId}`}>Vị trí {slotIndex + 1}</label>
+        <label htmlFor={`assignment-${slotId}`}>Người thứ {slotIndex + 1}</label>
         <select
           id={`assignment-${slotId}`}
           value={assignment?.studentId ?? ''}
@@ -61,16 +60,6 @@ export function AssignmentEditor({
                     : 'Thủ công'}
               {assignment.locked ? ' · Đã khóa' : ''}
             </small>
-            {assignment.explanation.length > 0 ? (
-              <button
-                type="button"
-                className="text-action"
-                aria-expanded={explanationOpen}
-                onClick={() => setExplanationOpen((current) => !current)}
-              >
-                <CircleHelp size={15} aria-hidden="true" /> Vì sao phân công?
-              </button>
-            ) : null}
             {explanationOpen ? (
               <ul className="assignment-explanation">
                 {assignment.explanation.map((line) => (
@@ -83,34 +72,34 @@ export function AssignmentEditor({
       </div>
       {assignment ? (
         <div className="assignment-actions">
-          <Button
-            variant="secondary"
-            aria-label={assignment.locked ? 'Mở khóa phân công' : 'Khóa phân công'}
-            disabled={disabled}
-            onClick={() => onLock(!assignment.locked)}
-          >
-            {assignment.locked ? (
-              <LockOpen size={16} aria-hidden="true" />
-            ) : (
-              <Lock size={16} aria-hidden="true" />
-            )}
-          </Button>
-          <Button
-            variant="secondary"
-            disabled={disabled || assignment.locked}
-            onClick={onReplacement}
-          >
-            <RefreshCw size={16} aria-hidden="true" />
-            Thay
-          </Button>
-          <Button
-            variant="secondary"
-            disabled={disabled || assignment.locked}
-            aria-pressed={swapSelected}
-            onClick={onToggleSwap}
-          >
-            Hoán đổi
-          </Button>
+          <ActionMenu
+            label={`Tùy chọn cho ${assignment.studentDisplayName ?? `người thứ ${slotIndex + 1}`}`}
+            items={[
+              {
+                label: assignment.locked ? 'Cho phép thay khi tạo lại' : 'Giữ nguyên khi tạo lại',
+                disabled,
+                onSelect: () => onLock(!assignment.locked),
+              },
+              {
+                label: 'Tìm người thay',
+                disabled: disabled || assignment.locked,
+                onSelect: onReplacement,
+              },
+              {
+                label: swapSelected ? 'Bỏ chọn đổi chỗ' : 'Đổi với bạn khác',
+                disabled: disabled || assignment.locked,
+                onSelect: onToggleSwap,
+              },
+              ...(assignment.explanation.length > 0
+                ? [
+                    {
+                      label: 'Vì sao bạn này được chọn?',
+                      onSelect: () => setExplanationOpen((current) => !current),
+                    },
+                  ]
+                : []),
+            ]}
+          />
         </div>
       ) : null}
     </div>

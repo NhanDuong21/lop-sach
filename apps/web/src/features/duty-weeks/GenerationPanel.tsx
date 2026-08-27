@@ -2,7 +2,6 @@ import type { DutyWeek } from '@lop-sach/contracts';
 import { RefreshCw, ShieldCheck } from 'lucide-react';
 import { Button } from '../../components/ui/Button.js';
 import { Notice } from '../../components/ui/Notice.js';
-import { StatusBadge } from '../../components/ui/StatusBadge.js';
 import { uniqueWarningCodes, warningLabels } from '../../lib/week-warnings.js';
 
 export function GenerationPanel({
@@ -21,23 +20,33 @@ export function GenerationPanel({
     <section className="card generation-panel">
       <div className="section-heading">
         <div>
-          <h2>Chất lượng phân công</h2>
-          <p>Kết quả sau khi lưu là kết quả chính thức.</p>
+          <h2>Mức độ cân bằng</h2>
+          <p>Chỉ báo giúp nhận ra các trường hợp cần xem lại.</p>
         </div>
         {week.fairness ? (
-          <div className="fairness-summary">
-            <StatusBadge tone={week.fairness.score >= 65 ? 'success' : 'warning'}>
-              {week.fairness.label} · {week.fairness.score}/100
-            </StatusBadge>
-            <small>Điểm càng cao, khối lượng giữa các bạn càng đều.</small>
+          <div className="balance-summary">
+            <strong>{week.fairness.label}</strong>
+            <span>Khối lượng giữa các bạn được so sánh để chia việc đều hơn.</span>
+            <details>
+              <summary>Xem cách đánh giá</summary>
+              <p>
+                Chỉ số nội bộ: {week.fairness.score}/100. Đây không phải điểm thi đua và không cần
+                cố đạt 100.
+              </p>
+            </details>
           </div>
         ) : (
-          <StatusBadge tone="warning">Chưa kiểm tra</StatusBadge>
+          <span className="muted">Chưa có phương án để đánh giá</span>
         )}
       </div>
-      {week.requiresGeneration ? (
+      {week.status !== 'DRAFT' ? (
+        <Notice tone="success">
+          <ShieldCheck size={17} aria-hidden="true" /> Lịch đã được công bố và đang ở chế độ chỉ
+          xem.
+        </Notice>
+      ) : week.requiresGeneration ? (
         <Notice tone="warning">
-          Cần tạo lại phân công hoặc kiểm tra lại các chỉnh sửa trước khi phát hành.
+          Cần tạo phương án khác hoặc kiểm tra lại các chỉnh sửa trước khi công bố.
         </Notice>
       ) : (
         <Notice tone="success">
@@ -53,7 +62,7 @@ export function GenerationPanel({
         <div className="button-row">
           <Button onClick={onGenerate} disabled={pending}>
             <RefreshCw size={17} aria-hidden="true" />
-            {week.assignments.length > 0 ? 'Tạo lại phân công' : 'Tạo phân công'}
+            {week.assignments.length > 0 ? 'Tạo phương án khác' : 'Tạo phân công'}
           </Button>
           {week.assignments.length > 0 && week.requiresGeneration ? (
             <Button variant="secondary" onClick={onPreflight} disabled={pending}>

@@ -95,7 +95,7 @@ test('keeps an impossible schedule visible, unassigned and unpublished', async (
   await page.goto(`/weeks/${generated.data.id}`);
   await expect(page.getByRole('heading', { name: 'Tuần 31/08 – 31/08/2026' })).toBeVisible();
   await expect(page.getByText('Còn vị trí chưa phân công.').first()).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Phát hành' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Tiếp tục công bố' })).toBeDisabled();
   await expect(page.getByText(/time overlap/iu)).toHaveCount(0);
   const accessibility = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])

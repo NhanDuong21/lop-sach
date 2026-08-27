@@ -17,10 +17,10 @@ export const schoolDayLabels: Record<SchoolDay, string> = {
 export const genderLabels: Record<StudentGender, string> = {
   MALE: 'Nam',
   FEMALE: 'Nữ',
-  UNSPECIFIED: 'Không chỉ định',
+  UNSPECIFIED: 'Chưa xác định',
 };
 export const eligibilityLabels: Record<TaskEligibilityRule, string> = {
-  ANY: 'Mọi học sinh',
+  ANY: 'Tất cả học sinh',
   PREFER_MALE: 'Ưu tiên nam',
   MALE_ONLY: 'Chỉ nam',
   PREFER_FEMALE: 'Ưu tiên nữ',

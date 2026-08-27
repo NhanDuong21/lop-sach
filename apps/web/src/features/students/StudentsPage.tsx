@@ -1,8 +1,10 @@
 import type { Student } from '@lop-sach/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ListPlus, Plus, UserRound } from 'lucide-react';
+import { ListPlus, Plus, Search, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { ClassroomTabs } from '../../components/layout/ClassroomTabs.js';
+import { ActionMenu } from '../../components/ui/ActionMenu.js';
 import { Button } from '../../components/ui/Button.js';
 import { LoadingState } from '../../components/ui/LoadingState.js';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.js';
@@ -36,6 +38,8 @@ export function StudentsPage({
   const [editing, setEditing] = useState<Student | 'new' | 'bulk'>();
   const [activeTarget, setActiveTarget] = useState<Student>();
   const [groupFilter, setGroupFilter] = useState(searchParams.get('groupId') ?? 'ALL');
+  const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'INACTIVE' | 'ALL'>('ACTIVE');
+  const [search, setSearch] = useState('');
   const update = useMutation({
     mutationFn: async ({
       input,
@@ -82,25 +86,35 @@ export function StudentsPage({
   if (classroom.isPending || students.isPending || tasks.isPending) return <LoadingState />;
   if (!classroom.data || !students.data || !tasks.data)
     return <Notice tone="error">Không tải được danh sách học sinh.</Notice>;
-  const filtered =
-    groupFilter === 'ALL'
-      ? students.data
-      : students.data.filter((student) => student.groupId === groupFilter);
+  const normalizedSearch = search.trim().toLocaleLowerCase('vi-VN');
+  const filtered = students.data.filter(
+    (student) =>
+      (groupFilter === 'ALL' || student.groupId === groupFilter) &&
+      (statusFilter === 'ALL' || (statusFilter === 'ACTIVE' ? student.active : !student.active)) &&
+      (!normalizedSearch ||
+        student.displayName.toLocaleLowerCase('vi-VN').includes(normalizedSearch)),
+  );
+  const activeCount = students.data.filter((student) => student.active).length;
+  const inactiveCount = students.data.length - activeCount;
   return (
     <div className="page-stack">
       {compact ? null : (
-        <header className="page-heading">
-          <p className="eyebrow">Lớp học</p>
-          <h1>Học sinh</h1>
-          <p>Chỉ lưu thông tin cần thiết để phân công trực nhật.</p>
-        </header>
+        <>
+          <ClassroomTabs />
+          <header className="page-heading">
+            <p className="eyebrow">Lớp học</p>
+            <h1>Học sinh</h1>
+            <p>Tìm và cập nhật nhanh những thông tin ảnh hưởng đến phân công.</p>
+          </header>
+        </>
       )}
       <section className="card">
         <div className="section-heading">
           <div>
             <h2>Danh sách học sinh</h2>
             <p>
-              {students.data.filter((student) => student.active).length} học sinh đang hoạt động
+              {activeCount} đang tham gia
+              {inactiveCount > 0 ? ` · ${inactiveCount} đã ngừng` : ''}
             </p>
           </div>
           <div className="button-row">
@@ -127,19 +141,52 @@ export function StudentsPage({
             </Button>
           </div>
         </div>
-        <label htmlFor="group-filter">Lọc theo tổ</label>
-        <select
-          id="group-filter"
-          value={groupFilter}
-          onChange={(event) => setGroupFilter(event.target.value)}
-        >
-          <option value="ALL">Tất cả tổ</option>
-          {classroom.data.groups.map((group) => (
-            <option value={group.id} key={group.id}>
-              {group.name}
-            </option>
-          ))}
-        </select>
+        <div className="filter-bar">
+          <label className="search-field" htmlFor="student-search">
+            <span className="sr-only">Tìm theo tên học sinh</span>
+            <Search size={18} aria-hidden="true" />
+            <input
+              id="student-search"
+              type="search"
+              value={search}
+              placeholder="Tìm theo tên học sinh"
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </label>
+          <div>
+            <label className="sr-only" htmlFor="group-filter">
+              Lọc theo tổ
+            </label>
+            <select
+              id="group-filter"
+              value={groupFilter}
+              onChange={(event) => setGroupFilter(event.target.value)}
+            >
+              <option value="ALL">Tất cả tổ</option>
+              {classroom.data.groups.map((group) => (
+                <option value={group.id} key={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="sr-only" htmlFor="student-status-filter">
+              Lọc theo trạng thái
+            </label>
+            <select
+              id="student-status-filter"
+              value={statusFilter}
+              onChange={(event) =>
+                setStatusFilter(event.target.value as 'ACTIVE' | 'INACTIVE' | 'ALL')
+              }
+            >
+              <option value="ACTIVE">Đang tham gia ({activeCount})</option>
+              <option value="INACTIVE">Đã ngừng ({inactiveCount})</option>
+              <option value="ALL">Tất cả trạng thái</option>
+            </select>
+          </div>
+        </div>
         {update.isError || activeMutation.isError || bulkCreate.isError ? (
           <Notice tone="error">
             Không thể lưu học sinh. Hãy kiểm tra phiên bản dữ liệu và thử lại.
@@ -159,33 +206,36 @@ export function StudentsPage({
                   <strong>{student.displayName}</strong>
                   <p>
                     {classroom.data.groups.find((group) => group.id === student.groupId)?.name ??
-                      'Tổ đã lưu'}{' '}
-                    · {student.restrictions.length} hạn chế
+                      'Tổ đã lưu'}
+                    {student.restrictions.length > 0
+                      ? ` · ${student.restrictions.length} hạn chế`
+                      : ''}
                   </p>
                 </div>
-                <StatusBadge tone={student.active ? 'success' : 'neutral'}>
-                  {student.active ? 'Đang tham gia' : 'Ngừng tham gia'}
-                </StatusBadge>
-                <div className="button-row">
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      update.reset();
-                      bulkCreate.reset();
-                      setEditing(student);
-                    }}
-                  >
-                    Sửa
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() =>
-                      student.active ? setActiveTarget(student) : activeMutation.mutate(student)
-                    }
-                  >
-                    {student.active ? 'Ngừng tham gia' : 'Tham gia lại'}
-                  </Button>
-                </div>
+                {!student.active ? <StatusBadge>Đã ngừng tham gia</StatusBadge> : null}
+                <ActionMenu
+                  label={`Tùy chọn cho ${student.displayName}`}
+                  items={[
+                    {
+                      label: 'Sửa thông tin',
+                      onSelect: () => {
+                        update.reset();
+                        bulkCreate.reset();
+                        setEditing(student);
+                      },
+                    },
+                    student.active
+                      ? {
+                          label: 'Ngừng tham gia',
+                          danger: true,
+                          onSelect: () => setActiveTarget(student),
+                        }
+                      : {
+                          label: 'Tham gia lại',
+                          onSelect: () => activeMutation.mutate(student),
+                        },
+                  ]}
+                />
               </article>
             ))
           )}
@@ -207,7 +257,7 @@ export function StudentsPage({
             ? 'Chọn một tổ và nhập mỗi học sinh trên một dòng.'
             : 'Thông tin thay đổi sẽ được dùng cho các tuần tạo sau khi lưu.'
         }
-        size={editing === 'bulk' ? 'default' : 'wide'}
+        size={editing && editing !== 'new' && editing !== 'bulk' ? 'full' : 'default'}
         closeDisabled={update.isPending || bulkCreate.isPending}
         onClose={() => {
           update.reset();
@@ -223,6 +273,7 @@ export function StudentsPage({
             {editing === 'bulk' ? (
               <BulkStudentForm
                 groups={classroom.data.groups}
+                existingNames={students.data.map((student) => student.displayName)}
                 pending={bulkCreate.isPending}
                 onCancel={() => {
                   bulkCreate.reset();

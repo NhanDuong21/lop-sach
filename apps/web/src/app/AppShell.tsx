@@ -17,12 +17,16 @@ export function AppShell({
   return (
     <div className="app-layout">
       <OfflineBanner />
-      <SidebarNavigation classroomName={classroomName} />
+      <SidebarNavigation
+        classroomName={classroomName}
+        displayName={displayName}
+        onLogout={onLogout}
+      />
       <div className="app-column">
         <header className="topbar">
           <div>
             <span className="mobile-brand">Lớp Sạch</span>
-            <small>{displayName}</small>
+            <small>{classroomName}</small>
           </div>
           <Button
             variant="secondary"
@@ -31,7 +35,7 @@ export function AppShell({
             onClick={onLogout}
           >
             <LogOut size={17} aria-hidden="true" />
-            <span>Đăng xuất</span>
+            <span className="sr-only">Đăng xuất</span>
           </Button>
         </header>
         <div className="page-container">

@@ -58,7 +58,7 @@ export function TaskForm({
           />
         </div>
         <div>
-          <label htmlFor="task-headcount">Số học sinh cần</label>
+          <label htmlFor="task-headcount">Số bạn cần</label>
           <input
             id="task-headcount"
             type="number"
@@ -69,20 +69,20 @@ export function TaskForm({
           />
         </div>
         <div>
-          <label htmlFor="task-workload">Mức công việc</label>
+          <label htmlFor="task-workload">Độ nặng</label>
           <select
             id="task-workload"
             value={workloadLevel}
             onChange={(event) => setWorkloadLevel(Number(event.target.value) as 1 | 2 | 3 | 4)}
           >
-            <option value={1}>1 · Nhẹ</option>
-            <option value={2}>2 · Vừa</option>
-            <option value={3}>3 · Nặng</option>
-            <option value={4}>4 · Rất nặng</option>
+            <option value={1}>Nhẹ</option>
+            <option value={2}>Vừa</option>
+            <option value={3}>Nặng</option>
+            <option value={4}>Rất nặng</option>
           </select>
         </div>
         <div>
-          <label htmlFor="task-eligibility">Điều kiện phân công</label>
+          <label htmlFor="task-eligibility">Ai có thể làm?</label>
           <select
             id="task-eligibility"
             value={eligibilityRule}

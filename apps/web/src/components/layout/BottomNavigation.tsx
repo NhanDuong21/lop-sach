@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 
 const items = [
   { to: '/', label: 'Tuần này', Icon: CalendarDays, end: true },
-  { to: '/class', label: 'Lớp', Icon: School, end: false },
+  { to: '/class', label: 'Lớp học', Icon: School, end: false },
   { to: '/history', label: 'Lịch sử', Icon: History, end: false },
   { to: '/settings', label: 'Cài đặt', Icon: Settings, end: false },
 ] as const;

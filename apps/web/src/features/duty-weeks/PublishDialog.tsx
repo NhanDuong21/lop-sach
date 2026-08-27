@@ -19,9 +19,9 @@ export function PublishDialog({
   return (
     <ModalDialog
       open={open}
-      title="Phát hành lịch tuần?"
-      description={`Lịch của ${week.groupSnapshot.name} sẽ chuyển sang chỉ đọc và không thể tạo lại.${
-        week.publicationRevision > 0 ? ` Đây là lần công bố ${week.publicationRevision + 1}.` : ''
+      title="Công bố lịch tuần?"
+      description={`Lịch của ${week.groupSnapshot.name} sẽ trở thành lịch chính thức để gửi cho lớp.${
+        week.publicationRevision > 0 ? ` Đây là lần cập nhật ${week.publicationRevision + 1}.` : ''
       }`}
       size="small"
       closeDisabled={pending}
@@ -38,7 +38,7 @@ export function PublishDialog({
           onClick={onConfirm}
           disabled={pending || week.requiresGeneration || week.generationStale}
         >
-          Phát hành
+          Công bố lịch
         </Button>
       </div>
     </ModalDialog>

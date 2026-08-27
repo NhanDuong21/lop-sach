@@ -2,7 +2,7 @@ import { mondayOfWeek, parseDateOnly, type DutyGroupSelectionBasis } from '@lop-
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { CalendarPlus } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/ui/Button.js';
 import { LoadingState } from '../../components/ui/LoadingState.js';
 import { Notice } from '../../components/ui/Notice.js';
@@ -23,10 +23,16 @@ function todayInClassroomTimezone(): string {
 
 export function NewWeekPage(): React.JSX.Element {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const classroom = useQuery({ queryKey: ['classroom'], queryFn: getClassroom });
-  const [weekStart, setWeekStart] = useState(() =>
-    mondayOfWeek(parseDateOnly(todayInClassroomTimezone())),
-  );
+  const [weekStart, setWeekStart] = useState(() => {
+    const requestedWeekStart = searchParams.get('weekStart');
+    try {
+      return mondayOfWeek(parseDateOnly(requestedWeekStart ?? todayInClassroomTimezone()));
+    } catch {
+      return mondayOfWeek(parseDateOnly(todayInClassroomTimezone()));
+    }
+  });
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [selectionBasis, setSelectionBasis] = useState<DutyGroupSelectionBasis>('MANUAL');
   const [selectionNote, setSelectionNote] = useState('');
@@ -44,7 +50,7 @@ export function NewWeekPage(): React.JSX.Element {
     <div className="page-stack">
       <header className="page-heading">
         <p className="eyebrow">Phân công trực</p>
-        <h1>Tạo tuần mới</h1>
+        <h1>Chuẩn bị tuần trực</h1>
         <p>Chọn tuần và tổ trực. Hệ thống chỉ xếp lịch sau khi bạn kiểm tra vắng mặt.</p>
       </header>
       <section className="card">
@@ -106,7 +112,7 @@ export function NewWeekPage(): React.JSX.Element {
               </select>
             </div>
             <div>
-              <label htmlFor="selection-basis">Cơ sở lựa chọn</label>
+              <label htmlFor="selection-basis">Vì sao chọn tổ này?</label>
               <select
                 id="selection-basis"
                 value={selectionBasis}
@@ -114,7 +120,7 @@ export function NewWeekPage(): React.JSX.Element {
                   setSelectionBasis(event.target.value as DutyGroupSelectionBasis)
                 }
               >
-                <option value="MANUAL">Tự chọn</option>
+                <option value="MANUAL">Bạn tự chọn</option>
                 <option value="ROTATION">Luân phiên</option>
                 <option value="LOWEST_RANKING">Ưu tiên tổ ít trực</option>
                 <option value="TEACHER_ASSIGNED">Giáo viên chỉ định</option>
@@ -133,7 +139,7 @@ export function NewWeekPage(): React.JSX.Element {
             </div>
           </div>
           <Button type="submit" disabled={create.isPending || !effectiveGroupId}>
-            Tạo tuần và kiểm tra vắng mặt
+            Bắt đầu chuẩn bị tuần
           </Button>
         </form>
       </section>

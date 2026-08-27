@@ -80,7 +80,8 @@ export function App(): React.JSX.Element {
         <Route path="weeks/:weekId" element={<WeekEditorPage />} />
         <Route path="class" element={<ClassroomPage />} />
         <Route path="class/students" element={<StudentsPage />} />
-        <Route path="settings/tasks" element={<TaskTemplatesPage />} />
+        <Route path="class/tasks" element={<TaskTemplatesPage />} />
+        <Route path="settings/tasks" element={<Navigate to="/class/tasks" replace />} />
         <Route path="history" element={<HistoryPage />} />
         <Route path="history/:weekId" element={<HistoryDetailPage />} />
         <Route path="settings" element={<SettingsPage />} />

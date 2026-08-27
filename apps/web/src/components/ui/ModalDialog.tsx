@@ -17,7 +17,7 @@ export function ModalDialog({
   readonly open: boolean;
   readonly title: string;
   readonly description?: string;
-  readonly size?: 'small' | 'default' | 'wide';
+  readonly size?: 'small' | 'default' | 'wide' | 'full';
   readonly closeDisabled?: boolean;
   readonly onClose: () => void;
 }>): React.JSX.Element | null {

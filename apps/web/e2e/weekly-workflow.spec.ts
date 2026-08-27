@@ -57,49 +57,52 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   const bulkDialog = page.getByRole('dialog', { name: 'Thêm nhanh nhiều học sinh' });
   await expect(bulkDialog).toBeVisible();
   await bulkDialog.getByRole('button', { name: 'Hủy' }).click();
-  await page.getByRole('button', { name: 'Ngừng tham gia' }).first().click();
+  await page.getByLabel('Tùy chọn cho An').click();
+  await page.getByRole('button', { name: 'Ngừng tham gia' }).click();
   const studentDeactivateDialog = page.getByRole('dialog', {
     name: 'Ngừng cho học sinh tham gia?',
   });
   await expect(studentDeactivateDialog).toBeVisible();
   await studentDeactivateDialog.getByRole('button', { name: 'Hủy' }).click();
 
-  await page.goto('/settings/tasks');
+  await page.goto('/class/tasks');
   await page.getByRole('button', { name: 'Thêm công việc' }).click();
   const taskDialog = page.getByRole('dialog', { name: 'Thêm công việc' });
   await expect(taskDialog).toBeVisible();
   await taskDialog.getByRole('button', { name: 'Hủy' }).click();
-  await page.getByRole('button', { name: 'Ngừng áp dụng' }).first().click();
-  const taskDeactivateDialog = page.getByRole('dialog', { name: 'Ngừng áp dụng công việc?' });
+  await page.getByLabel('Tùy chọn cho Lau bảng').click();
+  await page.getByRole('button', { name: 'Tạm ngừng', exact: true }).click();
+  const taskDeactivateDialog = page.getByRole('dialog', { name: 'Tạm ngừng công việc?' });
   await expect(taskDeactivateDialog).toBeVisible();
   await taskDeactivateDialog.getByRole('button', { name: 'Hủy' }).click();
 
   await page.goto('/class');
-  await page.getByRole('button', { name: 'Sửa' }).first().click();
+  await page.getByRole('button', { name: 'Sửa', exact: true }).first().click();
   const groupDialog = page.getByRole('dialog', { name: 'Sửa Tổ 1' });
   await expect(groupDialog).toBeVisible();
   await groupDialog.getByRole('button', { name: 'Hủy' }).click();
 
   await page.goto('/weeks/new');
-  await expect(page.getByRole('heading', { name: 'Tạo tuần mới' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Chuẩn bị tuần trực' })).toBeVisible();
   await page.getByLabel('Ngày Thứ Hai đầu tuần').fill('2026-08-24');
-  await page.getByRole('button', { name: 'Tạo tuần và kiểm tra vắng mặt' }).click();
+  await page.getByRole('button', { name: 'Bắt đầu chuẩn bị tuần' }).click();
   await expect(page.getByRole('heading', { name: 'Tuần 24/08 – 24/08/2026' })).toBeVisible();
-  await page.getByRole('button', { name: 'Thêm công việc' }).click();
+  await page.getByRole('button', { name: 'Thêm việc phát sinh' }).click();
   const oneOffDialog = page.getByRole('dialog', { name: 'Thêm công việc phát sinh' });
   await expect(oneOffDialog).toBeVisible();
   await oneOffDialog.getByRole('button', { name: 'Hủy' }).click();
-  await page.getByRole('button', { name: 'Tạo phân công' }).click();
+  await page.getByRole('button', { name: 'Tiếp tục tạo phân công' }).click();
   await expect(page.getByText('Phân công đã đủ điều kiện để công bố.')).toBeVisible();
-  await page.getByRole('button', { name: 'Phát hành' }).click();
-  await expect(page.getByRole('heading', { name: 'Phát hành lịch tuần?' })).toBeVisible();
-  await page.getByRole('dialog').getByRole('button', { name: 'Phát hành' }).click();
-  await expect(page.getByText('Đã phát hành')).toBeVisible();
+  await page.getByRole('button', { name: 'Tiếp tục công bố' }).click();
+  await page.getByRole('button', { name: 'Công bố lịch' }).click();
+  await expect(page.getByRole('heading', { name: 'Công bố lịch tuần?' })).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', { name: 'Công bố lịch' }).click();
+  await expect(page.getByText('Đã công bố', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Hoàn thành tuần' }).click();
   await expect(page.getByRole('heading', { name: 'Hoàn thành tuần trực' })).toBeVisible();
   await page
     .getByRole('dialog')
-    .getByRole('button', { name: /Không có ai làm thay/u })
+    .getByRole('button', { name: /mọi người làm đúng lịch/u })
     .click();
   await expect(page.getByText('Đã hoàn thành')).toBeVisible();
   await page.getByRole('link', { name: 'Lịch sử' }).last().click();
@@ -107,7 +110,8 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   await page.getByRole('link', { name: /Tuần 24\/08 – 24\/08\/2026/u }).click();
   await expect(page.getByRole('heading', { name: 'Tuần 24/08 – 24/08/2026' })).toBeVisible();
   const textDownloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Xuất văn bản' }).click();
+  await page.getByText('Tùy chọn khác').click();
+  await page.getByRole('button', { name: 'Tải tệp văn bản (.txt)' }).click();
   const textDownload = await textDownloadPromise;
   expect(textDownload.suggestedFilename()).toBe('lop-sach-10c8-2026-08-24.txt');
   const textPath = await textDownload.path();
@@ -117,11 +121,11 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   expect(exportedText).toContain('Tuần 24/08 – 24/08/2026 · Tổ 1');
   expect(exportedText).not.toContain('generationContextHash');
   const pngDownloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Xuất PNG' }).click();
+  await page.getByRole('button', { name: 'Tải ảnh PNG' }).click();
   expect((await pngDownloadPromise).suggestedFilename()).toBe('lop-sach-10c8-2026-08-24.png');
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Tuần này' })).toBeVisible();
-  await expect(page.getByText('Lịch đã công bố', { exact: true })).toBeVisible();
+  await expect(page.getByText('Đã hoàn thành')).toBeVisible();
   const accessibility = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();
@@ -175,7 +179,7 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: 'Tuần này · Ngoại tuyến' })).toBeVisible();
   await expect(page.getByText('Chỉ xem bản đã lưu; mọi thay đổi đều bị chặn.')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Tạo tuần khác' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Lập lịch tuần sau' })).toHaveCount(0);
   await page.context().setOffline(false);
   await page.reload();
   await page.getByRole('button', { name: 'Đăng xuất' }).click();

@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/Button.js';
@@ -16,6 +17,7 @@ export function PasswordPanel(): React.JSX.Element {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
+  const [showPasswords, setShowPasswords] = useState(false);
   const [submittedMismatch, setSubmittedMismatch] = useState(false);
   const mutation = useMutation({
     mutationFn: changePassword,
@@ -27,7 +29,22 @@ export function PasswordPanel(): React.JSX.Element {
   const mismatch = submittedMismatch || (confirmation.length > 0 && confirmation !== newPassword);
   return (
     <section className="card">
-      <h2>Đổi mật khẩu</h2>
+      <div className="section-heading">
+        <h2>Đổi mật khẩu</h2>
+        <button
+          className="button button-ghost password-visibility"
+          type="button"
+          aria-pressed={showPasswords}
+          onClick={() => setShowPasswords((current) => !current)}
+        >
+          {showPasswords ? (
+            <EyeOff size={17} aria-hidden="true" />
+          ) : (
+            <Eye size={17} aria-hidden="true" />
+          )}
+          {showPasswords ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+        </button>
+      </div>
       <p>Đổi mật khẩu sẽ thu hồi tất cả phiên, bao gồm phiên hiện tại.</p>
       <form
         onSubmit={(event) => {
@@ -53,7 +70,7 @@ export function PasswordPanel(): React.JSX.Element {
             <input
               id="current-password"
               name="currentPassword"
-              type="password"
+              type={showPasswords ? 'text' : 'password'}
               autoComplete="current-password"
               value={currentPassword}
               onChange={(event) => {
@@ -68,7 +85,7 @@ export function PasswordPanel(): React.JSX.Element {
             <input
               id="new-password"
               name="newPassword"
-              type="password"
+              type={showPasswords ? 'text' : 'password'}
               autoComplete="new-password"
               minLength={12}
               value={newPassword}
@@ -85,7 +102,7 @@ export function PasswordPanel(): React.JSX.Element {
             <input
               id="confirm-password"
               name="confirmation"
-              type="password"
+              type={showPasswords ? 'text' : 'password'}
               autoComplete="new-password"
               minLength={12}
               value={confirmation}

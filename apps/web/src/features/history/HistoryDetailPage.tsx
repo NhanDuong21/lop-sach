@@ -28,7 +28,7 @@ export function HistoryDetailPage(): React.JSX.Element {
         <p>
           {week.data.groupSnapshot.name}
           {week.data.publicationRevision > 1
-            ? ` · Lần công bố ${week.data.publicationRevision}`
+            ? ` · Lần cập nhật ${week.data.publicationRevision}`
             : ''}
         </p>
       </header>

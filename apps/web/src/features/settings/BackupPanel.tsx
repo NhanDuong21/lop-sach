@@ -158,7 +158,10 @@ export function BackupPanel(): React.JSX.Element {
       </label>
       {validation ? (
         <div className="backup-validation">
-          <strong>{validation.classroomName}</strong>
+          <div>
+            <p className="eyebrow">Đã kiểm tra: tệp hợp lệ</p>
+            <strong>{validation.classroomName}</strong>
+          </div>
           <span>
             {validation.studentCount} học sinh · {validation.taskTemplateCount} công việc ·{' '}
             {validation.dutyWeekCount} tuần

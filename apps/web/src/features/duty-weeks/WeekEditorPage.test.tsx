@@ -163,11 +163,12 @@ describe('WeekEditorPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/Dữ liệu lớp đã thay đổi/u)).toBeInTheDocument();
     expect(screen.getByText(/nhận thêm việc trong cùng ngày/u)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Chuẩn bị/u }));
     expect(screen.getByText(/mở khóa toàn bộ phân công/u)).toBeInTheDocument();
     expect(screen.getByLabelText('Tổ trực')).toBeDisabled();
     expect(screen.getByLabelText('Nguyễn An vắng Thứ Hai, ngày 24/08')).toBeInTheDocument();
     expect(screen.queryByLabelText(/Chủ Nhật/u)).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Phát hành' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Công bố/u })).toBeDisabled();
     expect(screen.queryByText(/time overlap/iu)).not.toBeInTheDocument();
   });
 
@@ -189,14 +190,14 @@ describe('WeekEditorPage', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(
-      await screen.findByRole('region', { name: 'Sao chép và xuất lịch' }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Sao chép văn bản' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Xuất PNG' })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Chia sẻ lịch với lớp' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sao chép nội dung' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tải ảnh PNG' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Người thứ 1')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Chỉnh ngày này' })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Hoàn thành tuần' }));
-    expect(screen.getByText(/có giống lịch đã phân công không/u)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Không có ai làm thay/u })).toBeInTheDocument();
+    expect(screen.getByText(/Có ai làm thay người được phân công không/u)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /mọi người làm đúng lịch/u })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /Có người làm thay/u }));
     expect(await screen.findByText(/đang giao cho Nguyễn An/u)).toBeInTheDocument();
   });
@@ -225,7 +226,7 @@ describe('WeekEditorPage', () => {
       </QueryClientProvider>,
     );
     await userEvent.click(await screen.findByRole('button', { name: 'Hoàn thành tuần' }));
-    await userEvent.click(screen.getByRole('button', { name: /Không có ai làm thay/u }));
+    await userEvent.click(screen.getByRole('button', { name: /mọi người làm đúng lịch/u }));
     expect(completeDutyWeek).toHaveBeenCalledWith('week-1', week.version, []);
   });
 
@@ -252,7 +253,8 @@ describe('WeekEditorPage', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    await userEvent.click(await screen.findByRole('button', { name: 'Xóa Lau cửa sổ' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Chỉnh ngày này' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Xóa Lau cửa sổ' }));
     expect(deleteOccurrence).not.toHaveBeenCalled();
     expect(screen.getByRole('heading', { name: 'Xóa công việc phát sinh?' })).toBeInTheDocument();
     expect(screen.getByText(/các phân công của công việc này sẽ bị xóa/u)).toBeInTheDocument();

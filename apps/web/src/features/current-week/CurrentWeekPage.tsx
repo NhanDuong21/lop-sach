@@ -1,6 +1,6 @@
-import { mondayOfWeek, parseDateOnly } from '@lop-sach/contracts';
+import { addDateOnlyDays, mondayOfWeek, parseDateOnly } from '@lop-sach/contracts';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarDays, Plus } from 'lucide-react';
+import { CalendarDays, CalendarRange, Plus, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { LoadingState } from '../../components/ui/LoadingState.js';
@@ -16,7 +16,7 @@ import {
 import { useOnlineState } from '../../lib/online-state.js';
 import { formatDutyDate, formatWeekRange } from '../../lib/date-labels.js';
 
-function currentMonday(): string {
+function currentDateInVietnam(): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Ho_Chi_Minh',
     year: 'numeric',
@@ -24,7 +24,11 @@ function currentMonday(): string {
     day: '2-digit',
   }).formatToParts(new Date());
   const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return mondayOfWeek(parseDateOnly(`${map.year ?? ''}-${map.month ?? ''}-${map.day ?? ''}`));
+  return `${map.year ?? ''}-${map.month ?? ''}-${map.day ?? ''}`;
+}
+
+function currentMonday(): string {
+  return mondayOfWeek(parseDateOnly(currentDateInVietnam()));
 }
 
 export function CurrentWeekPage({
@@ -33,6 +37,7 @@ export function CurrentWeekPage({
   readonly classroomName: string;
 }): React.JSX.Element {
   const weekStart = currentMonday();
+  const today = currentDateInVietnam();
   const online = useOnlineState();
   const [cached, setCached] = useState<CachedCurrentWeek | null>(null);
   const [cacheLoaded, setCacheLoaded] = useState(false);
@@ -73,7 +78,7 @@ export function CurrentWeekPage({
           <section className="card empty-state">
             <CalendarDays size={32} aria-hidden="true" />
             <h2>Chưa có lịch đã lưu cho tuần này</h2>
-            <p>Hãy kết nối mạng và mở một lịch đã phát hành trước.</p>
+            <p>Hãy kết nối mạng và mở một lịch đã công bố trước.</p>
           </section>
         ) : (
           <section className="card">
@@ -82,13 +87,13 @@ export function CurrentWeekPage({
                 <h2>{cached.groupName}</h2>
                 <p>
                   {cached.publicationRevision > 1
-                    ? `Lần công bố ${cached.publicationRevision} · `
+                    ? `Lần cập nhật ${cached.publicationRevision} · `
                     : 'Lịch đã công bố · '}
                   Lưu lúc {new Date(cached.cachedAt).toLocaleString('vi-VN')}
                 </p>
               </div>
               <StatusBadge tone="success">
-                {cached.status === 'COMPLETED' ? 'Đã hoàn thành' : 'Đã phát hành'}
+                {cached.status === 'COMPLETED' ? 'Đã hoàn thành' : 'Đã công bố'}
               </StatusBadge>
             </div>
             {cached.warningCount > 0 ? (
@@ -120,12 +125,15 @@ export function CurrentWeekPage({
     .map((occurrence) => occurrence.date)
     .sort()
     .at(-1);
+  const todayOccurrences =
+    week?.taskOccurrences.filter((occurrence) => occurrence.enabled && occurrence.date === today) ??
+    [];
   return (
     <div className="page-stack">
       <header className="page-heading">
         <p className="eyebrow">{classroomName}</p>
         <h1>Tuần này</h1>
-        <p>Tuần {formatWeekRange(weekStart, weekEnd)}. Lịch đã công bố có thể xem khi mất mạng.</p>
+        <p>Việc cần làm hôm nay và bước tiếp theo của tuần trực.</p>
       </header>
       {!week ? (
         <section className="card empty-state">
@@ -134,45 +142,101 @@ export function CurrentWeekPage({
           <p>Tạo tuần, đánh dấu vắng mặt rồi để hệ thống đề xuất phân công.</p>
           <Link className="button button-primary" to="/weeks/new">
             <Plus size={17} aria-hidden="true" />
-            Tạo tuần mới
+            Chuẩn bị tuần trực
           </Link>
         </section>
       ) : (
-        <section className="card">
-          <div className="section-heading">
-            <div>
-              <h2>{week.groupSnapshot.name}</h2>
-              <p>
+        <>
+          <section className="card current-week-hero">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">{formatWeekRange(week.weekStart, weekEnd)}</p>
+                <h2>Tổ trực: {week.groupSnapshot.name}</h2>
+                {week.publicationRevision > 1 ? (
+                  <p>Lần cập nhật {week.publicationRevision}</p>
+                ) : null}
+              </div>
+              <StatusBadge tone={week.status === 'DRAFT' ? 'warning' : 'success'}>
                 {week.status === 'DRAFT'
-                  ? 'Lịch đang được chuẩn bị.'
-                  : week.publicationRevision > 1
-                    ? `Lần công bố ${week.publicationRevision}`
-                    : 'Lịch đã công bố'}
-              </p>
+                  ? 'Bản nháp'
+                  : week.status === 'PUBLISHED'
+                    ? 'Đã công bố'
+                    : 'Đã hoàn thành'}
+              </StatusBadge>
             </div>
-            <StatusBadge tone={week.status === 'DRAFT' ? 'warning' : 'success'}>
-              {week.status === 'DRAFT'
-                ? 'Bản nháp'
-                : week.status === 'PUBLISHED'
-                  ? 'Đã phát hành'
-                  : 'Đã hoàn thành'}
-            </StatusBadge>
-          </div>
-          {week.status === 'DRAFT' ? (
-            <Notice tone="warning">Lịch chưa phát hành nên chưa phải lịch chính thức.</Notice>
-          ) : (
-            <WeekSummary week={week} />
-          )}
-          <Link className="button button-secondary" to={`/weeks/${week.id}`}>
-            {week.status === 'DRAFT' ? 'Tiếp tục phân công' : 'Xem chi tiết tuần'}
-          </Link>
-        </section>
+            {week.status === 'DRAFT' ? (
+              <div className="next-step-panel">
+                <strong>Tuần này chưa có lịch chính thức</strong>
+                <p>Tiếp tục chuẩn bị, tạo phân công và kiểm tra trước khi công bố.</p>
+                <Link className="button button-primary" to={`/weeks/${week.id}`}>
+                  Tiếp tục chuẩn bị tuần
+                </Link>
+              </div>
+            ) : (
+              <>
+                <section className="today-panel" aria-labelledby="today-title">
+                  <p className="eyebrow">Hôm nay</p>
+                  <h3 id="today-title">{formatDutyDate(today)}</h3>
+                  {todayOccurrences.length > 0 ? (
+                    <div className="today-task-list">
+                      {todayOccurrences.map((occurrence) => (
+                        <div className="today-task" key={occurrence.id}>
+                          <strong>{occurrence.taskName}</strong>
+                          <span>
+                            {occurrence.slots
+                              .map(
+                                (slot) =>
+                                  week.assignments.find(
+                                    (assignment) => assignment.slotId === slot.id,
+                                  )?.actualStudentDisplayName ??
+                                  week.assignments.find(
+                                    (assignment) => assignment.slotId === slot.id,
+                                  )?.studentDisplayName ??
+                                  'Chưa phân công',
+                              )
+                              .join(', ')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="muted">Hôm nay lớp không có công việc trực nhật.</p>
+                  )}
+                </section>
+                <div className="button-row hero-actions">
+                  <Link className="button button-primary" to={`/weeks/${week.id}#share`}>
+                    <Share2 size={17} aria-hidden="true" /> Chia sẻ lịch
+                  </Link>
+                  <Link className="button button-secondary" to={`/weeks/${week.id}`}>
+                    <CalendarRange size={17} aria-hidden="true" /> Xem chi tiết tuần
+                  </Link>
+                </div>
+              </>
+            )}
+          </section>
+          {week.status !== 'DRAFT' ? (
+            <section className="card full-week-section">
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">Lịch cả tuần</p>
+                  <h2>Tất cả ngày trực</h2>
+                </div>
+              </div>
+              <WeekSummary week={week} today={today} />
+            </section>
+          ) : null}
+        </>
       )}
-      <div className="button-row">
-        <Link className="button button-secondary" to="/weeks/new">
-          Tạo tuần khác
-        </Link>
-      </div>
+      {week && week.status !== 'DRAFT' ? (
+        <div className="button-row next-week-action">
+          <Link
+            className="button button-secondary"
+            to={`/weeks/new?weekStart=${addDateOnlyDays(parseDateOnly(week.weekStart), 7)}`}
+          >
+            Lập lịch tuần sau
+          </Link>
+        </div>
+      ) : null}
     </div>
   );
 }

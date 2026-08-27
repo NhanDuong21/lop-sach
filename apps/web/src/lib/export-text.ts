@@ -29,7 +29,7 @@ export function dutyWeekText(week: DutyWeek, classroomName: string): string {
   const scheduledEnd = scheduledDates.at(-1);
   const lines = [
     `LỚP SẠCH — ${classroomName}`,
-    `Tuần ${formatWeekRange(week.weekStart, scheduledEnd)} · ${week.groupSnapshot.name}${week.publicationRevision > 1 ? ` · Lần công bố ${String(week.publicationRevision)}` : ''}`,
+    `Tuần ${formatWeekRange(week.weekStart, scheduledEnd)} · ${week.groupSnapshot.name}${week.publicationRevision > 1 ? ` · Lần cập nhật ${String(week.publicationRevision)}` : ''}`,
     '',
   ];
   for (const date of scheduledDates) {

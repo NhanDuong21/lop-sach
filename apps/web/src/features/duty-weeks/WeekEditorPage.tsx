@@ -2,13 +2,14 @@ import {
   addDateOnlyDays,
   dateOnlyWeekday,
   parseDateOnly,
+  type DateOnly,
   type DutyWeek,
   type SchoolDay,
 } from '@lop-sach/contracts';
 import { SCHEDULER_ENGINE_VERSION, generateSchedule } from '@lop-sach/scheduler';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeftRight, CalendarCheck, Plus } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/Button.js';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.js';
@@ -20,6 +21,7 @@ import { ApiError } from '../../lib/api-client.js';
 import { formatDutyDate, formatWeekRange } from '../../lib/date-labels.js';
 import { schoolDayLabels } from '../../lib/vietnamese-labels.js';
 import { getClassroom } from '../classroom/classroom.api.js';
+import { WeekSummary } from '../current-week/WeekSummary.js';
 import { DayCard } from './DayCard.js';
 import {
   completeDutyWeek,
@@ -48,7 +50,7 @@ type WeekOperation = () => Promise<DutyWeek>;
 
 const statusLabels: Readonly<Record<DutyWeek['status'], string>> = {
   DRAFT: 'Bản nháp',
-  PUBLISHED: 'Đã phát hành',
+  PUBLISHED: 'Đã công bố',
   COMPLETED: 'Đã hoàn thành',
 };
 
@@ -135,10 +137,10 @@ function CompleteWeekDialog({
         <Notice tone="warning">Tuần không có phân công để hoàn thành.</Notice>
       ) : mode === 'CHOICE' ? (
         <>
-          <p>Người thực hiện thực tế có giống lịch đã phân công không?</p>
+          <p>Có ai làm thay người được phân công không?</p>
           <div className="completion-choice-grid">
             <Button disabled={pending} onClick={() => onConfirm([])}>
-              Không có ai làm thay
+              Không, mọi người làm đúng lịch
               <small>Giữ nguyên tất cả phân công</small>
             </Button>
             <Button variant="secondary" disabled={pending} onClick={() => setMode('CHANGES')}>
@@ -285,12 +287,21 @@ export function WeekEditorPage(): React.JSX.Element {
   const [oneOffName, setOneOffName] = useState('');
   const [oneOffHeadcount, setOneOffHeadcount] = useState(1);
   const [oneOffWorkload, setOneOffWorkload] = useState<1 | 2 | 3 | 4>(1);
+  const [draftStep, setDraftStep] = useState<1 | 2 | 3>(1);
+  const absenceScope = useRef('');
   const week = weekQuery.data;
   useEffect(() => {
     if (!week) return;
+    const nextScope = `${week.id}|${week.selectedGroupId}`;
+    if (absenceScope.current === nextScope) return;
+    absenceScope.current = nextScope;
     setAbsenceKeys(new Set(week.absences.map((absence) => `${absence.studentId}|${absence.date}`)));
     setOneOffDate(week.weekStart);
   }, [week]);
+  useEffect(() => {
+    if (!week || week.status !== 'DRAFT') return;
+    setDraftStep(week.generationRevision > 0 || week.assignments.length > 0 ? 2 : 1);
+  }, [week?.id]);
   const studentNames = useMemo(
     () => new Map(week?.studentSnapshots.map((student) => [student.id, student.displayName]) ?? []),
     [week],
@@ -325,27 +336,38 @@ export function WeekEditorPage(): React.JSX.Element {
       return next;
     });
   };
-  const saveAbsences = (): void => {
-    const absences = [...absenceKeys].map((key) => {
+  const selectedAbsences = (): { readonly studentId: string; readonly date: DateOnly }[] =>
+    [...absenceKeys].map((key) => {
       const separator = key.lastIndexOf('|');
       return { studentId: key.slice(0, separator), date: parseDateOnly(key.slice(separator + 1)) };
     });
-    run(() => replaceAbsences(week.id, absences, week.version));
+  const generateFromVersion = async (expectedVersion: number): Promise<DutyWeek> => {
+    const context = await getGenerationContext(week.id);
+    if (context.serverSchedulerEngineVersion !== SCHEDULER_ENGINE_VERSION) {
+      throw new Error('Ứng dụng đã có phiên bản bộ xếp lịch mới. Hãy tải lại trang.');
+    }
+    const preview = generateSchedule(context.context);
+    if (preview.inputHash !== context.inputHash)
+      throw new Error('Dữ liệu xem trước không còn khớp. Hãy tải lại và thử lại.');
+    return generateDutyWeek(week.id, {
+      expectedVersion,
+      clientSchedulerEngineVersion: SCHEDULER_ENGINE_VERSION,
+      inputHash: context.inputHash,
+    });
   };
   const generate = (): void => {
     run(async () => {
-      const context = await getGenerationContext(week.id);
-      if (context.serverSchedulerEngineVersion !== SCHEDULER_ENGINE_VERSION) {
-        throw new Error('Ứng dụng đã có phiên bản bộ xếp lịch mới. Hãy tải lại trang.');
-      }
-      const preview = generateSchedule(context.context);
-      if (preview.inputHash !== context.inputHash)
-        throw new Error('Dữ liệu xem trước không còn khớp. Hãy tải lại và thử lại.');
-      return generateDutyWeek(week.id, {
-        expectedVersion: week.version,
-        clientSchedulerEngineVersion: SCHEDULER_ENGINE_VERSION,
-        inputHash: context.inputHash,
-      });
+      const generated = await generateFromVersion(week.version);
+      setDraftStep(2);
+      return generated;
+    });
+  };
+  const prepareAndGenerate = (): void => {
+    run(async () => {
+      const prepared = await replaceAbsences(week.id, selectedAbsences(), week.version);
+      const generated = await generateFromVersion(prepared.version);
+      setDraftStep(2);
+      return generated;
     });
   };
   const toggleSwap = (slotId: string): void => {
@@ -369,6 +391,94 @@ export function WeekEditorPage(): React.JSX.Element {
   const actionError = action.error;
   const updateRequired =
     actionError instanceof ApiError && actionError.problem.code === 'SCHEDULER_VERSION_OUTDATED';
+  if (week.status !== 'DRAFT') {
+    return (
+      <div className="page-stack published-week-view">
+        <header className="week-toolbar">
+          <div>
+            <p className="eyebrow">
+              {classroom.data.name} · {week.groupSnapshot.name}
+            </p>
+            <h1>Tuần {formatWeekRange(week.weekStart, dates.at(-1))}</h1>
+            <div className="week-meta">
+              <StatusBadge tone="success">{statusLabels[week.status]}</StatusBadge>
+              {week.publicationRevision > 1 ? (
+                <span>Lần cập nhật {week.publicationRevision}</span>
+              ) : null}
+            </div>
+          </div>
+          <div className="button-row">
+            <Link className="button button-secondary" to="/">
+              Về tuần này
+            </Link>
+            {week.status === 'PUBLISHED' ? (
+              <Button
+                onClick={() => {
+                  action.reset();
+                  setCompleteOpen(true);
+                }}
+                disabled={action.isPending}
+              >
+                <CalendarCheck size={17} aria-hidden="true" /> Hoàn thành tuần
+              </Button>
+            ) : null}
+          </div>
+        </header>
+        {actionError ? (
+          <Notice tone="error">
+            {errorMessage(actionError)}
+            <Button variant="secondary" onClick={() => void weekQuery.refetch()}>
+              Tải lại dữ liệu
+            </Button>
+          </Notice>
+        ) : null}
+        <section className="card published-schedule">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Lịch đã công bố</p>
+              <h2>Phân công cả tuần</h2>
+              <p>Bạn chỉ cần đọc hoặc chia sẻ; các thao tác chỉnh sửa đã được ẩn.</p>
+            </div>
+          </div>
+          <WeekSummary week={week} />
+        </section>
+        <WeekExportActions week={week} classroomName={classroom.data.name} />
+        <GenerationPanel
+          week={week}
+          pending={action.isPending}
+          onGenerate={generate}
+          onPreflight={() => run(() => preflightDutyWeek(week.id, week.version))}
+        />
+        {week.status === 'COMPLETED' ? (
+          <div className="button-row next-week-action">
+            <Link
+              className="button button-secondary"
+              to={`/weeks/new?weekStart=${addDateOnlyDays(parseDateOnly(week.weekStart), 7)}`}
+            >
+              Lập lịch tuần sau
+            </Link>
+          </div>
+        ) : null}
+        <CompleteWeekDialog
+          week={week}
+          open={completeOpen}
+          pending={action.isPending}
+          error={actionError ? errorMessage(actionError) : null}
+          onCancel={() => {
+            action.reset();
+            setCompleteOpen(false);
+          }}
+          onConfirm={(actualPerformers) =>
+            run(async () => {
+              const updated = await completeDutyWeek(week.id, week.version, actualPerformers);
+              setCompleteOpen(false);
+              return updated;
+            })
+          }
+        />
+      </div>
+    );
+  }
   return (
     <div className="page-stack">
       <header className="week-toolbar">
@@ -381,46 +491,44 @@ export function WeekEditorPage(): React.JSX.Element {
             <StatusBadge tone={week.status === 'DRAFT' ? 'warning' : 'success'}>
               {statusLabels[week.status]}
             </StatusBadge>
-            {week.publicationRevision > 1 ? (
-              <span>Lần công bố {week.publicationRevision}</span>
-            ) : null}
           </div>
         </div>
         <div className="button-row">
           <Link className="button button-secondary" to="/">
             Về tuần này
           </Link>
-          {week.status === 'DRAFT' ? (
-            <Button
-              disabled={
-                action.isPending || week.requiresGeneration || week.generationStale || !complete
-              }
-              onClick={() => setPublishOpen(true)}
-            >
-              Phát hành
-            </Button>
-          ) : null}
-          {week.status === 'PUBLISHED' ? (
-            <Button
-              onClick={() => {
-                action.reset();
-                setCompleteOpen(true);
-              }}
-              disabled={action.isPending}
-            >
-              <CalendarCheck size={17} />
-              Hoàn thành tuần
-            </Button>
-          ) : null}
         </div>
       </header>
-      {week.status !== 'DRAFT' ? (
-        <WeekExportActions week={week} classroomName={classroom.data.name} />
-      ) : null}
+      <ol className="workflow-steps" aria-label="Các bước lập lịch tuần">
+        {[
+          { step: 1 as const, label: 'Chuẩn bị' },
+          { step: 2 as const, label: 'Kiểm tra phân công' },
+          { step: 3 as const, label: 'Công bố' },
+        ].map((item) => (
+          <li
+            className={
+              draftStep === item.step ? 'active' : draftStep > item.step ? 'complete' : undefined
+            }
+            key={item.step}
+          >
+            <button
+              type="button"
+              disabled={
+                (item.step > 1 && week.generationRevision === 0) ||
+                (item.step === 3 && (week.requiresGeneration || week.generationStale || !complete))
+              }
+              onClick={() => setDraftStep(item.step)}
+            >
+              <span>{item.step}</span>
+              {item.label}
+            </button>
+          </li>
+        ))}
+      </ol>
       {week.generationStale && week.assignments.length > 0 ? (
         <Notice tone="warning">
           Dữ liệu lớp đã thay đổi sau lần tạo phân công. Hãy tạo lại hoặc kiểm tra lại trước khi
-          phát hành.
+          công bố.
         </Notice>
       ) : null}
       {actionError ? (
@@ -437,7 +545,7 @@ export function WeekEditorPage(): React.JSX.Element {
           )}
         </Notice>
       ) : null}
-      {week.status === 'DRAFT' ? (
+      {draftStep === 1 ? (
         <section className="card">
           <div className="section-heading">
             <div>
@@ -492,30 +600,36 @@ export function WeekEditorPage(): React.JSX.Element {
               ))
             )}
           </div>
-          <Button variant="secondary" disabled={action.isPending} onClick={saveAbsences}>
-            Lưu vắng mặt
-          </Button>
-        </section>
-      ) : null}
-      <GenerationPanel
-        week={week}
-        pending={action.isPending}
-        onGenerate={generate}
-        onPreflight={() => run(() => preflightDutyWeek(week.id, week.version))}
-      />
-      {week.status === 'DRAFT' ? (
-        <section className="card">
-          <div className="section-heading">
+          <div className="inline-summary">
             <div>
-              <h2>Công việc phát sinh</h2>
-              <p>Thêm công việc chỉ áp dụng cho tuần này.</p>
+              <strong>Công việc tuần này</strong>
+              <span>
+                {week.taskOccurrences.filter((occurrence) => occurrence.enabled).length} công việc
+                đang dùng
+              </span>
             </div>
             <Button variant="secondary" onClick={() => setOneOffOpen(true)}>
-              <Plus size={17} />
-              Thêm công việc
+              <Plus size={17} aria-hidden="true" /> Thêm việc phát sinh
+            </Button>
+          </div>
+          <div className="wizard-actions sticky-mobile-actions">
+            <span className="muted">Vắng mặt sẽ được lưu cùng lúc khi tạo phân công.</span>
+            <Button
+              disabled={action.isPending || week.studentSnapshots.length === 0}
+              onClick={prepareAndGenerate}
+            >
+              Tiếp tục tạo phân công
             </Button>
           </div>
         </section>
+      ) : null}
+      {draftStep === 2 ? (
+        <GenerationPanel
+          week={week}
+          pending={action.isPending}
+          onGenerate={generate}
+          onPreflight={() => run(() => preflightDutyWeek(week.id, week.version))}
+        />
       ) : null}
       <ModalDialog
         open={oneOffOpen}
@@ -565,7 +679,7 @@ export function WeekEditorPage(): React.JSX.Element {
               />
             </div>
             <div>
-              <label htmlFor="one-off-headcount">Số học sinh</label>
+              <label htmlFor="one-off-headcount">Số bạn cần</label>
               <input
                 id="one-off-headcount"
                 type="number"
@@ -576,16 +690,16 @@ export function WeekEditorPage(): React.JSX.Element {
               />
             </div>
             <div>
-              <label htmlFor="one-off-workload">Mức công việc</label>
+              <label htmlFor="one-off-workload">Độ nặng</label>
               <select
                 id="one-off-workload"
                 value={oneOffWorkload}
                 onChange={(event) => setOneOffWorkload(Number(event.target.value) as 1 | 2 | 3 | 4)}
               >
-                <option value={1}>1 · Nhẹ</option>
-                <option value={2}>2 · Vừa</option>
-                <option value={3}>3 · Nặng</option>
-                <option value={4}>4 · Rất nặng</option>
+                <option value={1}>Nhẹ</option>
+                <option value={2}>Vừa</option>
+                <option value={3}>Nặng</option>
+                <option value={4}>Rất nặng</option>
               </select>
             </div>
           </div>
@@ -599,7 +713,7 @@ export function WeekEditorPage(): React.JSX.Element {
           </div>
         </form>
       </ModalDialog>
-      {selectedSwapSlots.length > 0 ? (
+      {draftStep === 2 && selectedSwapSlots.length > 0 ? (
         <section className="swap-bar" aria-live="polite">
           <span>Đã chọn {selectedSwapSlots.length}/2 vị trí để hoán đổi</span>
           <div className="button-row">
@@ -616,32 +730,94 @@ export function WeekEditorPage(): React.JSX.Element {
           </div>
         </section>
       ) : null}
-      <div className="week-days">
-        {dates.map((date) => (
-          <DayCard
-            key={date}
-            date={date}
-            occurrences={week.taskOccurrences.filter((occurrence) => occurrence.date === date)}
-            week={week}
-            disabled={action.isPending}
-            selectedSwapSlots={selectedSwapSlots}
-            onAssign={(slotId, studentId) =>
-              run(() => writeAssignment(week.id, slotId, studentId, week.version))
-            }
-            onLock={(slotId, locked) =>
-              run(() => setAssignmentLock(week.id, slotId, locked, week.version))
-            }
-            onReplacement={setReplacementSlotId}
-            onToggleSwap={toggleSwap}
-            onToggleOccurrence={(occurrenceId, enabled) =>
-              run(() =>
-                patchOccurrence(week.id, occurrenceId, { enabled, expectedVersion: week.version }),
-              )
-            }
-            onDeleteOccurrence={setDeleteOccurrenceId}
-          />
-        ))}
-      </div>
+      {draftStep === 2 ? (
+        <>
+          <div className="week-days">
+            {dates.map((date) => (
+              <DayCard
+                key={date}
+                date={date}
+                occurrences={week.taskOccurrences.filter((occurrence) => occurrence.date === date)}
+                week={week}
+                disabled={action.isPending}
+                selectedSwapSlots={selectedSwapSlots}
+                onAssign={(slotId, studentId) =>
+                  run(() => writeAssignment(week.id, slotId, studentId, week.version))
+                }
+                onLock={(slotId, locked) =>
+                  run(() => setAssignmentLock(week.id, slotId, locked, week.version))
+                }
+                onReplacement={setReplacementSlotId}
+                onToggleSwap={toggleSwap}
+                onToggleOccurrence={(occurrenceId, enabled) =>
+                  run(() =>
+                    patchOccurrence(week.id, occurrenceId, {
+                      enabled,
+                      expectedVersion: week.version,
+                    }),
+                  )
+                }
+                onDeleteOccurrence={setDeleteOccurrenceId}
+              />
+            ))}
+          </div>
+          <div className="wizard-actions sticky-mobile-actions">
+            <Button variant="secondary" onClick={() => setDraftStep(1)}>
+              Quay lại chuẩn bị
+            </Button>
+            <Button
+              disabled={
+                action.isPending || week.requiresGeneration || week.generationStale || !complete
+              }
+              onClick={() => setDraftStep(3)}
+            >
+              Tiếp tục công bố
+            </Button>
+          </div>
+        </>
+      ) : null}
+      {draftStep === 3 ? (
+        <section className="card publish-review">
+          <div className="review-card">
+            <p className="eyebrow">Sẵn sàng công bố</p>
+            <h2>{week.groupSnapshot.name}</h2>
+            <p>Tuần {formatWeekRange(week.weekStart, dates.at(-1))}</p>
+            <dl>
+              <div>
+                <dt>Người đã được phân công</dt>
+                <dd>
+                  {assignedSlotIds.size}/{enabledSlotIds.length}
+                </dd>
+              </div>
+              <div>
+                <dt>Mức độ cân bằng</dt>
+                <dd>{week.fairness?.label ?? 'Chưa đánh giá'}</dd>
+              </div>
+              <div>
+                <dt>Lưu ý đã xem</dt>
+                <dd>{week.warnings.length}</dd>
+              </div>
+            </dl>
+          </div>
+          <details className="publish-preview">
+            <summary>Xem trước lịch gửi lớp</summary>
+            <WeekSummary week={week} />
+          </details>
+          <div className="wizard-actions sticky-mobile-actions">
+            <Button variant="secondary" onClick={() => setDraftStep(2)}>
+              Quay lại chỉnh sửa
+            </Button>
+            <Button
+              disabled={
+                action.isPending || week.requiresGeneration || week.generationStale || !complete
+              }
+              onClick={() => setPublishOpen(true)}
+            >
+              Công bố lịch
+            </Button>
+          </div>
+        </section>
+      ) : null}
       <ConfirmDialog
         open={Boolean(deleteOccurrenceId)}
         title="Xóa công việc phát sinh?"

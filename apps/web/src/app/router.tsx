@@ -6,6 +6,7 @@ export const APP_ROUTES = [
   '/weeks/:weekId',
   '/class',
   '/class/students',
+  '/class/tasks',
   '/settings/tasks',
   '/history',
   '/history/:weekId',

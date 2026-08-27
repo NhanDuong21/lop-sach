@@ -3,7 +3,45 @@ import { Notice } from '../../components/ui/Notice.js';
 import { formatDutyDate } from '../../lib/date-labels.js';
 import { uniqueWarningCodes, warningCountText, warningLabels } from '../../lib/week-warnings.js';
 
-export function WeekSummary({ week }: { readonly week: DutyWeek }): React.JSX.Element {
+function DaySummary({
+  date,
+  week,
+}: {
+  readonly date: string;
+  readonly week: DutyWeek;
+}): React.JSX.Element {
+  const occurrences = week.taskOccurrences.filter(
+    (occurrence) => occurrence.enabled && occurrence.date === date,
+  );
+  return (
+    <div className="summary-task-list">
+      {occurrences.map((occurrence) => {
+        const performers = occurrence.slots.map(
+          (slot) =>
+            week.assignments.find((assignment) => assignment.slotId === slot.id)
+              ?.actualStudentDisplayName ??
+            week.assignments.find((assignment) => assignment.slotId === slot.id)
+              ?.studentDisplayName ??
+            'Chưa phân công',
+        );
+        return (
+          <div className="summary-task" key={occurrence.id}>
+            <strong>{occurrence.taskName}</strong>
+            <span>{performers.join(', ')}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function WeekSummary({
+  week,
+  today,
+}: {
+  readonly week: DutyWeek;
+  readonly today?: string;
+}): React.JSX.Element {
   const dates = [
     ...new Set(week.taskOccurrences.filter((item) => item.enabled).map((item) => item.date)),
   ].sort();
@@ -11,7 +49,7 @@ export function WeekSummary({ week }: { readonly week: DutyWeek }): React.JSX.El
     <div className="week-summary">
       {week.warnings.length > 0 ? (
         <Notice tone="warning">
-          Lịch có {warningCountText(week)} đã được xem trước khi phát hành.
+          Lịch có {warningCountText(week)} đã được xem trước khi công bố.
           <ul className="warning-summary-list">
             {uniqueWarningCodes(week).map((code) => (
               <li key={code}>{warningLabels[code] ?? 'Có phân công cần xem lại.'}</li>
@@ -19,30 +57,32 @@ export function WeekSummary({ week }: { readonly week: DutyWeek }): React.JSX.El
           </ul>
         </Notice>
       ) : null}
-      {dates.map((date) => (
-        <section className="summary-day" key={date}>
-          <h3>{formatDutyDate(date)}</h3>
-          {week.taskOccurrences
-            .filter((occurrence) => occurrence.enabled && occurrence.date === date)
-            .map((occurrence) => (
-              <div className="summary-task" key={occurrence.id}>
-                <strong>{occurrence.taskName}</strong>
-                <span>
-                  {occurrence.slots
-                    .map(
-                      (slot) =>
-                        week.assignments.find((assignment) => assignment.slotId === slot.id)
-                          ?.actualStudentDisplayName ??
-                        week.assignments.find((assignment) => assignment.slotId === slot.id)
-                          ?.studentDisplayName ??
-                        'Chưa phân công',
-                    )
-                    .join(', ')}
-                </span>
-              </div>
-            ))}
-        </section>
-      ))}
+      <div className="desktop-week-grid">
+        {dates.map((date) => (
+          <section className={`summary-day${date === today ? ' is-today' : ''}`} key={date}>
+            <div className="summary-day-heading">
+              <h3>{formatDutyDate(date)}</h3>
+              {date === today ? <span>Hôm nay</span> : null}
+            </div>
+            <DaySummary date={date} week={week} />
+          </section>
+        ))}
+      </div>
+      <div className="mobile-week-list">
+        {dates.map((date, index) => (
+          <details
+            className="summary-day"
+            open={date === today || (!today && index === 0)}
+            key={date}
+          >
+            <summary>
+              <span>{formatDutyDate(date)}</span>
+              {date === today ? <strong>Hôm nay</strong> : <span>Xem</span>}
+            </summary>
+            <DaySummary date={date} week={week} />
+          </details>
+        ))}
+      </div>
     </div>
   );
 }

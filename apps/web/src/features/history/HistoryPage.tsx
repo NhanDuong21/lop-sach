@@ -63,7 +63,7 @@ export function HistoryPage(): React.JSX.Element {
                   <span>
                     {formatPoints(week.actualPoints)} điểm
                     {week.publicationRevision > 1
-                      ? ` · Lần công bố ${week.publicationRevision}`
+                      ? ` · Lần cập nhật ${week.publicationRevision}`
                       : ''}
                   </span>
                 </div>

@@ -2,8 +2,8 @@ import type { Classroom } from '@lop-sach/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Button } from '../../components/ui/Button.js';
+import { ActionMenu } from '../../components/ui/ActionMenu.js';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.js';
 import { ModalDialog } from '../../components/ui/ModalDialog.js';
 import { Notice } from '../../components/ui/Notice.js';
@@ -71,6 +71,11 @@ export function GroupsPanel({ classroom }: { readonly classroom: Classroom }): R
           Chưa kiểm tra được số học sinh. Thao tác ngừng sử dụng tổ đang tạm khóa.
         </Notice>
       ) : null}
+      {reordering ? (
+        <Notice>
+          Dùng mũi tên để đổi thứ tự. Thay đổi được lưu ngay; bấm “Xong sắp xếp” khi hoàn tất.
+        </Notice>
+      ) : null}
       <div className="group-list">
         {ordered.map((group, index) => {
           const activeStudentCount =
@@ -78,27 +83,12 @@ export function GroupsPanel({ classroom }: { readonly classroom: Classroom }): R
               .length ?? 0;
           return (
             <div className="group-row" key={group.id}>
-              <div className="grow group-summary">
+              <div className="group-summary">
                 <strong>{group.name}</strong>
-                <span>{activeStudentCount} học sinh đang tham gia</span>
+                <span>{activeStudentCount} học sinh</span>
               </div>
-              <span
-                className={`status-badge ${group.active ? 'status-success' : 'status-neutral'}`}
-              >
-                {group.active ? 'Đang sử dụng' : 'Ngừng sử dụng'}
-              </span>
+              {!group.active ? <span className="status-badge">Ngừng sử dụng</span> : null}
               <div className="icon-actions">
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    mutation.reset();
-                    setNames((current) => ({ ...current, [group.id]: group.name }));
-                    setEditingId(group.id);
-                  }}
-                  disabled={!group.active}
-                >
-                  Sửa
-                </Button>
                 {reordering ? (
                   <>
                     <Button
@@ -118,39 +108,48 @@ export function GroupsPanel({ classroom }: { readonly classroom: Classroom }): R
                       <ArrowDown size={17} />
                     </Button>
                   </>
-                ) : null}
-                <Button
-                  variant="secondary"
-                  title={
-                    group.active
-                      ? students.isSuccess
-                        ? activeStudentCount > 0
-                          ? `Không thể ngừng sử dụng vì còn ${activeStudentCount} học sinh.`
-                          : undefined
-                        : 'Đang kiểm tra số học sinh của tổ.'
-                      : undefined
-                  }
-                  disabled={
-                    mutation.isPending ||
-                    (group.active && (!students.isSuccess || activeStudentCount > 0))
-                  }
-                  onClick={() =>
-                    group.active
-                      ? setDeactivateId(group.id)
-                      : mutation.mutate(() => setGroupActive(group.id, true, classroom.version))
-                  }
-                >
-                  {group.active ? 'Ngừng sử dụng' : 'Sử dụng lại'}
-                </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        mutation.reset();
+                        setNames((current) => ({ ...current, [group.id]: group.name }));
+                        setEditingId(group.id);
+                      }}
+                      disabled={!group.active}
+                    >
+                      Sửa
+                    </Button>
+                    <ActionMenu
+                      label={`Tùy chọn cho ${group.name}`}
+                      items={[
+                        group.active
+                          ? {
+                              label: 'Ngừng sử dụng',
+                              danger: true,
+                              disabled:
+                                mutation.isPending || !students.isSuccess || activeStudentCount > 0,
+                              ...(activeStudentCount > 0
+                                ? {
+                                    hint: `Cần chuyển hoặc ngừng tham gia ${activeStudentCount} học sinh trước.`,
+                                  }
+                                : {}),
+                              onSelect: () => setDeactivateId(group.id),
+                            }
+                          : {
+                              label: 'Sử dụng lại',
+                              disabled: mutation.isPending,
+                              onSelect: () =>
+                                mutation.mutate(() =>
+                                  setGroupActive(group.id, true, classroom.version),
+                                ),
+                            },
+                      ]}
+                    />
+                  </>
+                )}
               </div>
-              {group.active && activeStudentCount > 0 ? (
-                <p className="group-action-help">
-                  Không thể ngừng sử dụng vì còn {activeStudentCount} học sinh.{' '}
-                  <Link to={`/class/students?groupId=${encodeURIComponent(group.id)}`}>
-                    Xem học sinh
-                  </Link>
-                </p>
-              ) : null}
             </div>
           );
         })}
