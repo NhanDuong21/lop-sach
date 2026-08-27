@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.vercel.json",
+  "include": ["api/**/*.ts"]
+}

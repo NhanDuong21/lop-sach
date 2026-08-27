@@ -4,7 +4,7 @@
 
 - Bắt đầu: 2026-08-27
 - Nhánh: `main`
-- Milestone hiện tại: 2 — Auth/migrations/login shell
+- Milestone hiện tại: 2.5 — Deployment topology spike
 - Production topology: `DEFERRED_EXTERNAL_CREDENTIALS`
 
 ## Milestones
@@ -13,8 +13,8 @@
 |---|---|---|---|
 | 0. Repository foundation | Hoàn tất | `chore(repo): establish repository foundation` | `pnpm check` xanh |
 | 1. Contracts/date-only | Hoàn tất | `feat(contracts): define shared duty scheduling contracts` | 5 tests xanh; typecheck/lint xanh |
-| 2. Auth/migrations/login shell | Đang thực hiện | Chưa có | Chưa chạy |
-| 2.5. Deployment topology spike | Chưa bắt đầu | Chưa có | Thiếu credentials |
+| 2. Auth/migrations/login shell | Hoàn tất | `feat(auth): add secure sessions and deployment-ready login` | 20 tests xanh; full `pnpm check` xanh |
+| 2.5. Deployment topology spike | Đang thực hiện | Chưa có | `DEFERRED_EXTERNAL_CREDENTIALS` cho smoke thật |
 | 3. Master-data API | Chưa bắt đầu | Chưa có | Chưa chạy |
 | 4. Master-data UI | Chưa bắt đầu | Chưa có | Chưa chạy |
 | 5. Scheduler core/hash | Chưa bắt đầu | Chưa có | Chưa chạy |
@@ -45,6 +45,7 @@
 
 - Milestone 0: `pnpm check:text`, lint, typecheck, tests và builds đều xanh trên Node 24.15.0/pnpm 10.15.1.
 - Milestone 1: date-only và availability contracts có 5 tests xanh; full `pnpm check` xanh.
+- Milestone 2: proxy fixed-upstream có 6 unit tests; API auth/cookie/health/migration có 8 integration tests trên MongoDB replica set; web login shell có 1 component test; 5 contract tests hồi quy; full `pnpm check` xanh. Cookie development dùng `lop_sach_session` không Secure; cookie production dùng `__Host-lop_sach_session` với Secure/HttpOnly/SameSite=Lax/Path=/ và không Domain. Migrations idempotent, không tự drop index và từ chối cùng index name với specification khác.
 
 ## Remaining work
 
@@ -52,4 +53,4 @@ Thực hiện tuần tự toàn bộ milestones, cập nhật phần này sau m�
 
 ## Known issues
 
-- Chưa có Vercel, VPS, DNS, Atlas và GitHub deployment credentials; chỉ ảnh hưởng topology verification/deployment thật.
+- Chưa có Vercel, VPS, DNS, Atlas và GitHub deployment credentials; production topology giữ trạng thái `DEFERRED_EXTERNAL_CREDENTIALS`, chỉ ảnh hưởng smoke/deployment thật.
