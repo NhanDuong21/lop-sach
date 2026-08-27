@@ -1,5 +1,5 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "declaration": true, "outDir": "dist", "rootDir": "src" },
-  "include": ["src/**/*.ts"]
+  "compilerOptions": { "declaration": true, "outDir": "dist", "rootDir": "." },
+  "include": ["src/**/*.ts", "test/**/*.ts", "*.config.ts"]
 }
