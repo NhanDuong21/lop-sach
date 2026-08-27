@@ -47,11 +47,17 @@ async function classroomWithStudents(agent: TestAgent): Promise<{
   const classroom = ClassroomEnvelopeSchema.parse(classroomResponse.body as unknown).data;
   const groupId = classroom.groups[0]?.id ?? '';
   const students: Student[] = [];
-  for (const displayName of ['An', 'Bình', 'Chi', 'Dũng']) {
+  for (const [index, displayName] of ['An', 'Bình', 'Chi', 'Dũng'].entries()) {
     const response = await agent
       .post('/api/v1/students')
       .set('Origin', 'http://localhost:5173')
-      .send({ displayName, groupId, active: true, gender: 'UNSPECIFIED', restrictions: [] })
+      .send({
+        displayName,
+        groupId,
+        active: true,
+        gender: 'UNSPECIFIED',
+        restrictions: index === 0 ? [{ type: 'NO_HEAVY_TASKS' }] : [],
+      })
       .expect(201);
     students.push(StudentEnvelopeSchema.parse(response.body as unknown).data);
   }

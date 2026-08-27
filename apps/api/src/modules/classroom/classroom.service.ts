@@ -130,7 +130,7 @@ export async function createClassroom(
           timezone: 'Asia/Ho_Chi_Minh',
           schoolDays: [...input.schoolDays],
           groups,
-          onboarding: { currentStep: 1, completedAt: null },
+          onboarding: { currentStep: 2, completedAt: null },
           revisionCounters: { classroom: 1, students: 0, tasks: 1 },
           dataRevision: 1,
         },

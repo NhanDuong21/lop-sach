@@ -44,7 +44,7 @@ function downloadBackup(backup: BackupEnvelope): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = `lop-sach-backup-${backup.exportedAt.slice(0, 10)}.json`;
+  anchor.download = `lop-sach-sao-luu-${backup.exportedAt.slice(0, 10)}.json`;
   anchor.click();
   URL.revokeObjectURL(url);
 }
@@ -83,7 +83,7 @@ export function BackupPanel(): React.JSX.Element {
     setError(null);
     if (!file) return;
     if (file.size > MAX_BACKUP_BYTES) {
-      setError('Tệp backup vượt quá giới hạn 2 MiB.');
+      setError('Tệp sao lưu vượt quá giới hạn 2 MB.');
       return;
     }
     setBusy(true);
@@ -92,9 +92,9 @@ export function BackupPanel(): React.JSX.Element {
       const result = await validateBackup(parsed);
       setBackup(parsed);
       setValidation(result);
-      setMessage('Backup hợp lệ. Kiểm tra thông tin trước khi phục hồi.');
+      setMessage('Bản sao lưu hợp lệ. Kiểm tra thông tin trước khi phục hồi.');
     } catch {
-      setError('Tệp không phải backup Lớp Sạch hợp lệ hoặc không tương thích.');
+      setError('Tệp không phải bản sao lưu Lớp Sạch hợp lệ hoặc không tương thích.');
     } finally {
       setBusy(false);
     }
@@ -123,24 +123,25 @@ export function BackupPanel(): React.JSX.Element {
           <h2>Sao lưu và phục hồi</h2>
         </div>
         <button
-          className="button secondary"
+          className="button button-secondary"
           type="button"
           disabled={busy}
           onClick={() => void performExport()}
         >
-          <Download size={17} aria-hidden="true" /> Xuất backup hiện tại
+          <Download size={17} aria-hidden="true" /> Xuất bản sao hiện tại
         </button>
       </div>
       <p className="muted">
-        Backup chỉ chứa dữ liệu lớp; không có tài khoản, mật khẩu, phiên đăng nhập hoặc secret.
+        Bản sao chỉ chứa dữ liệu lớp; không có tài khoản, mật khẩu, phiên đăng nhập hoặc dữ liệu bí
+        mật.
       </p>
       {message ? <Notice tone="success">{message}</Notice> : null}
       {error ? <Notice tone="error">{error}</Notice> : null}
       <label className="file-picker">
         <Upload size={18} aria-hidden="true" />
-        <span>Chọn tệp backup để kiểm tra</span>
+        <span>Chọn tệp sao lưu để kiểm tra</span>
         <input
-          aria-label="Tệp backup"
+          aria-label="Tệp sao lưu"
           type="file"
           accept="application/json,.json"
           disabled={busy}
@@ -157,7 +158,7 @@ export function BackupPanel(): React.JSX.Element {
           <span>Xuất lúc {new Date(validation.exportedAt).toLocaleString('vi-VN')}</span>
           {!preRestoreExported ? (
             <Notice tone="warning">
-              Phải xuất backup dữ liệu hiện tại trước khi có thể phục hồi.
+              Phải xuất bản sao dữ liệu hiện tại trước khi có thể phục hồi.
             </Notice>
           ) : null}
           <label htmlFor="restore-confirmation">
@@ -175,7 +176,7 @@ export function BackupPanel(): React.JSX.Element {
             disabled={busy || !preRestoreExported || confirmation !== 'PHỤC HỒI'}
             onClick={() => void performRestore()}
           >
-            <RotateCcw size={17} aria-hidden="true" /> Phục hồi backup đã kiểm tra
+            <RotateCcw size={17} aria-hidden="true" /> Phục hồi bản sao đã kiểm tra
           </button>
         </div>
       ) : null}

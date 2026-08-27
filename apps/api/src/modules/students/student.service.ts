@@ -6,6 +6,7 @@ import { HttpProblem } from '../../shared/problem.js';
 import { ClassroomModel, type ClassroomDocument } from '../classroom/classroom.model.js';
 import { TaskTemplateModel } from '../task-templates/task-template.model.js';
 import { StudentModel, type StudentDocument } from './student.model.js';
+import { mapStudentRestrictions } from './student-restrictions.js';
 
 const { Types } = mongoose;
 
@@ -31,21 +32,6 @@ type StudentHydrated = HydratedDocument<StudentDocument> & { version: number };
 type ClassroomHydrated = HydratedDocument<ClassroomDocument> & { version: number };
 
 function mapStudent(document: StudentHydrated): Student {
-  const restrictions = document.restrictions.map((restriction) => {
-    const base = {
-      id: String(restriction.id),
-      ...(restriction.note ? { note: restriction.note } : {}),
-    };
-    if (restriction.type === 'NO_HEAVY_TASKS') return { ...base, type: restriction.type };
-    if (restriction.type === 'TASK_EXCLUSION')
-      return { ...base, type: restriction.type, taskTemplateId: restriction.taskTemplateId };
-    return {
-      ...base,
-      type: restriction.type,
-      startDate: restriction.startDate,
-      endDate: restriction.endDate,
-    };
-  });
   return StudentSchema.parse({
     id: String(document._id),
     classroomId: String(document.classroomId),
@@ -55,7 +41,7 @@ function mapStudent(document: StudentHydrated): Student {
     gender: document.gender,
     participationStart: document.participationStart,
     participationEnd: document.participationEnd,
-    restrictions,
+    restrictions: mapStudentRestrictions(document.restrictions),
     version: document.version,
   });
 }

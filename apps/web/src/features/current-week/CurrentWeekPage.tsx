@@ -89,7 +89,7 @@ export function CurrentWeekPage({
               </StatusBadge>
             </div>
             {cached.warningCount > 0 ? (
-              <Notice tone="warning">Lịch có {cached.warningCount} cảnh báo đã duyệt.</Notice>
+              <Notice tone="warning">Lịch có {cached.warningCount} lượt cần lưu ý đã duyệt.</Notice>
             ) : null}
             <div className="week-summary">
               {cached.days.map((day) => (

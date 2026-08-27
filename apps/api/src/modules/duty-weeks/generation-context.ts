@@ -1,6 +1,5 @@
 import {
   DateOnlySchema,
-  StudentRestrictionSchema,
   TaskOccurrenceSchema,
   type GenerationRevisionVectorSchema,
   type StudentFairnessBaseline,
@@ -16,6 +15,7 @@ import type { z } from 'zod';
 import { HttpProblem } from '../../shared/problem.js';
 import { ClassroomModel } from '../classroom/classroom.model.js';
 import { StudentModel, type StudentDocument } from '../students/student.model.js';
+import { mapStudentRestrictions } from '../students/student-restrictions.js';
 import {
   TaskTemplateModel,
   type TaskTemplateDocument,
@@ -105,7 +105,7 @@ export async function buildGenerationContext(
         gender: student.gender,
         participationStart: DateOnlySchema.nullable().parse(student.participationStart),
         participationEnd: DateOnlySchema.nullable().parse(student.participationEnd),
-        restrictions: StudentRestrictionSchema.array().parse(student.restrictions),
+        restrictions: mapStudentRestrictions(student.restrictions),
       })),
       occurrences: week.taskOccurrences.map((rawOccurrence) => {
         const occurrence = TaskOccurrenceSchema.parse(rawOccurrence);

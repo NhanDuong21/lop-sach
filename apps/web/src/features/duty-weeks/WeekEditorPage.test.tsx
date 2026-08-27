@@ -1,6 +1,7 @@
 import { parseDateOnly, type Classroom, type DutyWeek } from '@lop-sach/contracts';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getClassroom } from '../classroom/classroom.api.js';
@@ -145,7 +146,39 @@ describe('WeekEditorPage', () => {
     expect(screen.getByText(/nhiều công việc trong cùng ngày/u)).toBeInTheDocument();
     expect(screen.getByText(/mở khóa toàn bộ phân công/u)).toBeInTheDocument();
     expect(screen.getByLabelText('Tổ trực')).toBeDisabled();
+    expect(screen.getByLabelText('Nguyễn An vắng Thứ Hai, ngày 24/08')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Chủ Nhật/u)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Phát hành' })).toBeDisabled();
     expect(screen.queryByText(/time overlap/iu)).not.toBeInTheDocument();
+  });
+
+  it('offers copy and export actions as soon as a week is published', async () => {
+    vi.mocked(getDutyWeek).mockResolvedValue({
+      ...week,
+      status: 'PUBLISHED',
+      requiresGeneration: false,
+      generationStale: false,
+      publicationRevision: 1,
+    });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/weeks/week-1']}>
+          <Routes>
+            <Route path="/weeks/:weekId" element={<WeekEditorPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(
+      await screen.findByRole('region', { name: 'Sao chép và xuất lịch' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sao chép văn bản' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Xuất PNG' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Hoàn thành tuần' }));
+    expect(
+      screen.getByLabelText('Người thực hiện Lau bảng ngày 24/08, vị trí 1'),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/chỉ đổi những lượt có người làm thay/u)).toBeInTheDocument();
   });
 });

@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button.js';
 import { LoadingState } from '../../components/ui/LoadingState.js';
 import { Notice } from '../../components/ui/Notice.js';
 import { StatusBadge } from '../../components/ui/StatusBadge.js';
+import { eligibilityLabels } from '../../lib/vietnamese-labels.js';
 import { getClassroom } from '../classroom/classroom.api.js';
 import { TaskForm } from './TaskForm.js';
 import {
@@ -73,7 +74,7 @@ export function TaskTemplatesPage({
         <header className="page-heading">
           <p className="eyebrow">Thiết lập</p>
           <h1>Công việc trực nhật</h1>
-          <p>Khối lượng và số người là dữ liệu scheduler dùng để cân bằng.</p>
+          <p>Khối lượng và số người giúp hệ thống xếp lịch cân bằng.</p>
         </header>
       )}
       <section className="card">
@@ -103,7 +104,7 @@ export function TaskTemplatesPage({
                   <strong>{task.name}</strong>
                   <p>
                     {task.requiredStudents} người · mức {task.workloadLevel} ·{' '}
-                    {task.schoolDays.length} ngày/tuần
+                    {task.schoolDays.length} ngày/tuần · {eligibilityLabels[task.eligibilityRule]}
                   </p>
                 </div>
                 <StatusBadge tone={task.active ? 'success' : 'neutral'}>

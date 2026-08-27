@@ -1,4 +1,10 @@
-import { addDateOnlyDays, parseDateOnly, type DutyWeek } from '@lop-sach/contracts';
+import {
+  addDateOnlyDays,
+  dateOnlyWeekday,
+  parseDateOnly,
+  type DutyWeek,
+  type SchoolDay,
+} from '@lop-sach/contracts';
 import { SCHEDULER_ENGINE_VERSION, generateSchedule } from '@lop-sach/scheduler';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeftRight, CalendarCheck, Plus } from 'lucide-react';
@@ -10,6 +16,7 @@ import { LoadingState } from '../../components/ui/LoadingState.js';
 import { Notice } from '../../components/ui/Notice.js';
 import { StatusBadge } from '../../components/ui/StatusBadge.js';
 import { ApiError } from '../../lib/api-client.js';
+import { schoolDayLabels } from '../../lib/vietnamese-labels.js';
 import { getClassroom } from '../classroom/classroom.api.js';
 import { DayCard } from './DayCard.js';
 import {
@@ -32,6 +39,7 @@ import {
 import { GenerationPanel } from './GenerationPanel.js';
 import { PublishDialog } from './PublishDialog.js';
 import { ReplacementDialog } from './ReplacementDialog.js';
+import { WeekExportActions } from './WeekExportActions.js';
 
 type WeekOperation = () => Promise<DutyWeek>;
 
@@ -39,6 +47,16 @@ const statusLabels: Readonly<Record<DutyWeek['status'], string>> = {
   DRAFT: 'Bản nháp',
   PUBLISHED: 'Đã phát hành',
   COMPLETED: 'Đã hoàn thành',
+};
+
+const shortSchoolDayLabels: Readonly<Record<SchoolDay, string>> = {
+  MONDAY: 'T2',
+  TUESDAY: 'T3',
+  WEDNESDAY: 'T4',
+  THURSDAY: 'T5',
+  FRIDAY: 'T6',
+  SATURDAY: 'T7',
+  SUNDAY: 'CN',
 };
 
 function errorMessage(error: unknown): string {
@@ -51,12 +69,14 @@ function CompleteWeekDialog({
   week,
   open,
   pending,
+  error,
   onConfirm,
   onCancel,
 }: {
   readonly week: DutyWeek;
   readonly open: boolean;
   readonly pending: boolean;
+  readonly error: string | null;
   readonly onConfirm: (
     actualPerformers: readonly { readonly slotId: string; readonly studentId: string }[],
   ) => void;
@@ -74,7 +94,20 @@ function CompleteWeekDialog({
     );
   }, [open, week]);
   if (!open) return null;
-  const assigned = week.assignments.filter((assignment) => assignment.studentId !== null);
+  const occurrenceById = new Map(
+    week.taskOccurrences.map((occurrence) => [occurrence.id, occurrence]),
+  );
+  const assigned = week.assignments
+    .filter((assignment) => assignment.studentId !== null)
+    .sort((left, right) => {
+      const leftOccurrence = occurrenceById.get(left.occurrenceId);
+      const rightOccurrence = occurrenceById.get(right.occurrenceId);
+      return (
+        (leftOccurrence?.date ?? '').localeCompare(rightOccurrence?.date ?? '') ||
+        (leftOccurrence?.order ?? 0) - (rightOccurrence?.order ?? 0) ||
+        left.slotIndex - right.slotIndex
+      );
+    });
   const allSelected = assigned.every((assignment) => Boolean(actualBySlot[assignment.slotId]));
   return (
     <div className="dialog-backdrop" role="presentation">
@@ -86,9 +119,10 @@ function CompleteWeekDialog({
       >
         <h2 id="complete-title">Ghi nhận người thực hiện thực tế</h2>
         <p>
-          Kiểm tra từng vị trí. Người thực hiện phải thuộc {week.groupSnapshot.name} và đủ điều kiện
-          cho công việc.
+          Giữ nguyên các lượt đúng như lịch; chỉ đổi những lượt có người làm thay. Hệ thống sẽ kiểm
+          tra người thay thuộc {week.groupSnapshot.name} và đủ điều kiện cho công việc.
         </p>
+        {error ? <Notice tone="error">{error}</Notice> : null}
         {assigned.length === 0 ? (
           <Notice tone="warning">Tuần không có phân công để hoàn thành.</Notice>
         ) : (
@@ -106,7 +140,8 @@ function CompleteWeekDialog({
                     </span>
                   </div>
                   <label className="sr-only" htmlFor={`actual-${assignment.slotId}`}>
-                    Người thực hiện {occurrence?.taskName}
+                    Người thực hiện {occurrence?.taskName} ngày {occurrence?.date.slice(8)}/
+                    {occurrence?.date.slice(5, 7)}, vị trí {assignment.slotIndex + 1}
                   </label>
                   <select
                     id={`actual-${assignment.slotId}`}
@@ -131,7 +166,9 @@ function CompleteWeekDialog({
             })}
           </div>
         )}
-        <Notice tone="info">Sau khi hoàn thành, ledger và snapshot lịch sử sẽ bất biến.</Notice>
+        <Notice tone="info">
+          Sau khi hoàn thành, kết quả thực tế và dữ liệu lịch sử sẽ không thể thay đổi.
+        </Notice>
         <div className="button-row">
           <Button variant="secondary" onClick={onCancel} disabled={pending}>
             Hủy
@@ -209,7 +246,7 @@ export function WeekEditorPage(): React.JSX.Element {
   const dates = [...new Set(week.taskOccurrences.map((occurrence) => occurrence.date))].sort();
   const weekDates = Array.from({ length: 7 }, (_, index) =>
     addDateOnlyDays(parseDateOnly(week.weekStart), index),
-  );
+  ).filter((date) => classroom.data.schoolDays.includes(dateOnlyWeekday(date)));
   const run = (operation: WeekOperation): void => {
     action.mutate(operation);
   };
@@ -237,7 +274,7 @@ export function WeekEditorPage(): React.JSX.Element {
       }
       const preview = generateSchedule(context.context);
       if (preview.inputHash !== context.inputHash)
-        throw new Error('Bản xem trước không khớp dữ liệu máy chủ.');
+        throw new Error('Dữ liệu xem trước không còn khớp. Hãy tải lại và thử lại.');
       return generateDutyWeek(week.id, {
         expectedVersion: week.version,
         clientSchedulerEngineVersion: SCHEDULER_ENGINE_VERSION,
@@ -278,7 +315,7 @@ export function WeekEditorPage(): React.JSX.Element {
             <StatusBadge tone={week.status === 'DRAFT' ? 'warning' : 'success'}>
               {statusLabels[week.status]}
             </StatusBadge>
-            <span>Revision phát hành {week.publicationRevision}</span>
+            <span>Lần phát hành {week.publicationRevision}</span>
           </div>
         </div>
         <div className="button-row">
@@ -296,14 +333,23 @@ export function WeekEditorPage(): React.JSX.Element {
             </Button>
           ) : null}
           {week.status === 'PUBLISHED' ? (
-            <Button onClick={() => setCompleteOpen(true)} disabled={action.isPending}>
+            <Button
+              onClick={() => {
+                action.reset();
+                setCompleteOpen(true);
+              }}
+              disabled={action.isPending}
+            >
               <CalendarCheck size={17} />
               Hoàn thành tuần
             </Button>
           ) : null}
         </div>
       </header>
-      {week.generationStale ? (
+      {week.status !== 'DRAFT' ? (
+        <WeekExportActions week={week} classroomName={classroom.data.name} />
+      ) : null}
+      {week.generationStale && week.assignments.length > 0 ? (
         <Notice tone="warning">
           Dữ liệu lớp đã thay đổi sau lần tạo phân công. Hãy tạo lại hoặc kiểm tra lại trước khi
           phát hành.
@@ -363,10 +409,13 @@ export function WeekEditorPage(): React.JSX.Element {
                         <label className="absence-choice" key={date}>
                           <input
                             type="checkbox"
+                            aria-label={`${student.displayName} vắng ${schoolDayLabels[dateOnlyWeekday(date)]}, ngày ${date.slice(8)}/${date.slice(5, 7)}`}
                             checked={absenceKeys.has(key)}
                             onChange={() => toggleAbsence(student.id, date)}
                           />
-                          <span>{date.slice(8)}</span>
+                          <span>
+                            {shortSchoolDayLabels[dateOnlyWeekday(date)]} {date.slice(8)}
+                          </span>
                         </label>
                       );
                     })}
@@ -549,7 +598,11 @@ export function WeekEditorPage(): React.JSX.Element {
         week={week}
         open={completeOpen}
         pending={action.isPending}
-        onCancel={() => setCompleteOpen(false)}
+        error={actionError ? errorMessage(actionError) : null}
+        onCancel={() => {
+          action.reset();
+          setCompleteOpen(false);
+        }}
         onConfirm={(actualPerformers) =>
           run(async () => {
             const updated = await completeDutyWeek(week.id, week.version, actualPerformers);

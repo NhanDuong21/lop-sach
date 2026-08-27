@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/Button.js';
 import { LoadingState } from '../../components/ui/LoadingState.js';
 import { Notice } from '../../components/ui/Notice.js';
+import { ApiError } from '../../lib/api-client.js';
 import { getClassroom } from '../classroom/classroom.api.js';
 import { createDutyWeek } from './duty-weeks.api.js';
 
@@ -50,13 +51,15 @@ export function NewWeekPage(): React.JSX.Element {
         <div className="section-heading">
           <div>
             <h2>Thông tin tuần</h2>
-            <p>Tuần được định danh bằng ngày Thứ Hai.</p>
+            <p>Chọn ngày Thứ Hai để xác định tuần trực.</p>
           </div>
           <CalendarPlus size={24} aria-hidden="true" />
         </div>
         {create.isError ? (
           <Notice tone="error">
-            Không thể tạo tuần. Tuần này có thể đã tồn tại hoặc dữ liệu vừa thay đổi.
+            {create.error instanceof ApiError
+              ? create.error.problem.detail
+              : 'Không thể tạo tuần. Hãy thử lại.'}
           </Notice>
         ) : null}
         <form

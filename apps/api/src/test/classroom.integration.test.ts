@@ -59,6 +59,7 @@ describe('classroom master data', () => {
     ]);
     const me = await agent.get('/api/v1/auth/me').expect(200);
     expect(me.body).toMatchObject({ data: { hasClassroom: true, onboardingCompleted: false } });
+    expect(classroom.onboarding.currentStep).toBe(2);
   });
 
   it('keeps group IDs stable and enforces optimistic classroom versions', async () => {

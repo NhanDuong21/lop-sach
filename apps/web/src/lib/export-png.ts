@@ -46,8 +46,9 @@ export async function dutyWeekPng(week: DutyWeek, classroomName: string): Promis
   context.font = '500 28px system-ui, sans-serif';
   let y = PADDING + 96;
   for (const line of lines) {
-    context.fillStyle = line.match(/^\d{4}-\d{2}-\d{2}$/u) ? '#247045' : '#26342b';
-    context.font = line.match(/^\d{4}-\d{2}-\d{2}$/u)
+    const isDateHeading = /^(Thứ|Chủ Nhật)/iu.test(line);
+    context.fillStyle = isDateHeading ? '#247045' : '#26342b';
+    context.font = isDateHeading
       ? '700 30px system-ui, sans-serif'
       : '500 28px system-ui, sans-serif';
     context.fillText(line, PADDING + 36, y);
@@ -63,6 +64,8 @@ export function downloadBlob(blob: Blob, filename: string): void {
   const anchor = document.createElement('a');
   anchor.href = url;
   anchor.download = filename;
+  document.body.append(anchor);
   anchor.click();
-  URL.revokeObjectURL(url);
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }

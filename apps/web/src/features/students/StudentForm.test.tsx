@@ -24,8 +24,8 @@ describe('StudentForm availability controls', () => {
         onSubmit={vi.fn()}
       />,
     );
-    expect(screen.getByText('Không giao task nặng')).toBeInTheDocument();
-    expect(screen.getByText('Không giao task cụ thể')).toBeInTheDocument();
+    expect(screen.getByText('Không giao công việc nặng')).toBeInTheDocument();
+    expect(screen.getByText('Không giao công việc cụ thể')).toBeInTheDocument();
     expect(screen.getByText('Miễn trong khoảng ngày')).toBeInTheDocument();
     expect(screen.queryByText('Không có mặt vào ngày')).not.toBeInTheDocument();
     expect(screen.getByText(/Vắng một ngày cụ thể/u)).toBeInTheDocument();

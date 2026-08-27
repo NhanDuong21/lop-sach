@@ -1,4 +1,15 @@
 import type { DutyWeek } from '@lop-sach/contracts';
+import { warningCountText } from './week-warnings.js';
+
+function vietnameseDateLabel(date: string): string {
+  return new Intl.DateTimeFormat('vi-VN', {
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${date}T00:00:00Z`));
+}
 
 export function sanitizedExportFilename(value: string): string {
   return value
@@ -19,7 +30,7 @@ export function dutyWeekText(week: DutyWeek, classroomName: string): string {
   for (const date of [
     ...new Set(week.taskOccurrences.filter((item) => item.enabled).map((item) => item.date)),
   ].sort()) {
-    lines.push(date);
+    lines.push(vietnameseDateLabel(date));
     for (const occurrence of week.taskOccurrences
       .filter((item) => item.enabled && item.date === date)
       .sort((left, right) => left.order - right.order || left.id.localeCompare(right.id))) {
@@ -33,7 +44,7 @@ export function dutyWeekText(week: DutyWeek, classroomName: string): string {
     }
     lines.push('');
   }
-  if (week.warnings.length > 0) lines.push(`Cảnh báo đã duyệt: ${String(week.warnings.length)}`);
+  if (week.warnings.length > 0) lines.push(`Lưu ý đã duyệt: ${warningCountText(week)}`);
   return `${lines.join('\n').trim()}\n`;
 }
 
@@ -42,6 +53,8 @@ export function downloadTextFile(text: string, filename: string): void {
   const anchor = document.createElement('a');
   anchor.href = url;
   anchor.download = filename;
+  document.body.append(anchor);
   anchor.click();
-  URL.revokeObjectURL(url);
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }

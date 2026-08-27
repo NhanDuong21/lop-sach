@@ -1,6 +1,5 @@
 import {
   DateOnlySchema,
-  StudentRestrictionSchema,
   TaskOccurrenceSchema,
   addDateOnlyDays,
   dateOnlyWeekday,
@@ -31,6 +30,7 @@ import { createId } from '../../shared/ids.js';
 import { HttpProblem } from '../../shared/problem.js';
 import { ClassroomModel, type ClassroomDocument } from '../classroom/classroom.model.js';
 import { StudentModel, type StudentDocument } from '../students/student.model.js';
+import { mapStudentRestrictions } from '../students/student-restrictions.js';
 import {
   TaskTemplateModel,
   type TaskTemplateDocument,
@@ -167,7 +167,7 @@ async function studentSnapshots(
       gender: student.gender,
       participationStart: DateOnlySchema.nullable().parse(student.participationStart),
       participationEnd: DateOnlySchema.nullable().parse(student.participationEnd),
-      restrictions: StudentRestrictionSchema.array().parse(student.restrictions),
+      restrictions: mapStudentRestrictions(student.restrictions),
       revision: student.version,
     };
   });

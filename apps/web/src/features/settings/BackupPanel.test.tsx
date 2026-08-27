@@ -68,12 +68,12 @@ describe('BackupPanel', () => {
     );
     const file = new File([JSON.stringify(backup)], 'backup.json', { type: 'application/json' });
     Object.defineProperty(file, 'text', { value: () => Promise.resolve(JSON.stringify(backup)) });
-    fireEvent.change(screen.getByLabelText('Tệp backup'), { target: { files: [file] } });
-    await screen.findByText(/Backup hợp lệ/u);
-    const restore = screen.getByRole('button', { name: 'Phục hồi backup đã kiểm tra' });
+    fireEvent.change(screen.getByLabelText('Tệp sao lưu'), { target: { files: [file] } });
+    await screen.findByText(/Bản sao lưu hợp lệ/u);
+    const restore = screen.getByRole('button', { name: 'Phục hồi bản sao đã kiểm tra' });
     expect(restore).toBeDisabled();
 
-    await user.click(screen.getByRole('button', { name: 'Xuất backup hiện tại' }));
+    await user.click(screen.getByRole('button', { name: 'Xuất bản sao hiện tại' }));
     await waitFor(() => expect(screen.getByText(/cất tệp ở nơi an toàn/u)).toBeVisible());
     await user.type(screen.getByLabelText(/Nhập PHỤC HỒI/u), 'PHỤC HỒI');
     expect(restore).toBeEnabled();

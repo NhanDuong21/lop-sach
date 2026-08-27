@@ -147,10 +147,10 @@ export function StudentForm({
             checked={noHeavy}
             onChange={(event) => setNoHeavy(event.target.checked)}
           />
-          Không giao task nặng
+          Không giao công việc nặng
         </label>
         <div className="subsection">
-          <span className="field-label">Không giao task cụ thể</span>
+          <span className="field-label">Không giao công việc cụ thể</span>
           <div className="choice-grid">
             {tasks.map((task) => (
               <label className="check-choice" key={task.id}>

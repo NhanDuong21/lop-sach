@@ -15,7 +15,7 @@ export function HistoryPage(): React.JSX.Element {
       <header className="page-heading">
         <p className="eyebrow">Theo dõi</p>
         <h1>Lịch sử trực nhật</h1>
-        <p>Các tuần hoàn tất sẽ giữ snapshot để không đổi khi sửa dữ liệu lớp.</p>
+        <p>Các tuần hoàn tất được lưu cố định, không đổi khi sửa dữ liệu lớp.</p>
       </header>
       {summary.isError || metrics.isError ? (
         <section className="card empty-state">
@@ -34,7 +34,7 @@ export function HistoryPage(): React.JSX.Element {
           <section className="card">
             <div className="section-heading">
               <div>
-                <p className="eyebrow">Tổng hợp actual performer</p>
+                <p className="eyebrow">Tổng hợp người thực hiện thực tế</p>
                 <h2>Khối lượng đã hoàn thành</h2>
               </div>
             </div>
@@ -60,7 +60,7 @@ export function HistoryPage(): React.JSX.Element {
                 </div>
                 <div className="history-card-status">
                   <StatusBadge tone="success">{week.fairness?.label ?? 'Đã hoàn tất'}</StatusBadge>
-                  {week.warningCount > 0 ? <span>{week.warningCount} cảnh báo</span> : null}
+                  {week.warningCount > 0 ? <span>{week.warningCount} lượt cần lưu ý</span> : null}
                 </div>
               </Link>
             ))}

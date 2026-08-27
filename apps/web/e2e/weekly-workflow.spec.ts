@@ -46,7 +46,7 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   await page.getByRole('button', { name: 'Tạo tuần và kiểm tra vắng mặt' }).click();
   await expect(page.getByRole('heading', { name: 'Tuần 2026-08-24' })).toBeVisible();
   await page.getByRole('button', { name: 'Tạo phân công' }).click();
-  await expect(page.getByText('Ngữ cảnh phân công hiện hợp lệ.')).toBeVisible();
+  await expect(page.getByText('Dữ liệu dùng để phân công hiện hợp lệ.')).toBeVisible();
   await page.getByRole('button', { name: 'Phát hành' }).click();
   await expect(page.getByRole('heading', { name: 'Phát hành lịch tuần?' })).toBeVisible();
   await page.getByRole('dialog').getByRole('button', { name: 'Phát hành' }).click();

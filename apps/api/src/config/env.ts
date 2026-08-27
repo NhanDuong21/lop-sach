@@ -1,4 +1,16 @@
+import { existsSync } from 'node:fs';
+import { loadEnvFile } from 'node:process';
+import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
+
+const localEnvironmentFile = fileURLToPath(new URL('../../.env', import.meta.url));
+
+function loadProcessEnvironment(): NodeJS.ProcessEnv {
+  if (process.env.NODE_ENV !== 'production' && existsSync(localEnvironmentFile)) {
+    loadEnvFile(localEnvironmentFile);
+  }
+  return process.env;
+}
 
 const EnvSchema = z
   .strictObject({
@@ -39,8 +51,15 @@ export interface AppConfig {
   readonly proxySecret?: string;
 }
 
-export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppConfig {
-  const value = EnvSchema.parse(environment);
+export function loadConfig(environment: NodeJS.ProcessEnv = loadProcessEnvironment()): AppConfig {
+  const value = EnvSchema.parse({
+    NODE_ENV: environment.NODE_ENV,
+    PORT: environment.PORT,
+    MONGODB_URI: environment.MONGODB_URI,
+    APP_ORIGIN: environment.APP_ORIGIN,
+    LOG_LEVEL: environment.LOG_LEVEL,
+    LOP_SACH_PROXY_SECRET: environment.LOP_SACH_PROXY_SECRET,
+  });
   return {
     environment: value.NODE_ENV,
     port: value.PORT,

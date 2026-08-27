@@ -32,7 +32,7 @@ export function GroupsPanel({ classroom }: { readonly classroom: Classroom }): R
       <div className="section-heading">
         <div>
           <h2 id="groups-title">Các tổ trong lớp</h2>
-          <p>Tên có thể đổi, mã tổ ổn định để bảo vệ lịch sử.</p>
+          <p>Tên tổ có thể đổi; lịch sử cũ vẫn giữ đúng tổ đã phân công.</p>
         </div>
       </div>
       {mutation.isError ? (

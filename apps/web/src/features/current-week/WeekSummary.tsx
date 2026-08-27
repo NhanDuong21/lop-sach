@@ -1,5 +1,6 @@
 import type { DutyWeek } from '@lop-sach/contracts';
 import { Notice } from '../../components/ui/Notice.js';
+import { uniqueWarningCodes, warningCountText, warningLabels } from '../../lib/week-warnings.js';
 
 export function WeekSummary({ week }: { readonly week: DutyWeek }): React.JSX.Element {
   const dates = [
@@ -9,7 +10,12 @@ export function WeekSummary({ week }: { readonly week: DutyWeek }): React.JSX.El
     <div className="week-summary">
       {week.warnings.length > 0 ? (
         <Notice tone="warning">
-          Lịch có {week.warnings.length} cảnh báo đã được người vận hành xem trước khi phát hành.
+          Lịch có {warningCountText(week)} đã được xem trước khi phát hành.
+          <ul className="warning-summary-list">
+            {uniqueWarningCodes(week).map((code) => (
+              <li key={code}>{warningLabels[code] ?? 'Có phân công cần xem lại.'}</li>
+            ))}
+          </ul>
         </Notice>
       ) : null}
       {dates.map((date) => (
