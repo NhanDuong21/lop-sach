@@ -21,6 +21,7 @@ import {
   completeDutyWeek,
   createDutyWeek,
   createTaskOccurrence,
+  deleteDutyWeek,
   deleteTaskOccurrence,
   generateDutyWeek,
   getDutyWeek,
@@ -91,6 +92,19 @@ export function createDutyWeekRouter(): Router {
           DutyWeekPatchSchema.parse(request.body),
         ),
       });
+    } catch (error) {
+      next(error);
+    }
+  });
+  router.delete('/:weekId', async (request, response, next) => {
+    try {
+      const input = VersionedDutyWeekMutationSchema.parse(request.body);
+      await deleteDutyWeek(
+        authenticatedUser(response).id,
+        request.params.weekId ?? '',
+        input.expectedVersion,
+      );
+      response.status(204).send();
     } catch (error) {
       next(error);
     }

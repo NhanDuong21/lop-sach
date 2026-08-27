@@ -1,11 +1,12 @@
 import { parseDateOnly, type DutyWeek } from '@lop-sach/contracts';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cacheCurrentWeek, readCachedCurrentWeek } from '../../lib/offline-cache.js';
 import { useOnlineState } from '../../lib/online-state.js';
-import { listDutyWeeks } from '../duty-weeks/duty-weeks.api.js';
+import { deleteDutyWeek, listDutyWeeks } from '../duty-weeks/duty-weeks.api.js';
 import { CurrentWeekPage } from './CurrentWeekPage.js';
 
 vi.mock('../../lib/offline-cache.js', () => ({
@@ -13,7 +14,10 @@ vi.mock('../../lib/offline-cache.js', () => ({
   readCachedCurrentWeek: vi.fn(),
 }));
 vi.mock('../../lib/online-state.js', () => ({ useOnlineState: vi.fn() }));
-vi.mock('../duty-weeks/duty-weeks.api.js', () => ({ listDutyWeeks: vi.fn() }));
+vi.mock('../duty-weeks/duty-weeks.api.js', () => ({
+  deleteDutyWeek: vi.fn(),
+  listDutyWeeks: vi.fn(),
+}));
 
 function makeWeek(id: string, weekStart: string, status: DutyWeek['status']): DutyWeek {
   return {
@@ -61,6 +65,7 @@ beforeEach(() => {
   vi.mocked(useOnlineState).mockReturnValue(true);
   vi.mocked(readCachedCurrentWeek).mockResolvedValue(null);
   vi.mocked(cacheCurrentWeek).mockResolvedValue(undefined);
+  vi.mocked(deleteDutyWeek).mockResolvedValue(undefined);
 });
 
 describe('CurrentWeekPage', () => {
@@ -95,5 +100,13 @@ describe('CurrentWeekPage', () => {
       '/weeks/draft-week',
     );
     expect(screen.getByText('Tổ trực: Tổ 2')).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Xóa bản nháp tuần 31/08 – 06/09/2026' }),
+    );
+    expect(deleteDutyWeek).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: 'Xóa bản nháp?' })).toBeInTheDocument();
+    expect(screen.getByText(/sẽ bị xóa vĩnh viễn/u)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Xóa bản nháp' }));
+    await waitFor(() => expect(deleteDutyWeek).toHaveBeenCalledWith('draft-week', draft.version));
   });
 });

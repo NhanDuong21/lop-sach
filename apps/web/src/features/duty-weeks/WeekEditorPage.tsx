@@ -10,7 +10,7 @@ import { SCHEDULER_ENGINE_VERSION, generateSchedule } from '@lop-sach/scheduler'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeftRight, CalendarCheck, Plus } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/Button.js';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.js';
 import { LoadingState } from '../../components/ui/LoadingState.js';
@@ -26,6 +26,7 @@ import { DayCard } from './DayCard.js';
 import {
   completeDutyWeek,
   createOneOff,
+  deleteDutyWeek,
   deleteOccurrence,
   generateDutyWeek,
   getDutyWeek,
@@ -261,6 +262,7 @@ function CompleteWeekDialog({
 
 export function WeekEditorPage(): React.JSX.Element {
   const { weekId = '' } = useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const weekQuery = useQuery({
     queryKey: ['duty-week', weekId],
@@ -275,6 +277,15 @@ export function WeekEditorPage(): React.JSX.Element {
       void queryClient.invalidateQueries({ queryKey: ['duty-weeks'] });
     },
   });
+  const deleteDraftAction = useMutation({
+    mutationFn: (input: { readonly id: string; readonly expectedVersion: number }) =>
+      deleteDutyWeek(input.id, input.expectedVersion),
+    onSuccess: async () => {
+      queryClient.removeQueries({ queryKey: ['duty-week', weekId] });
+      await queryClient.invalidateQueries({ queryKey: ['duty-weeks'] });
+      void navigate('/');
+    },
+  });
   const [absenceKeys, setAbsenceKeys] = useState<Set<string>>(new Set());
   const [pendingGroupId, setPendingGroupId] = useState<string | null>(null);
   const [replacementSlotId, setReplacementSlotId] = useState<string | null>(null);
@@ -283,6 +294,7 @@ export function WeekEditorPage(): React.JSX.Element {
   const [completeOpen, setCompleteOpen] = useState(false);
   const [oneOffOpen, setOneOffOpen] = useState(false);
   const [deleteOccurrenceId, setDeleteOccurrenceId] = useState<string>();
+  const [deleteDraftOpen, setDeleteDraftOpen] = useState(false);
   const [oneOffDate, setOneOffDate] = useState('');
   const [oneOffName, setOneOffName] = useState('');
   const [oneOffHeadcount, setOneOffHeadcount] = useState(1);
@@ -497,6 +509,15 @@ export function WeekEditorPage(): React.JSX.Element {
           <Link className="button button-secondary" to="/">
             Về tuần này
           </Link>
+          <Button
+            variant="danger"
+            onClick={() => {
+              deleteDraftAction.reset();
+              setDeleteDraftOpen(true);
+            }}
+          >
+            Xóa bản nháp
+          </Button>
         </div>
       </header>
       <ol className="workflow-steps" aria-label="Các bước lập lịch tuần">
@@ -818,6 +839,19 @@ export function WeekEditorPage(): React.JSX.Element {
           </div>
         </section>
       ) : null}
+      <ConfirmDialog
+        open={deleteDraftOpen}
+        title="Xóa bản nháp?"
+        description={`Lịch nháp tuần ${formatWeekRange(week.weekStart, dates.at(-1))}, các đánh dấu vắng mặt, công việc phát sinh và phân công chưa công bố sẽ bị xóa vĩnh viễn. Bạn có thể tạo lại tuần này sau đó.`}
+        confirmLabel="Xóa bản nháp"
+        pending={deleteDraftAction.isPending}
+        pendingLabel="Đang xóa…"
+        error={deleteDraftAction.isError ? errorMessage(deleteDraftAction.error) : null}
+        onCancel={() => {
+          if (!deleteDraftAction.isPending) setDeleteDraftOpen(false);
+        }}
+        onConfirm={() => deleteDraftAction.mutate({ id: week.id, expectedVersion: week.version })}
+      />
       <ConfirmDialog
         open={Boolean(deleteOccurrenceId)}
         title="Xóa công việc phát sinh?"

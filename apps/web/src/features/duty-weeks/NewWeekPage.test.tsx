@@ -4,12 +4,13 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getClassroom } from '../classroom/classroom.api.js';
-import { createDutyWeek, listDutyWeeks } from './duty-weeks.api.js';
+import { createDutyWeek, deleteDutyWeek, listDutyWeeks } from './duty-weeks.api.js';
 import { NewWeekPage } from './NewWeekPage.js';
 
 vi.mock('../classroom/classroom.api.js', () => ({ getClassroom: vi.fn() }));
 vi.mock('./duty-weeks.api.js', () => ({
   createDutyWeek: vi.fn(),
+  deleteDutyWeek: vi.fn(),
   listDutyWeeks: vi.fn(),
 }));
 
@@ -41,6 +42,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(getClassroom).mockResolvedValue(classroom);
   vi.mocked(listDutyWeeks).mockResolvedValue([draft]);
+  vi.mocked(deleteDutyWeek).mockResolvedValue(undefined);
 });
 
 describe('NewWeekPage', () => {
@@ -61,6 +63,7 @@ describe('NewWeekPage', () => {
       '/weeks/draft-week',
     );
     expect(screen.queryByRole('button', { name: 'Bắt đầu chuẩn bị tuần' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Xóa bản nháp' })).toBeInTheDocument();
     expect(createDutyWeek).not.toHaveBeenCalled();
   });
 });

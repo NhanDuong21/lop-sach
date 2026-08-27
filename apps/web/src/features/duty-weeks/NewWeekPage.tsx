@@ -4,12 +4,13 @@ import { CalendarPlus } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/ui/Button.js';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog.js';
 import { LoadingState } from '../../components/ui/LoadingState.js';
 import { Notice } from '../../components/ui/Notice.js';
 import { StatusBadge } from '../../components/ui/StatusBadge.js';
 import { ApiError } from '../../lib/api-client.js';
 import { getClassroom } from '../classroom/classroom.api.js';
-import { createDutyWeek, listDutyWeeks } from './duty-weeks.api.js';
+import { createDutyWeek, deleteDutyWeek, listDutyWeeks } from './duty-weeks.api.js';
 
 function todayInClassroomTimezone(): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -38,6 +39,7 @@ export function NewWeekPage(): React.JSX.Element {
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [selectionBasis, setSelectionBasis] = useState<DutyGroupSelectionBasis>('MANUAL');
   const [selectionNote, setSelectionNote] = useState('');
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const existingWeek = useQuery({
     queryKey: ['duty-weeks', 'by-start', weekStart],
     queryFn: () => listDutyWeeks({ from: weekStart, to: weekStart }),
@@ -47,6 +49,14 @@ export function NewWeekPage(): React.JSX.Element {
     onSuccess: (week) => {
       void queryClient.invalidateQueries({ queryKey: ['duty-weeks'] });
       void navigate(`/weeks/${week.id}`);
+    },
+  });
+  const deleteDraft = useMutation({
+    mutationFn: (week: { readonly id: string; readonly version: number }) =>
+      deleteDutyWeek(week.id, week.version),
+    onSuccess: async () => {
+      setDeleteOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ['duty-weeks'] });
     },
   });
   if (classroom.isPending || existingWeek.isPending)
@@ -170,9 +180,22 @@ export function NewWeekPage(): React.JSX.Element {
                 <strong>Tuần này đã được tạo cho {existing.groupSnapshot.name}.</strong>
                 <span>Đổi ngày Thứ Hai ở trên nếu bạn muốn chuẩn bị một tuần khác.</span>
               </div>
-              <Link className="button button-primary" to={`/weeks/${existing.id}`}>
-                {existing.status === 'DRAFT' ? 'Tiếp tục chuẩn bị' : 'Xem tuần đã có'}
-              </Link>
+              <div className="existing-week-actions">
+                <Link className="button button-primary" to={`/weeks/${existing.id}`}>
+                  {existing.status === 'DRAFT' ? 'Tiếp tục chuẩn bị' : 'Xem tuần đã có'}
+                </Link>
+                {existing.status === 'DRAFT' ? (
+                  <Button
+                    variant="danger"
+                    onClick={() => {
+                      deleteDraft.reset();
+                      setDeleteOpen(true);
+                    }}
+                  >
+                    Xóa bản nháp
+                  </Button>
+                ) : null}
+              </div>
             </div>
           ) : (
             <Button
@@ -184,6 +207,21 @@ export function NewWeekPage(): React.JSX.Element {
           )}
         </form>
       </section>
+      <ConfirmDialog
+        open={deleteOpen && existing?.status === 'DRAFT'}
+        title="Xóa bản nháp?"
+        description="Các đánh dấu vắng mặt, công việc phát sinh và phân công chưa công bố của tuần này sẽ bị xóa vĩnh viễn. Sau đó bạn có thể tạo lại tuần."
+        confirmLabel="Xóa bản nháp"
+        pending={deleteDraft.isPending}
+        pendingLabel="Đang xóa…"
+        error={deleteDraft.isError ? deleteDraft.error.message : null}
+        onCancel={() => {
+          if (!deleteDraft.isPending) setDeleteOpen(false);
+        }}
+        onConfirm={() => {
+          if (existing?.status === 'DRAFT') deleteDraft.mutate(existing);
+        }}
+      />
     </div>
   );
 }

@@ -1,12 +1,14 @@
-import { addDateOnlyDays, mondayOfWeek, parseDateOnly } from '@lop-sach/contracts';
-import { useQuery } from '@tanstack/react-query';
+import { addDateOnlyDays, mondayOfWeek, parseDateOnly, type DutyWeek } from '@lop-sach/contracts';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarDays, CalendarRange, Plus, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { Button } from '../../components/ui/Button.js';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog.js';
 import { LoadingState } from '../../components/ui/LoadingState.js';
 import { Notice } from '../../components/ui/Notice.js';
 import { StatusBadge } from '../../components/ui/StatusBadge.js';
-import { listDutyWeeks } from '../duty-weeks/duty-weeks.api.js';
+import { deleteDutyWeek, listDutyWeeks } from '../duty-weeks/duty-weeks.api.js';
 import { WeekSummary } from './WeekSummary.js';
 import {
   cacheCurrentWeek,
@@ -31,16 +33,26 @@ function currentMonday(): string {
   return mondayOfWeek(parseDateOnly(currentDateInVietnam()));
 }
 
+function dutyWeekEnd(week: DutyWeek): string | undefined {
+  return week.taskOccurrences
+    .filter((occurrence) => occurrence.enabled)
+    .map((occurrence) => occurrence.date)
+    .sort()
+    .at(-1);
+}
+
 export function CurrentWeekPage({
   classroomName,
 }: {
   readonly classroomName: string;
 }): React.JSX.Element {
+  const queryClient = useQueryClient();
   const weekStart = currentMonday();
   const today = currentDateInVietnam();
   const online = useOnlineState();
   const [cached, setCached] = useState<CachedCurrentWeek | null>(null);
   const [cacheLoaded, setCacheLoaded] = useState(false);
+  const [draftToDelete, setDraftToDelete] = useState<DutyWeek | null>(null);
   useEffect(() => {
     let active = true;
     void readCachedCurrentWeek(weekStart).then((value) => {
@@ -62,6 +74,13 @@ export function CurrentWeekPage({
     queryKey: ['duty-weeks', 'drafts'],
     queryFn: () => listDutyWeeks({ status: 'DRAFT' }),
     enabled: online,
+  });
+  const deleteDraft = useMutation({
+    mutationFn: (draft: DutyWeek) => deleteDutyWeek(draft.id, draft.version),
+    onSuccess: async () => {
+      setDraftToDelete(null);
+      await queryClient.invalidateQueries({ queryKey: ['duty-weeks'] });
+    },
   });
   const onlineWeek = weeks.data?.[0];
   useEffect(() => {
@@ -129,11 +148,7 @@ export function CurrentWeekPage({
   const resumableDrafts = [...(draftWeeks.data ?? [])]
     .filter((draft) => draft.id !== week?.id)
     .sort((left, right) => left.weekStart.localeCompare(right.weekStart));
-  const weekEnd = week?.taskOccurrences
-    .filter((occurrence) => occurrence.enabled)
-    .map((occurrence) => occurrence.date)
-    .sort()
-    .at(-1);
+  const weekEnd = week ? dutyWeekEnd(week) : undefined;
   const todayOccurrences =
     week?.taskOccurrences.filter((occurrence) => occurrence.enabled && occurrence.date === today) ??
     [];
@@ -160,11 +175,7 @@ export function CurrentWeekPage({
           </div>
           <div className="draft-resume-list">
             {resumableDrafts.map((draft) => {
-              const draftEnd = draft.taskOccurrences
-                .filter((occurrence) => occurrence.enabled)
-                .map((occurrence) => occurrence.date)
-                .sort()
-                .at(-1);
+              const draftEnd = dutyWeekEnd(draft);
               return (
                 <article className="draft-resume-row" key={draft.id}>
                   <div>
@@ -172,9 +183,21 @@ export function CurrentWeekPage({
                     <span>Tổ trực: {draft.groupSnapshot.name}</span>
                   </div>
                   <StatusBadge tone="warning">Bản nháp</StatusBadge>
-                  <Link className="button button-primary" to={`/weeks/${draft.id}`}>
-                    Tiếp tục chuẩn bị
-                  </Link>
+                  <div className="draft-resume-actions">
+                    <Link className="button button-primary" to={`/weeks/${draft.id}`}>
+                      Tiếp tục chuẩn bị
+                    </Link>
+                    <Button
+                      variant="danger"
+                      aria-label={`Xóa bản nháp tuần ${formatWeekRange(draft.weekStart, draftEnd)}`}
+                      onClick={() => {
+                        deleteDraft.reset();
+                        setDraftToDelete(draft);
+                      }}
+                    >
+                      Xóa bản nháp
+                    </Button>
+                  </div>
                 </article>
               );
             })}
@@ -214,9 +237,20 @@ export function CurrentWeekPage({
               <div className="next-step-panel">
                 <strong>Tuần này chưa có lịch chính thức</strong>
                 <p>Tiếp tục chuẩn bị, tạo phân công và kiểm tra trước khi công bố.</p>
-                <Link className="button button-primary" to={`/weeks/${week.id}`}>
-                  Tiếp tục chuẩn bị tuần
-                </Link>
+                <div className="button-row">
+                  <Link className="button button-primary" to={`/weeks/${week.id}`}>
+                    Tiếp tục chuẩn bị tuần
+                  </Link>
+                  <Button
+                    variant="danger"
+                    onClick={() => {
+                      deleteDraft.reset();
+                      setDraftToDelete(week);
+                    }}
+                  >
+                    Xóa bản nháp
+                  </Button>
+                </div>
               </div>
             ) : (
               <>
@@ -283,6 +317,21 @@ export function CurrentWeekPage({
           </Link>
         </div>
       ) : null}
+      <ConfirmDialog
+        open={draftToDelete !== null}
+        title="Xóa bản nháp?"
+        description={`Lịch nháp tuần ${draftToDelete ? formatWeekRange(draftToDelete.weekStart, dutyWeekEnd(draftToDelete)) : ''}, các đánh dấu vắng mặt, công việc phát sinh và phân công chưa công bố sẽ bị xóa vĩnh viễn. Bạn có thể tạo lại tuần này sau đó.`}
+        confirmLabel="Xóa bản nháp"
+        pending={deleteDraft.isPending}
+        pendingLabel="Đang xóa…"
+        error={deleteDraft.isError ? deleteDraft.error.message : null}
+        onCancel={() => {
+          if (!deleteDraft.isPending) setDraftToDelete(null);
+        }}
+        onConfirm={() => {
+          if (draftToDelete) deleteDraft.mutate(draftToDelete);
+        }}
+      />
     </div>
   );
 }

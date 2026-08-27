@@ -1526,6 +1526,16 @@ a:visited {
 .existing-week-panel span:not(.status-badge) {
   color: #5c6a61;
 }
+.draft-resume-actions,
+.existing-week-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.draft-resume-actions .button,
+.existing-week-actions .button {
+  white-space: nowrap;
+}
 .existing-week-panel {
   display: flex;
   align-items: center;
@@ -1833,15 +1843,23 @@ a:visited {
   .draft-resume-row {
     grid-template-columns: minmax(0, 1fr) auto;
   }
-  .draft-resume-row .button {
+  .draft-resume-actions {
     grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .draft-resume-actions .button {
     width: 100%;
   }
   .existing-week-panel {
     align-items: stretch;
     flex-direction: column;
   }
-  .existing-week-panel .button {
+  .existing-week-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .existing-week-actions .button {
     width: 100%;
   }
   .balance-summary {

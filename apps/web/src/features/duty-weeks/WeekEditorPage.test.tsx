@@ -1,12 +1,13 @@
 import { parseDateOnly, type Classroom, type DutyWeek } from '@lop-sach/contracts';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getClassroom } from '../classroom/classroom.api.js';
 import {
   completeDutyWeek,
+  deleteDutyWeek,
   deleteOccurrence,
   getCompletionOptions,
   getDutyWeek,
@@ -17,6 +18,7 @@ vi.mock('../classroom/classroom.api.js', () => ({ getClassroom: vi.fn() }));
 vi.mock('./duty-weeks.api.js', () => ({
   completeDutyWeek: vi.fn(),
   createOneOff: vi.fn(),
+  deleteDutyWeek: vi.fn(),
   deleteOccurrence: vi.fn(),
   generateDutyWeek: vi.fn(),
   getDutyWeek: vi.fn(),
@@ -144,6 +146,7 @@ beforeEach(() => {
       ],
     },
   ]);
+  vi.mocked(deleteDutyWeek).mockResolvedValue(undefined);
 });
 
 describe('WeekEditorPage', () => {
@@ -258,5 +261,29 @@ describe('WeekEditorPage', () => {
     expect(deleteOccurrence).not.toHaveBeenCalled();
     expect(screen.getByRole('heading', { name: 'Xóa công việc phát sinh?' })).toBeInTheDocument();
     expect(screen.getByText(/các phân công của công việc này sẽ bị xóa/u)).toBeInTheDocument();
+  });
+
+  it('requires confirmation before deleting the whole draft', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/weeks/week-1']}>
+          <Routes>
+            <Route path="/weeks/:weekId" element={<WeekEditorPage />} />
+            <Route path="/" element={<div>Trang tuần này</div>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Xóa bản nháp' }));
+    expect(deleteDutyWeek).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: 'Xóa bản nháp?' })).toBeInTheDocument();
+    expect(screen.getByText(/phân công chưa công bố sẽ bị xóa vĩnh viễn/u)).toBeInTheDocument();
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Xóa bản nháp' }),
+    );
+    expect(deleteDutyWeek).toHaveBeenCalledWith('week-1', week.version);
+    expect(await screen.findByText('Trang tuần này')).toBeInTheDocument();
   });
 });

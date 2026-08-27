@@ -34,6 +34,13 @@ export async function getDutyWeek(weekId: string): Promise<DutyWeek> {
   return (await apiRequest<{ data: DutyWeek }>(`/duty-weeks/${encodeURIComponent(weekId)}`)).data;
 }
 
+export async function deleteDutyWeek(weekId: string, expectedVersion: number): Promise<void> {
+  await apiRequest<void>(`/duty-weeks/${encodeURIComponent(weekId)}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ expectedVersion }),
+  });
+}
+
 export async function createDutyWeek(input: {
   readonly weekStart: string;
   readonly selectedGroupId: string;

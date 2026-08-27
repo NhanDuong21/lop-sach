@@ -108,6 +108,44 @@ async function generateWeek(agent: TestAgent, week: DutyWeek): Promise<DutyWeek>
 }
 
 describe('duty-week lifecycle', () => {
+  it('deletes a version-matched draft, frees its week and protects published schedules', async () => {
+    const agent = await authenticatedAgent();
+    const { classroom } = await classroomWithStudents(agent);
+    const draft = await createWeek(agent, classroom);
+
+    const staleDelete = await agent
+      .delete(`/api/v1/duty-weeks/${draft.id}`)
+      .set('Origin', 'http://localhost:5173')
+      .send({ expectedVersion: draft.version + 1 })
+      .expect(409);
+    expect(ProblemDetailsSchema.parse(staleDelete.body as unknown).code).toBe('VERSION_CONFLICT');
+    await agent.get(`/api/v1/duty-weeks/${draft.id}`).expect(200);
+
+    await agent
+      .delete(`/api/v1/duty-weeks/${draft.id}`)
+      .set('Origin', 'http://localhost:5173')
+      .send({ expectedVersion: draft.version })
+      .expect(204);
+    await agent.get(`/api/v1/duty-weeks/${draft.id}`).expect(404);
+
+    const recreated = await createWeek(agent, classroom);
+    const generated = await generateWeek(agent, recreated);
+    const publishedResponse = await agent
+      .post(`/api/v1/duty-weeks/${generated.id}/publish`)
+      .set('Origin', 'http://localhost:5173')
+      .send({ expectedVersion: generated.version })
+      .expect(200);
+    const published = WeekEnvelopeSchema.parse(publishedResponse.body as unknown).data;
+    const publishedDelete = await agent
+      .delete(`/api/v1/duty-weeks/${published.id}`)
+      .set('Origin', 'http://localhost:5173')
+      .send({ expectedVersion: published.version })
+      .expect(409);
+    expect(ProblemDetailsSchema.parse(publishedDelete.body as unknown).code).toBe(
+      'INVALID_WEEK_TRANSITION',
+    );
+  });
+
   it('generates canonically, publishes once and completes an immutable ledger', async () => {
     const agent = await authenticatedAgent();
     const { classroom } = await classroomWithStudents(agent);

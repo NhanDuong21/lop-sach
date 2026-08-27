@@ -87,6 +87,15 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   await page.getByLabel('Ngày Thứ Hai đầu tuần').fill('2026-08-24');
   await page.getByRole('button', { name: 'Bắt đầu chuẩn bị tuần' }).click();
   await expect(page.getByRole('heading', { name: 'Tuần 24/08 – 24/08/2026' })).toBeVisible();
+  await page.getByRole('button', { name: 'Xóa bản nháp' }).click();
+  const deleteDraftDialog = page.getByRole('dialog', { name: 'Xóa bản nháp?' });
+  await expect(deleteDraftDialog.getByText(/sẽ bị xóa vĩnh viễn/u)).toBeVisible();
+  await deleteDraftDialog.getByRole('button', { name: 'Xóa bản nháp' }).click();
+  await expect(page.getByRole('heading', { name: 'Chưa có lịch tuần này' })).toBeVisible();
+  await page.goto('/weeks/new');
+  await page.getByLabel('Ngày Thứ Hai đầu tuần').fill('2026-08-24');
+  await page.getByRole('button', { name: 'Bắt đầu chuẩn bị tuần' }).click();
+  await expect(page.getByRole('heading', { name: 'Tuần 24/08 – 24/08/2026' })).toBeVisible();
   await page.getByRole('button', { name: 'Thêm việc phát sinh' }).click();
   const oneOffDialog = page.getByRole('dialog', { name: 'Thêm công việc phát sinh' });
   await expect(oneOffDialog).toBeVisible();

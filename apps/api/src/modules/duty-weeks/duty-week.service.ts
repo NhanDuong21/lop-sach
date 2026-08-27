@@ -118,7 +118,7 @@ function assertDraft(week: DutyWeekHydrated): void {
     throw new HttpProblem(
       409,
       'INVALID_WEEK_TRANSITION',
-      'Chỉ tuần nháp mới được chỉnh sửa hoặc tạo lại.',
+      'Chỉ tuần nháp mới được thay đổi hoặc xóa.',
     );
   }
 }
@@ -340,6 +340,25 @@ export async function listDutyWeeks(
 export async function getDutyWeek(ownerId: string, weekId: string): Promise<DutyWeek> {
   const week = await findWeek(ownerId, weekId);
   return mapDutyWeek(week, await generationContextIsStale(week));
+}
+
+export async function deleteDutyWeek(
+  ownerId: string,
+  weekId: string,
+  expectedVersion: number,
+): Promise<void> {
+  const week = await findWeek(ownerId, weekId);
+  assertDraft(week);
+  assertVersion(week, expectedVersion);
+  const result = await DutyWeekModel.deleteOne({
+    _id: week._id,
+    ownerId: ownerObjectId(ownerId),
+    status: 'DRAFT',
+    version: expectedVersion,
+  });
+  if (result.deletedCount !== 1) {
+    throw new HttpProblem(409, 'VERSION_CONFLICT', 'Tuần trực đã thay đổi. Hãy tải lại.');
+  }
 }
 
 export async function listHistorySummary(ownerId: string): Promise<readonly HistorySummaryItem[]> {
