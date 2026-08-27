@@ -628,11 +628,66 @@ legend,
   padding: 1rem;
   z-index: 20;
 }
-.confirm-dialog {
-  width: min(100%, 430px);
+.modal-dialog {
+  width: min(100%, 680px);
+  max-height: min(90dvh, 820px);
   background: white;
-  border-radius: 14px;
-  padding: 1.25rem;
+  border-radius: 16px;
+  box-shadow: 0 20px 55px rgb(23 33 27 / 24%);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+.modal-dialog-small {
+  width: min(100%, 430px);
+}
+.modal-dialog-wide {
+  width: min(100%, 780px);
+}
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.2rem 1.25rem 1rem;
+  border-bottom: 1px solid #e1e8e3;
+}
+.modal-header h2,
+.modal-header p {
+  margin: 0;
+}
+.modal-header p {
+  color: #647068;
+  margin-top: 0.3rem;
+}
+.modal-close {
+  flex: none;
+  width: 42px;
+  min-height: 42px;
+  margin: -0.35rem -0.35rem 0 0;
+  padding: 0;
+  border: 1px solid #d5e0d8;
+  background: white;
+  color: #455249;
+}
+.modal-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem 1.25rem 1.25rem;
+}
+.modal-body > .notice:first-child {
+  margin-top: 0;
+}
+.modal-actions {
+  justify-content: flex-end;
+  position: sticky;
+  bottom: -1.25rem;
+  z-index: 1;
+  margin: 1rem -1.25rem -1.25rem;
+  padding: 0.9rem 1.25rem;
+  border-top: 1px solid #e1e8e3;
+  background: white;
 }
 .toast-region {
   position: fixed;
@@ -869,11 +924,6 @@ legend,
   color: #647068;
   font-size: 0.88rem;
   font-weight: 450;
-}
-.complete-dialog {
-  width: min(100%, 620px);
-  max-height: min(86vh, 760px);
-  overflow-y: auto;
 }
 .completion-choice-grid {
   display: grid;
@@ -1172,6 +1222,27 @@ legend,
   }
   .completion-choice-grid {
     grid-template-columns: 1fr;
+  }
+  .dialog-backdrop {
+    padding: 0.65rem;
+  }
+  .modal-dialog {
+    max-height: calc(100dvh - 1.3rem);
+    border-radius: 14px;
+  }
+  .modal-header {
+    padding: 1rem 1rem 0.85rem;
+  }
+  .modal-body {
+    padding: 0.9rem 1rem 1rem;
+  }
+  .modal-actions {
+    bottom: -1rem;
+    margin: 1rem -1rem -1rem;
+    padding: 0.8rem 1rem;
+  }
+  .modal-actions .button {
+    flex: 1 1 0;
   }
   .history-card {
     align-items: stretch;

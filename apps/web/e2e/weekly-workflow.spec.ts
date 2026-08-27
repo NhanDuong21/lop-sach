@@ -40,11 +40,55 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   expect(completedOnboarding.status()).toBe(200);
 
   await page.reload();
+  await page.goto('/class/students');
+  await page.getByRole('button', { name: 'Thêm một bạn' }).click();
+  const studentDialog = page.getByRole('dialog', { name: 'Thêm một học sinh' });
+  await expect(studentDialog).toBeVisible();
+  await expect(studentDialog.getByLabel('Họ và tên')).toBeFocused();
+  const modalAccessibility = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(
+    modalAccessibility.violations,
+    JSON.stringify(modalAccessibility.violations, null, 2),
+  ).toEqual([]);
+  await studentDialog.getByRole('button', { name: 'Hủy' }).click();
+  await page.getByRole('button', { name: 'Thêm nhanh nhiều bạn' }).click();
+  const bulkDialog = page.getByRole('dialog', { name: 'Thêm nhanh nhiều học sinh' });
+  await expect(bulkDialog).toBeVisible();
+  await bulkDialog.getByRole('button', { name: 'Hủy' }).click();
+  await page.getByRole('button', { name: 'Ngừng tham gia' }).first().click();
+  const studentDeactivateDialog = page.getByRole('dialog', {
+    name: 'Ngừng cho học sinh tham gia?',
+  });
+  await expect(studentDeactivateDialog).toBeVisible();
+  await studentDeactivateDialog.getByRole('button', { name: 'Hủy' }).click();
+
+  await page.goto('/settings/tasks');
+  await page.getByRole('button', { name: 'Thêm công việc' }).click();
+  const taskDialog = page.getByRole('dialog', { name: 'Thêm công việc' });
+  await expect(taskDialog).toBeVisible();
+  await taskDialog.getByRole('button', { name: 'Hủy' }).click();
+  await page.getByRole('button', { name: 'Ngừng áp dụng' }).first().click();
+  const taskDeactivateDialog = page.getByRole('dialog', { name: 'Ngừng áp dụng công việc?' });
+  await expect(taskDeactivateDialog).toBeVisible();
+  await taskDeactivateDialog.getByRole('button', { name: 'Hủy' }).click();
+
+  await page.goto('/class');
+  await page.getByRole('button', { name: 'Sửa' }).first().click();
+  const groupDialog = page.getByRole('dialog', { name: 'Sửa Tổ 1' });
+  await expect(groupDialog).toBeVisible();
+  await groupDialog.getByRole('button', { name: 'Hủy' }).click();
+
   await page.goto('/weeks/new');
   await expect(page.getByRole('heading', { name: 'Tạo tuần mới' })).toBeVisible();
   await page.getByLabel('Ngày Thứ Hai đầu tuần').fill('2026-08-24');
   await page.getByRole('button', { name: 'Tạo tuần và kiểm tra vắng mặt' }).click();
   await expect(page.getByRole('heading', { name: 'Tuần 24/08 – 24/08/2026' })).toBeVisible();
+  await page.getByRole('button', { name: 'Thêm công việc' }).click();
+  const oneOffDialog = page.getByRole('dialog', { name: 'Thêm công việc phát sinh' });
+  await expect(oneOffDialog).toBeVisible();
+  await oneOffDialog.getByRole('button', { name: 'Hủy' }).click();
   await page.getByRole('button', { name: 'Tạo phân công' }).click();
   await expect(page.getByText('Phân công đã đủ điều kiện để công bố.')).toBeVisible();
   await page.getByRole('button', { name: 'Phát hành' }).click();

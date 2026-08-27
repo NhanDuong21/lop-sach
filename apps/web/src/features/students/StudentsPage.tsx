@@ -5,6 +5,8 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/ui/Button.js';
 import { LoadingState } from '../../components/ui/LoadingState.js';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog.js';
+import { ModalDialog } from '../../components/ui/ModalDialog.js';
 import { Notice } from '../../components/ui/Notice.js';
 import { StatusBadge } from '../../components/ui/StatusBadge.js';
 import { getClassroom } from '../classroom/classroom.api.js';
@@ -32,6 +34,7 @@ export function StudentsPage({
   const students = useQuery({ queryKey: ['students'], queryFn: listStudents });
   const tasks = useQuery({ queryKey: ['tasks'], queryFn: listTasks });
   const [editing, setEditing] = useState<Student | 'new' | 'bulk'>();
+  const [activeTarget, setActiveTarget] = useState<Student>();
   const [groupFilter, setGroupFilter] = useState(searchParams.get('groupId') ?? 'ALL');
   const update = useMutation({
     mutationFn: async ({
@@ -101,11 +104,24 @@ export function StudentsPage({
             </p>
           </div>
           <div className="button-row">
-            <Button variant="secondary" onClick={() => setEditing('new')}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                update.reset();
+                bulkCreate.reset();
+                setEditing('new');
+              }}
+            >
               <Plus size={17} />
               Thêm một bạn
             </Button>
-            <Button onClick={() => setEditing('bulk')}>
+            <Button
+              onClick={() => {
+                update.reset();
+                bulkCreate.reset();
+                setEditing('bulk');
+              }}
+            >
               <ListPlus size={17} />
               Thêm nhanh nhiều bạn
             </Button>
@@ -151,10 +167,22 @@ export function StudentsPage({
                   {student.active ? 'Đang tham gia' : 'Ngừng tham gia'}
                 </StatusBadge>
                 <div className="button-row">
-                  <Button variant="secondary" onClick={() => setEditing(student)}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      update.reset();
+                      bulkCreate.reset();
+                      setEditing(student);
+                    }}
+                  >
                     Sửa
                   </Button>
-                  <Button variant="secondary" onClick={() => activeMutation.mutate(student)}>
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      student.active ? setActiveTarget(student) : activeMutation.mutate(student)
+                    }
+                  >
                     {student.active ? 'Ngừng tham gia' : 'Tham gia lại'}
                   </Button>
                 </div>
@@ -163,37 +191,76 @@ export function StudentsPage({
           )}
         </div>
       </section>
-      {editing ? (
-        <section className="card">
-          <h2>
-            {editing === 'new'
-              ? 'Thêm một học sinh'
-              : editing === 'bulk'
-                ? 'Thêm nhanh nhiều học sinh'
-                : `Sửa ${editing.displayName}`}
-          </h2>
-          {editing === 'bulk' ? (
-            <BulkStudentForm
-              groups={classroom.data.groups}
-              pending={bulkCreate.isPending}
-              onCancel={() => setEditing(undefined)}
-              onSubmit={(input) => bulkCreate.mutate(input)}
-            />
-          ) : (
-            <StudentForm
-              key={editing === 'new' ? 'new' : editing.id}
-              groups={classroom.data.groups}
-              tasks={tasks.data}
-              {...(editing === 'new' ? {} : { student: editing })}
-              pending={update.isPending}
-              onCancel={() => setEditing(undefined)}
-              onSubmit={(input) =>
-                update.mutate({ input, ...(editing === 'new' ? {} : { student: editing }) })
-              }
-            />
-          )}
-        </section>
-      ) : null}
+      <ModalDialog
+        open={Boolean(editing)}
+        title={
+          editing === 'new'
+            ? 'Thêm một học sinh'
+            : editing === 'bulk'
+              ? 'Thêm nhanh nhiều học sinh'
+              : editing
+                ? `Sửa ${editing.displayName}`
+                : 'Học sinh'
+        }
+        description={
+          editing === 'bulk'
+            ? 'Chọn một tổ và nhập mỗi học sinh trên một dòng.'
+            : 'Thông tin thay đổi sẽ được dùng cho các tuần tạo sau khi lưu.'
+        }
+        size={editing === 'bulk' ? 'default' : 'wide'}
+        closeDisabled={update.isPending || bulkCreate.isPending}
+        onClose={() => {
+          update.reset();
+          bulkCreate.reset();
+          setEditing(undefined);
+        }}
+      >
+        {editing ? (
+          <>
+            {update.isError || bulkCreate.isError ? (
+              <Notice tone="error">Không thể lưu học sinh. Hãy kiểm tra dữ liệu và thử lại.</Notice>
+            ) : null}
+            {editing === 'bulk' ? (
+              <BulkStudentForm
+                groups={classroom.data.groups}
+                pending={bulkCreate.isPending}
+                onCancel={() => {
+                  bulkCreate.reset();
+                  setEditing(undefined);
+                }}
+                onSubmit={(input) => bulkCreate.mutate(input)}
+              />
+            ) : (
+              <StudentForm
+                key={editing === 'new' ? 'new' : editing.id}
+                groups={classroom.data.groups}
+                tasks={tasks.data}
+                {...(editing === 'new' ? {} : { student: editing })}
+                pending={update.isPending}
+                onCancel={() => {
+                  update.reset();
+                  setEditing(undefined);
+                }}
+                onSubmit={(input) =>
+                  update.mutate({ input, ...(editing === 'new' ? {} : { student: editing }) })
+                }
+              />
+            )}
+          </>
+        ) : null}
+      </ModalDialog>
+      <ConfirmDialog
+        open={Boolean(activeTarget)}
+        title="Ngừng cho học sinh tham gia?"
+        description={`${activeTarget?.displayName ?? 'Học sinh này'} sẽ không được đưa vào các tuần trực mới. Lịch sử cũ vẫn được giữ.`}
+        confirmLabel="Ngừng tham gia"
+        onCancel={() => setActiveTarget(undefined)}
+        onConfirm={() => {
+          const student = activeTarget;
+          setActiveTarget(undefined);
+          if (student) activeMutation.mutate(student);
+        }}
+      />
     </div>
   );
 }

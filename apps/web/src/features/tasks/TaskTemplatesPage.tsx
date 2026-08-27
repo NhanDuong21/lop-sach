@@ -3,7 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, ClipboardList, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../../components/ui/Button.js';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog.js';
 import { LoadingState } from '../../components/ui/LoadingState.js';
+import { ModalDialog } from '../../components/ui/ModalDialog.js';
 import { Notice } from '../../components/ui/Notice.js';
 import { StatusBadge } from '../../components/ui/StatusBadge.js';
 import { eligibilityLabels, workloadLabels } from '../../lib/vietnamese-labels.js';
@@ -27,6 +29,7 @@ export function TaskTemplatesPage({
   const classroom = useQuery({ queryKey: ['classroom'], queryFn: getClassroom });
   const tasks = useQuery({ queryKey: ['tasks'], queryFn: listTasks });
   const [editing, setEditing] = useState<TaskTemplate | 'new'>();
+  const [activeTarget, setActiveTarget] = useState<TaskTemplate>();
   const update = useMutation({
     mutationFn: ({
       input,
@@ -83,7 +86,12 @@ export function TaskTemplatesPage({
             <h2>Danh sách công việc</h2>
             <p>Điều kiện nam hoặc nữ chỉ áp dụng khi bạn chủ động chọn.</p>
           </div>
-          <Button onClick={() => setEditing('new')}>
+          <Button
+            onClick={() => {
+              update.reset();
+              setEditing('new');
+            }}
+          >
             <Plus size={17} />
             Thêm công việc
           </Button>
@@ -127,10 +135,21 @@ export function TaskTemplatesPage({
                   >
                     <ArrowDown size={17} />
                   </Button>
-                  <Button variant="secondary" onClick={() => setEditing(task)}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      update.reset();
+                      setEditing(task);
+                    }}
+                  >
                     Sửa
                   </Button>
-                  <Button variant="secondary" onClick={() => activeMutation.mutate(task)}>
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      task.active ? setActiveTarget(task) : activeMutation.mutate(task)
+                    }
+                  >
                     {task.active ? 'Ngừng áp dụng' : 'Áp dụng lại'}
                   </Button>
                 </div>
@@ -139,21 +158,50 @@ export function TaskTemplatesPage({
           )}
         </div>
       </section>
-      {editing ? (
-        <section className="card">
-          <h2>{editing === 'new' ? 'Thêm công việc' : `Sửa ${editing.name}`}</h2>
-          <TaskForm
-            key={editing === 'new' ? 'new' : editing.id}
-            defaultSchoolDays={classroom.data.schoolDays}
-            {...(editing === 'new' ? {} : { task: editing })}
-            pending={update.isPending}
-            onCancel={() => setEditing(undefined)}
-            onSubmit={(input) =>
-              update.mutate({ input, ...(editing === 'new' ? {} : { task: editing }) })
-            }
-          />
-        </section>
-      ) : null}
+      <ModalDialog
+        open={Boolean(editing)}
+        title={editing === 'new' ? 'Thêm công việc' : editing ? `Sửa ${editing.name}` : 'Công việc'}
+        description="Thiết lập số người, mức công việc, điều kiện và ngày thực hiện."
+        size="wide"
+        closeDisabled={update.isPending}
+        onClose={() => {
+          update.reset();
+          setEditing(undefined);
+        }}
+      >
+        {editing ? (
+          <>
+            {update.isError ? (
+              <Notice tone="error">Không thể lưu công việc. Hãy kiểm tra và thử lại.</Notice>
+            ) : null}
+            <TaskForm
+              key={editing === 'new' ? 'new' : editing.id}
+              defaultSchoolDays={classroom.data.schoolDays}
+              {...(editing === 'new' ? {} : { task: editing })}
+              pending={update.isPending}
+              onCancel={() => {
+                update.reset();
+                setEditing(undefined);
+              }}
+              onSubmit={(input) =>
+                update.mutate({ input, ...(editing === 'new' ? {} : { task: editing }) })
+              }
+            />
+          </>
+        ) : null}
+      </ModalDialog>
+      <ConfirmDialog
+        open={Boolean(activeTarget)}
+        title="Ngừng áp dụng công việc?"
+        description={`“${activeTarget?.name ?? 'Công việc này'}” sẽ không xuất hiện trong các tuần mới. Lịch sử cũ vẫn được giữ.`}
+        confirmLabel="Ngừng áp dụng"
+        onCancel={() => setActiveTarget(undefined)}
+        onConfirm={() => {
+          const task = activeTarget;
+          setActiveTarget(undefined);
+          if (task) activeMutation.mutate(task);
+        }}
+      />
     </div>
   );
 }

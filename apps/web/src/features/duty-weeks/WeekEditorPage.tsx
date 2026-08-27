@@ -13,6 +13,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/Button.js';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.js';
 import { LoadingState } from '../../components/ui/LoadingState.js';
+import { ModalDialog } from '../../components/ui/ModalDialog.js';
 import { Notice } from '../../components/ui/Notice.js';
 import { StatusBadge } from '../../components/ui/StatusBadge.js';
 import { ApiError } from '../../lib/api-client.js';
@@ -98,7 +99,6 @@ function CompleteWeekDialog({
     setChangedSlots(new Set());
     setActualBySlot({});
   }, [open, week]);
-  if (!open) return null;
   const occurrenceById = new Map(
     week.taskOccurrences.map((occurrence) => [occurrence.id, occurrence]),
   );
@@ -123,139 +123,137 @@ function CompleteWeekDialog({
     );
   };
   return (
-    <div className="dialog-backdrop" role="presentation">
-      <section
-        className="confirm-dialog complete-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="complete-title"
-      >
-        <h2 id="complete-title">Hoàn thành tuần trực</h2>
-        {error ? <Notice tone="error">{error}</Notice> : null}
-        {assigned.length === 0 ? (
-          <Notice tone="warning">Tuần không có phân công để hoàn thành.</Notice>
-        ) : mode === 'CHOICE' ? (
-          <>
-            <p>Người thực hiện thực tế có giống lịch đã phân công không?</p>
-            <div className="completion-choice-grid">
-              <Button disabled={pending} onClick={() => onConfirm([])}>
-                Không có ai làm thay
-                <small>Giữ nguyên tất cả phân công</small>
-              </Button>
-              <Button variant="secondary" disabled={pending} onClick={() => setMode('CHANGES')}>
-                Có người làm thay
-                <small>Chọn đúng các lượt đã thay đổi</small>
-              </Button>
-            </div>
-          </>
-        ) : completionOptions.isPending ? (
-          <LoadingState label="Đang tìm người thay đủ điều kiện" />
-        ) : completionOptions.isError || !completionOptions.data ? (
-          <Notice tone="error">Không tải được danh sách người thay phù hợp.</Notice>
-        ) : (
-          <div className="actual-performer-list">
-            {assigned.map((assignment) => {
-              const occurrence = week.taskOccurrences.find(
-                (item) => item.id === assignment.occurrenceId,
-              );
-              const usedByOtherSlots = new Set(
-                assigned
-                  .filter(
-                    (item) =>
-                      item.occurrenceId === assignment.occurrenceId &&
-                      item.slotId !== assignment.slotId,
-                  )
-                  .flatMap((item) => [actualBySlot[item.slotId] ?? item.studentId ?? '']),
-              );
-              const eligible =
-                completionOptions.data
-                  .find((item) => item.slotId === assignment.slotId)
-                  ?.students.filter(
-                    (student) =>
-                      student.id !== assignment.studentId && !usedByOtherSlots.has(student.id),
-                  ) ?? [];
-              const changed = changedSlots.has(assignment.slotId);
-              return (
-                <div className="actual-performer-row" key={assignment.slotId}>
-                  <label className="completion-change-choice">
-                    <input
-                      type="checkbox"
-                      checked={changed}
-                      disabled={eligible.length === 0}
-                      onChange={(event) => {
-                        setChangedSlots((current) => {
-                          const next = new Set(current);
-                          if (event.target.checked) next.add(assignment.slotId);
-                          else next.delete(assignment.slotId);
+    <ModalDialog
+      open={open}
+      title="Hoàn thành tuần trực"
+      size="default"
+      closeDisabled={pending}
+      onClose={onCancel}
+    >
+      {error ? <Notice tone="error">{error}</Notice> : null}
+      {assigned.length === 0 ? (
+        <Notice tone="warning">Tuần không có phân công để hoàn thành.</Notice>
+      ) : mode === 'CHOICE' ? (
+        <>
+          <p>Người thực hiện thực tế có giống lịch đã phân công không?</p>
+          <div className="completion-choice-grid">
+            <Button disabled={pending} onClick={() => onConfirm([])}>
+              Không có ai làm thay
+              <small>Giữ nguyên tất cả phân công</small>
+            </Button>
+            <Button variant="secondary" disabled={pending} onClick={() => setMode('CHANGES')}>
+              Có người làm thay
+              <small>Chọn đúng các lượt đã thay đổi</small>
+            </Button>
+          </div>
+        </>
+      ) : completionOptions.isPending ? (
+        <LoadingState label="Đang tìm người thay đủ điều kiện" />
+      ) : completionOptions.isError || !completionOptions.data ? (
+        <Notice tone="error">Không tải được danh sách người thay phù hợp.</Notice>
+      ) : (
+        <div className="actual-performer-list">
+          {assigned.map((assignment) => {
+            const occurrence = week.taskOccurrences.find(
+              (item) => item.id === assignment.occurrenceId,
+            );
+            const usedByOtherSlots = new Set(
+              assigned
+                .filter(
+                  (item) =>
+                    item.occurrenceId === assignment.occurrenceId &&
+                    item.slotId !== assignment.slotId,
+                )
+                .flatMap((item) => [actualBySlot[item.slotId] ?? item.studentId ?? '']),
+            );
+            const eligible =
+              completionOptions.data
+                .find((item) => item.slotId === assignment.slotId)
+                ?.students.filter(
+                  (student) =>
+                    student.id !== assignment.studentId && !usedByOtherSlots.has(student.id),
+                ) ?? [];
+            const changed = changedSlots.has(assignment.slotId);
+            return (
+              <div className="actual-performer-row" key={assignment.slotId}>
+                <label className="completion-change-choice">
+                  <input
+                    type="checkbox"
+                    checked={changed}
+                    disabled={eligible.length === 0}
+                    onChange={(event) => {
+                      setChangedSlots((current) => {
+                        const next = new Set(current);
+                        if (event.target.checked) next.add(assignment.slotId);
+                        else next.delete(assignment.slotId);
+                        return next;
+                      });
+                      if (!event.target.checked) {
+                        setActualBySlot((current) => {
+                          const next = { ...current };
+                          delete next[assignment.slotId];
                           return next;
                         });
-                        if (!event.target.checked) {
-                          setActualBySlot((current) => {
-                            const next = { ...current };
-                            delete next[assignment.slotId];
-                            return next;
-                          });
-                        }
-                      }}
-                    />
-                    <span>
-                      <strong>{occurrence?.taskName ?? 'Công việc'}</strong>
-                      <small>
-                        {occurrence ? formatDutyDate(occurrence.date) : ''} · đang giao cho{' '}
-                        {assignment.studentDisplayName}
-                      </small>
-                    </span>
-                  </label>
-                  {changed ? (
-                    <select
-                      aria-label={`Người làm thay ${occurrence?.taskName ?? 'công việc'}`}
-                      value={actualBySlot[assignment.slotId] ?? ''}
-                      onChange={(event) =>
-                        setActualBySlot((current) => ({
-                          ...current,
-                          [assignment.slotId]: event.target.value,
-                        }))
                       }
-                    >
-                      <option value="">Chọn người làm thay</option>
-                      {eligible.map((student) => (
-                        <option value={student.id} key={student.id}>
-                          {student.displayName}
-                        </option>
-                      ))}
-                    </select>
-                  ) : eligible.length === 0 ? (
-                    <small className="muted">
-                      Không có người thay nào đủ điều kiện cho lượt này.
+                    }}
+                  />
+                  <span>
+                    <strong>{occurrence?.taskName ?? 'Công việc'}</strong>
+                    <small>
+                      {occurrence ? formatDutyDate(occurrence.date) : ''} · đang giao cho{' '}
+                      {assignment.studentDisplayName}
                     </small>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        )}
-        <Notice tone="info">
-          Sau khi hoàn thành, kết quả thực tế và dữ liệu lịch sử sẽ không thể thay đổi.
-        </Notice>
-        <div className="button-row">
-          <Button
-            variant="secondary"
-            onClick={() => (mode === 'CHANGES' ? setMode('CHOICE') : onCancel())}
-            disabled={pending}
-          >
-            {mode === 'CHANGES' ? 'Quay lại' : 'Hủy'}
-          </Button>
-          {mode === 'CHANGES' ? (
-            <Button
-              disabled={pending || !allSelected || changedSlots.size === 0}
-              onClick={submitChanges}
-            >
-              Lưu thay đổi và hoàn thành
-            </Button>
-          ) : null}
+                  </span>
+                </label>
+                {changed ? (
+                  <select
+                    aria-label={`Người làm thay ${occurrence?.taskName ?? 'công việc'}`}
+                    value={actualBySlot[assignment.slotId] ?? ''}
+                    onChange={(event) =>
+                      setActualBySlot((current) => ({
+                        ...current,
+                        [assignment.slotId]: event.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">Chọn người làm thay</option>
+                    {eligible.map((student) => (
+                      <option value={student.id} key={student.id}>
+                        {student.displayName}
+                      </option>
+                    ))}
+                  </select>
+                ) : eligible.length === 0 ? (
+                  <small className="muted">
+                    Không có người thay nào đủ điều kiện cho lượt này.
+                  </small>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
-      </section>
-    </div>
+      )}
+      <Notice tone="info">
+        Sau khi hoàn thành, kết quả thực tế và dữ liệu lịch sử sẽ không thể thay đổi.
+      </Notice>
+      <div className="button-row modal-actions">
+        <Button
+          variant="secondary"
+          onClick={() => (mode === 'CHANGES' ? setMode('CHOICE') : onCancel())}
+          disabled={pending}
+        >
+          {mode === 'CHANGES' ? 'Quay lại' : 'Hủy'}
+        </Button>
+        {mode === 'CHANGES' ? (
+          <Button
+            disabled={pending || !allSelected || changedSlots.size === 0}
+            onClick={submitChanges}
+          >
+            Lưu thay đổi và hoàn thành
+          </Button>
+        ) : null}
+      </div>
+    </ModalDialog>
   );
 }
 
@@ -512,85 +510,95 @@ export function WeekEditorPage(): React.JSX.Element {
               <h2>Công việc phát sinh</h2>
               <p>Thêm công việc chỉ áp dụng cho tuần này.</p>
             </div>
-            <Button variant="secondary" onClick={() => setOneOffOpen((current) => !current)}>
+            <Button variant="secondary" onClick={() => setOneOffOpen(true)}>
               <Plus size={17} />
               Thêm công việc
             </Button>
           </div>
-          {oneOffOpen ? (
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                run(async () => {
-                  const updated = await createOneOff(week.id, {
-                    date: oneOffDate,
-                    taskName: oneOffName.trim(),
-                    workloadLevel: oneOffWorkload,
-                    eligibilityRule: 'ANY',
-                    requiredStudents: oneOffHeadcount,
-                    enabled: true,
-                    expectedVersion: week.version,
-                  });
-                  setOneOffOpen(false);
-                  setOneOffName('');
-                  return updated;
-                });
-              }}
-            >
-              <div className="form-grid">
-                <div>
-                  <label htmlFor="one-off-name">Tên công việc</label>
-                  <input
-                    id="one-off-name"
-                    value={oneOffName}
-                    onChange={(event) => setOneOffName(event.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="one-off-date">Ngày</label>
-                  <input
-                    id="one-off-date"
-                    type="date"
-                    value={oneOffDate}
-                    onChange={(event) => setOneOffDate(event.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="one-off-headcount">Số học sinh</label>
-                  <input
-                    id="one-off-headcount"
-                    type="number"
-                    min={1}
-                    max={10}
-                    value={oneOffHeadcount}
-                    onChange={(event) => setOneOffHeadcount(Number(event.target.value))}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="one-off-workload">Mức công việc</label>
-                  <select
-                    id="one-off-workload"
-                    value={oneOffWorkload}
-                    onChange={(event) =>
-                      setOneOffWorkload(Number(event.target.value) as 1 | 2 | 3 | 4)
-                    }
-                  >
-                    <option value={1}>1 · Nhẹ</option>
-                    <option value={2}>2 · Vừa</option>
-                    <option value={3}>3 · Nặng</option>
-                    <option value={4}>4 · Rất nặng</option>
-                  </select>
-                </div>
-              </div>
-              <Button type="submit" disabled={action.isPending || !oneOffName.trim()}>
-                Thêm vào tuần
-              </Button>
-            </form>
-          ) : null}
         </section>
       ) : null}
+      <ModalDialog
+        open={oneOffOpen}
+        title="Thêm công việc phát sinh"
+        description="Công việc này chỉ áp dụng cho tuần đang chỉnh sửa."
+        closeDisabled={action.isPending}
+        onClose={() => setOneOffOpen(false)}
+      >
+        <form
+          className="editor-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            run(async () => {
+              const updated = await createOneOff(week.id, {
+                date: oneOffDate,
+                taskName: oneOffName.trim(),
+                workloadLevel: oneOffWorkload,
+                eligibilityRule: 'ANY',
+                requiredStudents: oneOffHeadcount,
+                enabled: true,
+                expectedVersion: week.version,
+              });
+              setOneOffOpen(false);
+              setOneOffName('');
+              return updated;
+            });
+          }}
+        >
+          <div className="form-grid">
+            <div>
+              <label htmlFor="one-off-name">Tên công việc</label>
+              <input
+                id="one-off-name"
+                value={oneOffName}
+                onChange={(event) => setOneOffName(event.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="one-off-date">Ngày</label>
+              <input
+                id="one-off-date"
+                type="date"
+                value={oneOffDate}
+                onChange={(event) => setOneOffDate(event.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="one-off-headcount">Số học sinh</label>
+              <input
+                id="one-off-headcount"
+                type="number"
+                min={1}
+                max={10}
+                value={oneOffHeadcount}
+                onChange={(event) => setOneOffHeadcount(Number(event.target.value))}
+              />
+            </div>
+            <div>
+              <label htmlFor="one-off-workload">Mức công việc</label>
+              <select
+                id="one-off-workload"
+                value={oneOffWorkload}
+                onChange={(event) => setOneOffWorkload(Number(event.target.value) as 1 | 2 | 3 | 4)}
+              >
+                <option value={1}>1 · Nhẹ</option>
+                <option value={2}>2 · Vừa</option>
+                <option value={3}>3 · Nặng</option>
+                <option value={4}>4 · Rất nặng</option>
+              </select>
+            </div>
+          </div>
+          <div className="button-row modal-actions">
+            <Button variant="secondary" onClick={() => setOneOffOpen(false)}>
+              Hủy
+            </Button>
+            <Button type="submit" disabled={action.isPending || !oneOffName.trim()}>
+              Thêm vào tuần
+            </Button>
+          </div>
+        </form>
+      </ModalDialog>
       {selectedSwapSlots.length > 0 ? (
         <section className="swap-bar" aria-live="polite">
           <span>Đã chọn {selectedSwapSlots.length}/2 vị trí để hoán đổi</span>
