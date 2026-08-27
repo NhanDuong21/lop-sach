@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
-  <title id="title">Lớp Sạch</title>
-  <rect width="512" height="512" rx="112" fill="#f6f8f6"/>
-  <rect x="72" y="72" width="368" height="368" rx="92" fill="#287a4b"/>
-  <path d="M154 154v204h142v-48h-86V154z" fill="#fff"/>
-  <path d="M304 154c-42 0-76 29-76 68 0 43 36 57 68 68 21 7 31 13 31 27 0 13-12 22-31 22-25 0-46-10-65-27v55c18 12 40 19 67 19 49 0 82-28 82-72 0-42-32-58-70-71-20-7-30-12-30-24 0-11 10-18 27-18 23 0 43 8 61 22v-51c-18-12-39-18-64-18z" fill="#dceee2"/>
-</svg>
