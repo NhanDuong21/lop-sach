@@ -4,7 +4,7 @@
 
 - Bắt đầu: 2026-08-27
 - Nhánh: `main`
-- Milestone hiện tại: 1 — Contracts/date-only
+- Milestone hiện tại: 2 — Auth/migrations/login shell
 - Production topology: `DEFERRED_EXTERNAL_CREDENTIALS`
 
 ## Milestones
@@ -12,8 +12,8 @@
 | Milestone | Trạng thái | Commit | Validation |
 |---|---|---|---|
 | 0. Repository foundation | Hoàn tất | `chore(repo): establish repository foundation` | `pnpm check` xanh |
-| 1. Contracts/date-only | Đang thực hiện | Chưa có | Chưa chạy |
-| 2. Auth/migrations/login shell | Chưa bắt đầu | Chưa có | Chưa chạy |
+| 1. Contracts/date-only | Hoàn tất | `feat(contracts): define shared duty scheduling contracts` | 5 tests xanh; typecheck/lint xanh |
+| 2. Auth/migrations/login shell | Đang thực hiện | Chưa có | Chưa chạy |
 | 2.5. Deployment topology spike | Chưa bắt đầu | Chưa có | Thiếu credentials |
 | 3. Master-data API | Chưa bắt đầu | Chưa có | Chưa chạy |
 | 4. Master-data UI | Chưa bắt đầu | Chưa có | Chưa chạy |
@@ -44,6 +44,7 @@
 ## Validation results
 
 - Milestone 0: `pnpm check:text`, lint, typecheck, tests và builds đều xanh trên Node 24.15.0/pnpm 10.15.1.
+- Milestone 1: date-only và availability contracts có 5 tests xanh; full `pnpm check` xanh.
 
 ## Remaining work
 
