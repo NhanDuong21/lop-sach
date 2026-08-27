@@ -4,7 +4,7 @@
 
 - Bắt đầu: 2026-08-27
 - Nhánh: `main`
-- Milestone hiện tại: 2.5 — Deployment topology spike
+- Milestone hiện tại: 3 — Master-data API
 - Production topology: `DEFERRED_EXTERNAL_CREDENTIALS`
 
 ## Milestones
@@ -14,8 +14,8 @@
 | 0. Repository foundation | Hoàn tất | `chore(repo): establish repository foundation` | `pnpm check` xanh |
 | 1. Contracts/date-only | Hoàn tất | `feat(contracts): define shared duty scheduling contracts` | 5 tests xanh; typecheck/lint xanh |
 | 2. Auth/migrations/login shell | Hoàn tất | `feat(auth): add secure sessions and deployment-ready login` | 20 tests xanh; full `pnpm check` xanh |
-| 2.5. Deployment topology spike | Đang thực hiện | Chưa có | `DEFERRED_EXTERNAL_CREDENTIALS` cho smoke thật |
-| 3. Master-data API | Chưa bắt đầu | Chưa có | Chưa chạy |
+| 2.5. Deployment topology spike | Hoàn tất phần repository | `chore(deploy): add verifiable production topology` | Repo gates xanh; production `DEFERRED_EXTERNAL_CREDENTIALS` |
+| 3. Master-data API | Đang thực hiện | Chưa có | Chưa chạy |
 | 4. Master-data UI | Chưa bắt đầu | Chưa có | Chưa chạy |
 | 5. Scheduler core/hash | Chưa bắt đầu | Chưa có | Chưa chạy |
 | 6. Fairness/replacements | Chưa bắt đầu | Chưa có | Chưa chạy |
@@ -46,6 +46,8 @@
 - Milestone 0: `pnpm check:text`, lint, typecheck, tests và builds đều xanh trên Node 24.15.0/pnpm 10.15.1.
 - Milestone 1: date-only và availability contracts có 5 tests xanh; full `pnpm check` xanh.
 - Milestone 2: proxy fixed-upstream có 6 unit tests; API auth/cookie/health/migration có 8 integration tests trên MongoDB replica set; web login shell có 1 component test; 5 contract tests hồi quy; full `pnpm check` xanh. Cookie development dùng `lop_sach_session` không Secure; cookie production dùng `__Host-lop_sach_session` với Secure/HttpOnly/SameSite=Lax/Path=/ và không Domain. Migrations idempotent, không tự drop index và từ chối cùng index name với specification khác.
+- Milestone 2.5: root Vercel config, Nginx/systemd templates, atomic release/rollback scripts và Playwright production-topology harness đã được thêm. `pnpm check` xanh với 6 proxy tests, 9 API integration tests, 5 contract tests và 1 web component test; Playwright discover đúng 1 topology test; bốn Linux scripts qua `bash -n`, LF check và Git mode `100755`. Health outage test chứng minh liveness vẫn 200 và readiness trả safe 503 khi database mất kết nối.
+- Production topology chưa được chạy. Gate chính xác: `DEFERRED_EXTERNAL_CREDENTIALS`. Còn thiếu `LOP_SACH_TOPOLOGY_WEB_ORIGIN`, `LOP_SACH_TOPOLOGY_API_ORIGIN`, `LOP_SACH_SMOKE_USERNAME`, `LOP_SACH_SMOKE_PASSWORD`, cùng Vercel/VPS/DNS/Atlas access. Không có production URL nào đã được xác minh.
 
 ## Remaining work
 

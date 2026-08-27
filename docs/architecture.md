@@ -6,4 +6,6 @@ Backend là nguồn canonical: web có thể preview nhưng API rebuild schedule
 
 Authentication dùng opaque session cookie. API production chỉ nhận route ứng dụng qua fixed Vercel proxy có shared secret, exact Origin validation và explicit trust-proxy chain.
 
+Production proxy chain có đúng hai tầng trung gian: Vercel function sanitize client IP và gắn proxy secret; Nginx là hop trực tiếp duy nhất được Express tin cậy (`trust proxy = 1`). Nginx ghi đè forwarding headers trước khi chuyển vào API bind loopback. Health routes không cần secret nhưng không trả chi tiết dependency; route ứng dụng cần secret trước rate limit/auth.
+
 PWA chỉ cache app shell; current-week display DTO được lưu IndexedDB để đọc offline. Không có offline synchronization queue.

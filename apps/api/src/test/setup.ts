@@ -14,7 +14,7 @@ beforeAll(async () => {
 }, 120_000);
 
 afterEach(async () => {
-  if (!mongoose.connection.db) return;
+  if (mongoose.connection.readyState !== mongoose.ConnectionStates.connected || !mongoose.connection.db) return;
   const collections = await mongoose.connection.db.collections();
   await Promise.all(collections.filter((collection) => collection.collectionName !== 'schemaMigrations').map((collection) => collection.deleteMany({})));
 });
