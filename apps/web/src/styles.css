@@ -194,6 +194,12 @@ form button {
   height: 40px;
   flex: none;
 }
+.brand-logo {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  object-fit: contain;
+}
 .sidebar-brand strong,
 .sidebar-brand small {
   display: block;
@@ -238,6 +244,12 @@ form button {
 .mobile-brand {
   color: #287a4b;
   font-weight: 750;
+}
+.mobile-brand-logo {
+  display: block;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 .page-container {
   width: min(100%, 1040px);

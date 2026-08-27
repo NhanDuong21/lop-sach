@@ -25,7 +25,13 @@ export function AppShell({
       <div className="app-column">
         <header className="topbar">
           <div>
-            <span className="mobile-brand">Lớp Sạch</span>
+            <span className="mobile-brand">
+              <img
+                className="mobile-brand-logo"
+                src="/icons/logo-nobackground.png"
+                alt="Lớp Sạch"
+              />
+            </span>
             <small>{classroomName}</small>
           </div>
           <Button

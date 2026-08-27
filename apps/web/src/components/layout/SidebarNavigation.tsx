@@ -20,9 +20,7 @@ export function SidebarNavigation({
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <span className="brand-mark" aria-hidden="true">
-          LS
-        </span>
+        <img className="brand-logo" src="/icons/logo-nobackground.png" alt="" aria-hidden="true" />
         <div>
           <strong>Lớp Sạch</strong>
           <small>{classroomName}</small>
