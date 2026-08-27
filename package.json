@@ -34,6 +34,10 @@
     "vitest": "3.2.4"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["argon2", "esbuild", "mongodb-memory-server"]
+    "onlyBuiltDependencies": [
+      "argon2",
+      "esbuild",
+      "mongodb-memory-server"
+    ]
   }
 }

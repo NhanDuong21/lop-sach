@@ -1,11 +1,14 @@
 import { ProblemDetailsSchema, type ProblemDetails } from '@lop-sach/contracts';
 
 export class ApiError extends Error {
-  public constructor(public readonly problem: ProblemDetails) { super(problem.detail); }
+  public constructor(public readonly problem: ProblemDetails) {
+    super(problem.detail);
+  }
 }
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
-  if (!navigator.onLine && init.method && init.method !== 'GET') throw new Error('Không thể thay đổi dữ liệu khi ngoại tuyến.');
+  if (!navigator.onLine && init.method && init.method !== 'GET')
+    throw new Error('Không thể thay đổi dữ liệu khi ngoại tuyến.');
   const response = await fetch(`/api/v1${path}`, {
     ...init,
     credentials: 'include',

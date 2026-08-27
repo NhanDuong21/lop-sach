@@ -20,10 +20,7 @@ for (const file of tracked) {
 }
 
 const readme = readFileSync('README.md');
-if (
-  (readme[0] === 0xff && readme[1] === 0xfe) ||
-  (readme[0] === 0xfe && readme[1] === 0xff)
-) {
+if ((readme[0] === 0xff && readme[1] === 0xfe) || (readme[0] === 0xfe && readme[1] === 0xff)) {
   failures.push('README.md: không được dùng UTF-16 BOM');
 }
 

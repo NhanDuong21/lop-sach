@@ -2,7 +2,10 @@ import type { Db } from 'mongodb';
 import { DATABASE_MIGRATIONS } from './registry.js';
 import type { AppliedMigration } from './migration.model.js';
 
-export async function runDatabaseMigrations(database: Db, applicationVersion: string): Promise<readonly string[]> {
+export async function runDatabaseMigrations(
+  database: Db,
+  applicationVersion: string,
+): Promise<readonly string[]> {
   const collection = database.collection<AppliedMigration>('schemaMigrations');
   const appliedIds: string[] = [];
   for (const migration of DATABASE_MIGRATIONS) {

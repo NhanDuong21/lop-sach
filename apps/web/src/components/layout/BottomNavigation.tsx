@@ -9,5 +9,19 @@ const items = [
 ] as const;
 
 export function BottomNavigation(): React.JSX.Element {
-  return <nav className="bottom-navigation" aria-label="Điều hướng chính">{items.map(({ to, label, Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => isActive ? 'active' : ''}><Icon size={20} aria-hidden="true" /><span>{label}</span></NavLink>)}</nav>;
+  return (
+    <nav className="bottom-navigation" aria-label="Điều hướng chính">
+      {items.map(({ to, label, Icon, end }) => (
+        <NavLink
+          key={to}
+          to={to}
+          end={end}
+          className={({ isActive }) => (isActive ? 'active' : '')}
+        >
+          <Icon size={20} aria-hidden="true" />
+          <span>{label}</span>
+        </NavLink>
+      ))}
+    </nav>
+  );
 }

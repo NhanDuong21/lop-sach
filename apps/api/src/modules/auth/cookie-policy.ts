@@ -5,7 +5,9 @@ export interface SessionCookiePolicy {
   readonly options: CookieOptions;
 }
 
-export function sessionCookiePolicy(environment: 'development' | 'test' | 'production'): SessionCookiePolicy {
+export function sessionCookiePolicy(
+  environment: 'development' | 'test' | 'production',
+): SessionCookiePolicy {
   const production = environment === 'production';
   return {
     name: production ? '__Host-lop_sach_session' : 'lop_sach_session',

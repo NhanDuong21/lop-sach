@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { addDateOnlyDays, dateOnlyWeekday, isDateOnly, mondayOfWeek, parseDateOnly, weekDates } from './date-only.js';
+import {
+  addDateOnlyDays,
+  dateOnlyWeekday,
+  isDateOnly,
+  mondayOfWeek,
+  parseDateOnly,
+  weekDates,
+} from './date-only.js';
 
 describe('date-only domain', () => {
   it('validates real Gregorian dates', () => {

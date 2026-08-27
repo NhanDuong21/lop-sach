@@ -3,7 +3,11 @@ import type { SessionCookiePolicy } from '../modules/auth/cookie-policy.js';
 import { authenticateToken } from '../modules/auth/auth.service.js';
 import { HttpProblem } from '../shared/problem.js';
 
-export interface AuthenticatedUser { readonly id: string; readonly username: string; readonly displayName: string }
+export interface AuthenticatedUser {
+  readonly id: string;
+  readonly username: string;
+  readonly displayName: string;
+}
 
 export function authenticate(cookiePolicy: SessionCookiePolicy) {
   return async (request: Request, response: Response, next: NextFunction): Promise<void> => {
@@ -15,7 +19,9 @@ export function authenticate(cookiePolicy: SessionCookiePolicy) {
       response.locals.user = user;
       response.locals.sessionToken = token;
       next();
-    } catch (error) { next(error); }
+    } catch (error) {
+      next(error);
+    }
   };
 }
 

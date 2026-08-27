@@ -11,6 +11,8 @@ describe('TaskForm', () => {
     await userEvent.selectOptions(screen.getByLabelText('Mức công việc'), '3');
     await userEvent.selectOptions(screen.getByLabelText('Điều kiện phân công'), 'ANY');
     await userEvent.click(screen.getByRole('button', { name: 'Thêm công việc' }));
-    expect(submit).toHaveBeenCalledWith(expect.objectContaining({ name: 'Mang nước', workloadLevel: 3, eligibilityRule: 'ANY' }));
+    expect(submit).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Mang nước', workloadLevel: 3, eligibilityRule: 'ANY' }),
+    );
   });
 });

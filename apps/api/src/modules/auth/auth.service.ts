@@ -14,23 +14,47 @@ export function hashSessionToken(token: string): string {
 }
 
 export async function hashPassword(password: string): Promise<string> {
-  return argon2.hash(password, { type: argon2.argon2id, memoryCost: 19_456, timeCost: 2, parallelism: 1 });
+  return argon2.hash(password, {
+    type: argon2.argon2id,
+    memoryCost: 19_456,
+    timeCost: 2,
+    parallelism: 1,
+  });
 }
 
 export async function verifyPassword(hash: string, password: string): Promise<boolean> {
-  try { return await argon2.verify(hash, password); } catch { return false; }
+  try {
+    return await argon2.verify(hash, password);
+  } catch {
+    return false;
+  }
 }
 
-export async function createSession(userId: string): Promise<{ readonly token: string; readonly expiresAt: Date }> {
+export async function createSession(
+  userId: string,
+): Promise<{ readonly token: string; readonly expiresAt: Date }> {
   const token = randomBytes(32).toString('base64url');
   const now = new Date();
   const expiresAt = new Date(now.getTime() + SESSION_LIFETIME_MS);
-  await SessionModel.create({ userId, tokenHash: hashSessionToken(token), createdAt: now, lastSeenAt: now, expiresAt });
+  await SessionModel.create({
+    userId,
+    tokenHash: hashSessionToken(token),
+    createdAt: now,
+    lastSeenAt: now,
+    expiresAt,
+  });
   return { token, expiresAt };
 }
 
-export async function authenticateToken(token: string): Promise<{ readonly id: string; readonly username: string; readonly displayName: string } | null> {
-  const session = await SessionModel.findOne({ tokenHash: hashSessionToken(token), expiresAt: { $gt: new Date() } }).lean();
+export async function authenticateToken(token: string): Promise<{
+  readonly id: string;
+  readonly username: string;
+  readonly displayName: string;
+} | null> {
+  const session = await SessionModel.findOne({
+    tokenHash: hashSessionToken(token),
+    expiresAt: { $gt: new Date() },
+  }).lean();
   if (!session) return null;
   const user = await UserModel.findById(session.userId).lean();
   if (!user) return null;

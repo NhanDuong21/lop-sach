@@ -6,4 +6,10 @@ import './styles.css';
 
 const root = document.querySelector<HTMLDivElement>('#root');
 if (!root) throw new Error('Không tìm thấy application root.');
-createRoot(root).render(<StrictMode><Providers><App /></Providers></StrictMode>);
+createRoot(root).render(
+  <StrictMode>
+    <Providers>
+      <App />
+    </Providers>
+  </StrictMode>,
+);

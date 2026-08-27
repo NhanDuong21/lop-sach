@@ -18,8 +18,46 @@ interface StudentPatchInput {
   readonly restrictions?: readonly Record<string, unknown>[] | undefined;
   readonly expectedVersion: number;
 }
-export async function listStudents(): Promise<readonly Student[]> { return (await apiRequest<{ data: Student[] }>('/students')).data; }
-export async function createStudent(input: StudentWriteInput): Promise<Student> { return (await apiRequest<{ data: Student }>('/students', { method: 'POST', body: JSON.stringify(input) })).data; }
-export async function patchStudent(studentId: string, input: StudentPatchInput): Promise<Student> { return (await apiRequest<{ data: Student }>(`/students/${encodeURIComponent(studentId)}`, { method: 'PATCH', body: JSON.stringify(input) })).data; }
-export async function moveStudent(studentId: string, groupId: string, expectedVersion: number): Promise<Student> { return (await apiRequest<{ data: Student }>(`/students/${encodeURIComponent(studentId)}/move`, { method: 'POST', body: JSON.stringify({ groupId, expectedVersion }) })).data; }
-export async function setStudentActive(studentId: string, active: boolean, expectedVersion: number): Promise<Student> { return (await apiRequest<{ data: Student }>(`/students/${encodeURIComponent(studentId)}/${active ? 'activate' : 'deactivate'}`, { method: 'POST', body: JSON.stringify({ expectedVersion }) })).data; }
+export async function listStudents(): Promise<readonly Student[]> {
+  return (await apiRequest<{ data: Student[] }>('/students')).data;
+}
+export async function createStudent(input: StudentWriteInput): Promise<Student> {
+  return (
+    await apiRequest<{ data: Student }>('/students', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+  ).data;
+}
+export async function patchStudent(studentId: string, input: StudentPatchInput): Promise<Student> {
+  return (
+    await apiRequest<{ data: Student }>(`/students/${encodeURIComponent(studentId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    })
+  ).data;
+}
+export async function moveStudent(
+  studentId: string,
+  groupId: string,
+  expectedVersion: number,
+): Promise<Student> {
+  return (
+    await apiRequest<{ data: Student }>(`/students/${encodeURIComponent(studentId)}/move`, {
+      method: 'POST',
+      body: JSON.stringify({ groupId, expectedVersion }),
+    })
+  ).data;
+}
+export async function setStudentActive(
+  studentId: string,
+  active: boolean,
+  expectedVersion: number,
+): Promise<Student> {
+  return (
+    await apiRequest<{ data: Student }>(
+      `/students/${encodeURIComponent(studentId)}/${active ? 'activate' : 'deactivate'}`,
+      { method: 'POST', body: JSON.stringify({ expectedVersion }) },
+    )
+  ).data;
+}

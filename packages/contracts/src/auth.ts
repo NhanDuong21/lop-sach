@@ -9,8 +9,11 @@ export const ChangePasswordRequestSchema = z.strictObject({
   newPassword: z.string().min(12).max(256),
 });
 export const AuthUserSchema = z.strictObject({
-  id: z.string(), displayName: z.string(), username: z.string(),
-  hasClassroom: z.boolean(), onboardingCompleted: z.boolean(),
+  id: z.string(),
+  displayName: z.string(),
+  username: z.string(),
+  hasClassroom: z.boolean(),
+  onboardingCompleted: z.boolean(),
 });
 export const AuthResponseSchema = z.strictObject({ data: AuthUserSchema });
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;

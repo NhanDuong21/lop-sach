@@ -13,7 +13,9 @@ async function connectWithRetry(): Promise<void> {
     await connectDatabase(config.mongoUri);
     process.stdout.write('Database connection ready.\n');
   } catch {
-    process.stderr.write('Database unavailable; readiness remains unavailable and connection will retry.\n');
+    process.stderr.write(
+      'Database unavailable; readiness remains unavailable and connection will retry.\n',
+    );
     if (!shuttingDown) retryTimer = setTimeout(() => void connectWithRetry(), 10_000);
   }
 }
@@ -23,7 +25,9 @@ server.listen(config.port, '127.0.0.1', () => void connectWithRetry());
 function shutdown(): void {
   shuttingDown = true;
   if (retryTimer) clearTimeout(retryTimer);
-  server.close(() => { void disconnectDatabase().then(() => process.exit(0)); });
+  server.close(() => {
+    void disconnectDatabase().then(() => process.exit(0));
+  });
   setTimeout(() => process.exit(1), 10_000).unref();
 }
 process.on('SIGTERM', shutdown);

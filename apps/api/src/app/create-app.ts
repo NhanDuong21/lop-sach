@@ -14,7 +14,10 @@ import { requestContext } from '../middleware/request-context.js';
 import { createHealthRouter } from '../modules/health/health.routes.js';
 import { createApiRouter } from './routes.js';
 
-export function createApp(config: AppConfig, options: { readonly rateLimits?: boolean } = {}): Express {
+export function createApp(
+  config: AppConfig,
+  options: { readonly rateLimits?: boolean } = {},
+): Express {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', config.environment === 'production' ? 1 : false);

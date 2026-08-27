@@ -6,16 +6,26 @@ const EnvSchema = z
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     MONGODB_URI: z.string().min(1),
     APP_ORIGIN: z.string().url(),
-    LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+    LOG_LEVEL: z
+      .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+      .default('info'),
     LOP_SACH_PROXY_SECRET: z.string().min(32).optional(),
   })
   .superRefine((value, context) => {
     if (value.NODE_ENV === 'production') {
       if (!value.APP_ORIGIN.startsWith('https://')) {
-        context.addIssue({ code: 'custom', path: ['APP_ORIGIN'], message: 'Production APP_ORIGIN phải dùng HTTPS.' });
+        context.addIssue({
+          code: 'custom',
+          path: ['APP_ORIGIN'],
+          message: 'Production APP_ORIGIN phải dùng HTTPS.',
+        });
       }
       if (!value.LOP_SACH_PROXY_SECRET) {
-        context.addIssue({ code: 'custom', path: ['LOP_SACH_PROXY_SECRET'], message: 'Production cần proxy secret.' });
+        context.addIssue({
+          code: 'custom',
+          path: ['LOP_SACH_PROXY_SECRET'],
+          message: 'Production cần proxy secret.',
+        });
       }
     }
   });

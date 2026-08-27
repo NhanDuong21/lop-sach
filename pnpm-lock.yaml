@@ -102,6 +102,9 @@ importers:
       '@lop-sach/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@lop-sach/scheduler':
+        specifier: workspace:*
+        version: link:../../packages/scheduler
       '@tanstack/react-query':
         specifier: 5.85.5
         version: 5.85.5(react@19.1.1)
@@ -125,8 +128,8 @@ importers:
         version: 4.1.5
     devDependencies:
       '@playwright/test':
-        specifier: 1.55.0
-        version: 1.55.0
+        specifier: 1.58.0
+        version: 1.58.0
       '@testing-library/jest-dom':
         specifier: 6.8.0
         version: 6.8.0
@@ -564,8 +567,8 @@ packages:
     resolution: {integrity: sha512-m7X9U6BG2+J+R1lSOdCiITLLrxm+cWlNI3HUFA92oLO77ObGNzaKdh8pMLqdZcshtkKuV84olNNXDfMc4FezBQ==}
     engines: {node: '>=10'}
 
-  '@playwright/test@1.55.0':
-    resolution: {integrity: sha512-04IXzPwHrW69XusN/SIdDdKZBzMfOT9UNT/YiJit/xpy2VuAoB8NHc8Aplb96zsWDddLnbkPL3TsmrS04ZU2xQ==}
+  '@playwright/test@1.58.0':
+    resolution: {integrity: sha512-fWza+Lpbj6SkQKCrU6si4iu+fD2dD3gxNHFhUPxsfXBPhnv3rRSQVd0NtBUT9Z/RhF/boCBcuUaMUSTRTopjZg==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -1916,13 +1919,13 @@ packages:
     resolution: {integrity: sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ==}
     engines: {node: '>=8'}
 
-  playwright-core@1.55.0:
-    resolution: {integrity: sha512-GvZs4vU3U5ro2nZpeiwyb0zuFaqb9sUiAJuyrWpcGouD8y9/HLgGbNRjIph7zU9D3hnPaisMl9zG9CgFi/biIg==}
+  playwright-core@1.58.0:
+    resolution: {integrity: sha512-aaoB1RWrdNi3//rOeKuMiS65UCcgOVljU46At6eFcOFPFHWtd2weHRRow6z/n+Lec0Lvu0k9ZPKJSjPugikirw==}
     engines: {node: '>=18'}
     hasBin: true
 
-  playwright@1.55.0:
-    resolution: {integrity: sha512-sdCWStblvV1YU909Xqx0DhOjPZE4/5lJsIS84IfN9dAZfcl/CIZ5O8l3o0j7hPMjDvqoTF8ZUcc+i/GL5erstA==}
+  playwright@1.58.0:
+    resolution: {integrity: sha512-2SVA0sbPktiIY/MCOPX8e86ehA/e+tDNq+e5Y8qjKYti2Z/JG7xnronT/TXTIkKbYGWlCbuucZ6dziEgkoEjQQ==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -2759,9 +2762,9 @@ snapshots:
 
   '@phc/format@1.0.0': {}
 
-  '@playwright/test@1.55.0':
+  '@playwright/test@1.58.0':
     dependencies:
-      playwright: 1.55.0
+      playwright: 1.58.0
 
   '@rolldown/pluginutils@1.0.0-beta.34': {}
 
@@ -4138,11 +4141,11 @@ snapshots:
     dependencies:
       find-up: 4.1.0
 
-  playwright-core@1.55.0: {}
+  playwright-core@1.58.0: {}
 
-  playwright@1.55.0:
+  playwright@1.58.0:
     dependencies:
-      playwright-core: 1.55.0
+      playwright-core: 1.58.0
     optionalDependencies:
       fsevents: 2.3.2
 

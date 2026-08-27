@@ -32,10 +32,19 @@ type ClassroomHydrated = HydratedDocument<ClassroomDocument> & { version: number
 
 function mapStudent(document: StudentHydrated): Student {
   const restrictions = document.restrictions.map((restriction) => {
-    const base = { id: String(restriction.id), ...(restriction.note ? { note: restriction.note } : {}) };
+    const base = {
+      id: String(restriction.id),
+      ...(restriction.note ? { note: restriction.note } : {}),
+    };
     if (restriction.type === 'NO_HEAVY_TASKS') return { ...base, type: restriction.type };
-    if (restriction.type === 'TASK_EXCLUSION') return { ...base, type: restriction.type, taskTemplateId: restriction.taskTemplateId };
-    return { ...base, type: restriction.type, startDate: restriction.startDate, endDate: restriction.endDate };
+    if (restriction.type === 'TASK_EXCLUSION')
+      return { ...base, type: restriction.type, taskTemplateId: restriction.taskTemplateId };
+    return {
+      ...base,
+      type: restriction.type,
+      startDate: restriction.startDate,
+      endDate: restriction.endDate,
+    };
   });
   return StudentSchema.parse({
     id: String(document._id),
@@ -51,7 +60,10 @@ function mapStudent(document: StudentHydrated): Student {
   });
 }
 
-async function ownerClassroom(ownerId: string, session?: ClientSession): Promise<ClassroomHydrated> {
+async function ownerClassroom(
+  ownerId: string,
+  session?: ClientSession,
+): Promise<ClassroomHydrated> {
   const query = ClassroomModel.findOne({ ownerId: new Types.ObjectId(ownerId) });
   if (session) query.session(session);
   const classroom = await query;
@@ -66,11 +78,16 @@ function activeGroup(classroom: ClassroomHydrated, groupId: string): void {
 }
 
 function studentObjectId(studentId: string): mongoose.Types.ObjectId {
-  if (!Types.ObjectId.isValid(studentId)) throw new HttpProblem(404, 'RESOURCE_NOT_FOUND', 'Không tìm thấy học sinh.');
+  if (!Types.ObjectId.isValid(studentId))
+    throw new HttpProblem(404, 'RESOURCE_NOT_FOUND', 'Không tìm thấy học sinh.');
   return new Types.ObjectId(studentId);
 }
 
-async function findStudent(classroomId: mongoose.Types.ObjectId, studentId: string, session?: ClientSession): Promise<StudentHydrated> {
+async function findStudent(
+  classroomId: mongoose.Types.ObjectId,
+  studentId: string,
+  session?: ClientSession,
+): Promise<StudentHydrated> {
   const query = StudentModel.findOne({ _id: studentObjectId(studentId), classroomId });
   if (session) query.session(session);
   const student = await query;
@@ -78,31 +95,55 @@ async function findStudent(classroomId: mongoose.Types.ObjectId, studentId: stri
   return student as StudentHydrated;
 }
 
-async function validateRestrictions(classroomId: mongoose.Types.ObjectId, restrictions: readonly StudentRestrictionWrite[], session?: ClientSession): Promise<void> {
-  const rawIds = restrictions.filter((restriction) => restriction.type === 'TASK_EXCLUSION').map((restriction) => restriction.taskTemplateId);
-  if (rawIds.some((id) => !Types.ObjectId.isValid(id))) throw new HttpProblem(422, 'VALIDATION_FAILED', 'Task bị loại trừ không hợp lệ.');
+async function validateRestrictions(
+  classroomId: mongoose.Types.ObjectId,
+  restrictions: readonly StudentRestrictionWrite[],
+  session?: ClientSession,
+): Promise<void> {
+  const rawIds = restrictions
+    .filter((restriction) => restriction.type === 'TASK_EXCLUSION')
+    .map((restriction) => restriction.taskTemplateId);
+  if (rawIds.some((id) => !Types.ObjectId.isValid(id)))
+    throw new HttpProblem(422, 'VALIDATION_FAILED', 'Task bị loại trừ không hợp lệ.');
   const uniqueIds = [...new Set(rawIds)];
   if (uniqueIds.length === 0) return;
-  const query = TaskTemplateModel.countDocuments({ classroomId, _id: { $in: uniqueIds.map((id) => new Types.ObjectId(id)) } });
+  const query = TaskTemplateModel.countDocuments({
+    classroomId,
+    _id: { $in: uniqueIds.map((id) => new Types.ObjectId(id)) },
+  });
   if (session) query.session(session);
-  if (await query !== uniqueIds.length) throw new HttpProblem(422, 'VALIDATION_FAILED', 'Task bị loại trừ không thuộc lớp hiện tại.');
+  if ((await query) !== uniqueIds.length)
+    throw new HttpProblem(422, 'VALIDATION_FAILED', 'Task bị loại trừ không thuộc lớp hiện tại.');
 }
 
-function persistedRestrictions(restrictions: readonly StudentRestrictionWrite[]): readonly Record<string, unknown>[] {
+function persistedRestrictions(
+  restrictions: readonly StudentRestrictionWrite[],
+): readonly Record<string, unknown>[] {
   return restrictions.map((restriction) => ({ id: createId(), ...restriction }));
 }
 
-async function bumpStudentRevision(classroomId: mongoose.Types.ObjectId, session: ClientSession): Promise<void> {
-  await ClassroomModel.updateOne({ _id: classroomId }, {
-    $inc: { 'revisionCounters.students': 1, dataRevision: 1, version: 1 },
-  }, { session });
+async function bumpStudentRevision(
+  classroomId: mongoose.Types.ObjectId,
+  session: ClientSession,
+): Promise<void> {
+  await ClassroomModel.updateOne(
+    { _id: classroomId },
+    {
+      $inc: { 'revisionCounters.students': 1, dataRevision: 1, version: 1 },
+    },
+    { session },
+  );
 }
 
 function assertStudentVersion(student: StudentHydrated, expectedVersion: number): void {
-  if (student.version !== expectedVersion) throw new HttpProblem(409, 'VERSION_CONFLICT', 'Học sinh đã được thay đổi. Hãy tải lại.');
+  if (student.version !== expectedVersion)
+    throw new HttpProblem(409, 'VERSION_CONFLICT', 'Học sinh đã được thay đổi. Hãy tải lại.');
 }
 
-export async function listStudents(ownerId: string, filters: { readonly groupId?: string | undefined; readonly active?: boolean | undefined }): Promise<readonly Student[]> {
+export async function listStudents(
+  ownerId: string,
+  filters: { readonly groupId?: string | undefined; readonly active?: boolean | undefined },
+): Promise<readonly Student[]> {
   const classroom = await ownerClassroom(ownerId);
   const query: Record<string, unknown> = { classroomId: classroom._id };
   if (filters.groupId !== undefined) query.groupId = filters.groupId;
@@ -116,34 +157,50 @@ export async function createStudent(ownerId: string, input: StudentCreateInput):
     const classroom = await ownerClassroom(ownerId, session);
     activeGroup(classroom, input.groupId);
     await validateRestrictions(classroom._id, input.restrictions, session);
-    const [student] = await StudentModel.create([{
-      classroomId: classroom._id,
-      groupId: input.groupId,
-      displayName: input.displayName,
-      active: input.active,
-      gender: input.gender,
-      participationStart: input.participationStart,
-      participationEnd: input.participationEnd,
-      restrictions: persistedRestrictions(input.restrictions),
-    }], { session, ordered: true });
+    const [student] = await StudentModel.create(
+      [
+        {
+          classroomId: classroom._id,
+          groupId: input.groupId,
+          displayName: input.displayName,
+          active: input.active,
+          gender: input.gender,
+          participationStart: input.participationStart,
+          participationEnd: input.participationEnd,
+          restrictions: persistedRestrictions(input.restrictions),
+        },
+      ],
+      { session, ordered: true },
+    );
     if (!student) throw new Error('Không tạo được học sinh.');
     await bumpStudentRevision(classroom._id, session);
     return mapStudent(student as StudentHydrated);
   });
 }
 
-export async function patchStudent(ownerId: string, studentId: string, input: StudentPatchInput): Promise<Student> {
+export async function patchStudent(
+  ownerId: string,
+  studentId: string,
+  input: StudentPatchInput,
+): Promise<Student> {
   return withTransaction(async (session) => {
     const classroom = await ownerClassroom(ownerId, session);
     const student = await findStudent(classroom._id, studentId, session);
     assertStudentVersion(student, input.expectedVersion);
-    const start = input.participationStart !== undefined ? input.participationStart : student.participationStart;
-    const end = input.participationEnd !== undefined ? input.participationEnd : student.participationEnd;
-    if (start !== null && end !== null && end < start) throw new HttpProblem(422, 'VALIDATION_FAILED', 'Khoảng tham gia không hợp lệ.');
+    const start =
+      input.participationStart !== undefined
+        ? input.participationStart
+        : student.participationStart;
+    const end =
+      input.participationEnd !== undefined ? input.participationEnd : student.participationEnd;
+    if (start !== null && end !== null && end < start)
+      throw new HttpProblem(422, 'VALIDATION_FAILED', 'Khoảng tham gia không hợp lệ.');
     if (input.displayName !== undefined) student.displayName = input.displayName;
     if (input.gender !== undefined) student.gender = input.gender;
-    if (input.participationStart !== undefined) student.set('participationStart', input.participationStart);
-    if (input.participationEnd !== undefined) student.set('participationEnd', input.participationEnd);
+    if (input.participationStart !== undefined)
+      student.set('participationStart', input.participationStart);
+    if (input.participationEnd !== undefined)
+      student.set('participationEnd', input.participationEnd);
     if (input.restrictions !== undefined) {
       await validateRestrictions(classroom._id, input.restrictions, session);
       student.set('restrictions', persistedRestrictions(input.restrictions));
@@ -154,7 +211,12 @@ export async function patchStudent(ownerId: string, studentId: string, input: St
   });
 }
 
-export async function moveStudent(ownerId: string, studentId: string, groupId: string, expectedVersion: number): Promise<Student> {
+export async function moveStudent(
+  ownerId: string,
+  studentId: string,
+  groupId: string,
+  expectedVersion: number,
+): Promise<Student> {
   return withTransaction(async (session) => {
     const classroom = await ownerClassroom(ownerId, session);
     activeGroup(classroom, groupId);
@@ -167,7 +229,12 @@ export async function moveStudent(ownerId: string, studentId: string, groupId: s
   });
 }
 
-export async function setStudentActive(ownerId: string, studentId: string, active: boolean, expectedVersion: number): Promise<Student> {
+export async function setStudentActive(
+  ownerId: string,
+  studentId: string,
+  active: boolean,
+  expectedVersion: number,
+): Promise<Student> {
   return withTransaction(async (session) => {
     const classroom = await ownerClassroom(ownerId, session);
     const student = await findStudent(classroom._id, studentId, session);

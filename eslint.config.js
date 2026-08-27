@@ -13,7 +13,7 @@ export default tseslint.config(
       globals: { ...globals.browser, ...globals.node },
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['apps/api/*.config.ts']
+          allowDefaultProject: ['apps/api/*.config.ts'],
         },
         tsconfigRootDir: import.meta.dirname,
       },
@@ -22,13 +22,13 @@ export default tseslint.config(
       '@typescript-eslint/consistent-type-imports': 'error',
       '@typescript-eslint/explicit-function-return-type': ['error', { allowExpressions: true }],
       '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/no-floating-promises': 'error'
-    }
+      '@typescript-eslint/no-floating-promises': 'error',
+    },
   },
   {
     files: ['**/*.js', '**/*.mjs'],
     languageOptions: { globals: globals.node },
-    rules: tseslint.configs.disableTypeChecked.rules
+    rules: tseslint.configs.disableTypeChecked.rules,
   },
-  prettier
+  prettier,
 );

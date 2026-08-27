@@ -1,4 +1,9 @@
-import { TaskTemplateSchema, type TaskTemplate, type TaskEligibilityRule, type WorkloadLevel } from '@lop-sach/contracts';
+import {
+  TaskTemplateSchema,
+  type TaskTemplate,
+  type TaskEligibilityRule,
+  type WorkloadLevel,
+} from '@lop-sach/contracts';
 import mongoose, { type ClientSession, type HydratedDocument } from 'mongoose';
 import { withTransaction } from '../../database/transaction.js';
 import { HttpProblem } from '../../shared/problem.js';
@@ -42,7 +47,10 @@ function mapTask(document: TaskHydrated): TaskTemplate {
   });
 }
 
-async function ownerClassroom(ownerId: string, session?: ClientSession): Promise<ClassroomHydrated> {
+async function ownerClassroom(
+  ownerId: string,
+  session?: ClientSession,
+): Promise<ClassroomHydrated> {
   const query = ClassroomModel.findOne({ ownerId: new Types.ObjectId(ownerId) });
   if (session) query.session(session);
   const classroom = await query;
@@ -51,11 +59,16 @@ async function ownerClassroom(ownerId: string, session?: ClientSession): Promise
 }
 
 function taskObjectId(taskId: string): mongoose.Types.ObjectId {
-  if (!Types.ObjectId.isValid(taskId)) throw new HttpProblem(404, 'RESOURCE_NOT_FOUND', 'Không tìm thấy task.');
+  if (!Types.ObjectId.isValid(taskId))
+    throw new HttpProblem(404, 'RESOURCE_NOT_FOUND', 'Không tìm thấy task.');
   return new Types.ObjectId(taskId);
 }
 
-async function findTask(classroomId: mongoose.Types.ObjectId, taskId: string, session?: ClientSession): Promise<TaskHydrated> {
+async function findTask(
+  classroomId: mongoose.Types.ObjectId,
+  taskId: string,
+  session?: ClientSession,
+): Promise<TaskHydrated> {
   const query = TaskTemplateModel.findOne({ _id: taskObjectId(taskId), classroomId });
   if (session) query.session(session);
   const task = await query;
@@ -63,39 +76,64 @@ async function findTask(classroomId: mongoose.Types.ObjectId, taskId: string, se
   return task as TaskHydrated;
 }
 
-async function bumpTaskRevision(classroomId: mongoose.Types.ObjectId, session: ClientSession): Promise<void> {
-  await ClassroomModel.updateOne({ _id: classroomId }, {
-    $inc: { 'revisionCounters.tasks': 1, dataRevision: 1, version: 1 },
-  }, { session });
+async function bumpTaskRevision(
+  classroomId: mongoose.Types.ObjectId,
+  session: ClientSession,
+): Promise<void> {
+  await ClassroomModel.updateOne(
+    { _id: classroomId },
+    {
+      $inc: { 'revisionCounters.tasks': 1, dataRevision: 1, version: 1 },
+    },
+    { session },
+  );
 }
 
 function assertTaskVersion(task: TaskHydrated, expectedVersion: number): void {
-  if (task.version !== expectedVersion) throw new HttpProblem(409, 'VERSION_CONFLICT', 'Task đã được thay đổi. Hãy tải lại.');
+  if (task.version !== expectedVersion)
+    throw new HttpProblem(409, 'VERSION_CONFLICT', 'Task đã được thay đổi. Hãy tải lại.');
 }
 
 export async function listTaskTemplates(ownerId: string): Promise<readonly TaskTemplate[]> {
   const classroom = await ownerClassroom(ownerId);
-  const tasks = await TaskTemplateModel.find({ classroomId: classroom._id }).sort({ order: 1, _id: 1 });
+  const tasks = await TaskTemplateModel.find({ classroomId: classroom._id }).sort({
+    order: 1,
+    _id: 1,
+  });
   return tasks.map((task) => mapTask(task as TaskHydrated));
 }
 
-export async function createTaskTemplate(ownerId: string, input: TaskCreateInput): Promise<TaskTemplate> {
+export async function createTaskTemplate(
+  ownerId: string,
+  input: TaskCreateInput,
+): Promise<TaskTemplate> {
   return withTransaction(async (session) => {
     const classroom = await ownerClassroom(ownerId, session);
-    const latest = await TaskTemplateModel.findOne({ classroomId: classroom._id }).sort({ order: -1 }).session(session);
-    const [task] = await TaskTemplateModel.create([{
-      classroomId: classroom._id,
-      ...input,
-      schoolDays: [...input.schoolDays],
-      order: (latest?.order ?? -1) + 1,
-    }], { session, ordered: true });
+    const latest = await TaskTemplateModel.findOne({ classroomId: classroom._id })
+      .sort({ order: -1 })
+      .session(session);
+    const [task] = await TaskTemplateModel.create(
+      [
+        {
+          classroomId: classroom._id,
+          ...input,
+          schoolDays: [...input.schoolDays],
+          order: (latest?.order ?? -1) + 1,
+        },
+      ],
+      { session, ordered: true },
+    );
     if (!task) throw new Error('Không tạo được task.');
     await bumpTaskRevision(classroom._id, session);
     return mapTask(task as TaskHydrated);
   });
 }
 
-export async function patchTaskTemplate(ownerId: string, taskId: string, input: TaskPatchInput): Promise<TaskTemplate> {
+export async function patchTaskTemplate(
+  ownerId: string,
+  taskId: string,
+  input: TaskPatchInput,
+): Promise<TaskTemplate> {
   return withTransaction(async (session) => {
     const classroom = await ownerClassroom(ownerId, session);
     const task = await findTask(classroom._id, taskId, session);
@@ -111,7 +149,12 @@ export async function patchTaskTemplate(ownerId: string, taskId: string, input: 
   });
 }
 
-export async function setTaskTemplateActive(ownerId: string, taskId: string, active: boolean, expectedVersion: number): Promise<TaskTemplate> {
+export async function setTaskTemplateActive(
+  ownerId: string,
+  taskId: string,
+  active: boolean,
+  expectedVersion: number,
+): Promise<TaskTemplate> {
   return withTransaction(async (session) => {
     const classroom = await ownerClassroom(ownerId, session);
     const task = await findTask(classroom._id, taskId, session);
@@ -123,23 +166,40 @@ export async function setTaskTemplateActive(ownerId: string, taskId: string, act
   });
 }
 
-export async function reorderTaskTemplates(ownerId: string, taskIds: readonly string[], expectedTasksRevision: number): Promise<readonly TaskTemplate[]> {
+export async function reorderTaskTemplates(
+  ownerId: string,
+  taskIds: readonly string[],
+  expectedTasksRevision: number,
+): Promise<readonly TaskTemplate[]> {
   return withTransaction(async (session) => {
     const classroom = await ownerClassroom(ownerId, session);
     if (classroom.revisionCounters.tasks !== expectedTasksRevision) {
       throw new HttpProblem(409, 'VERSION_CONFLICT', 'Danh sách task đã thay đổi. Hãy tải lại.');
     }
-    if (taskIds.some((taskId) => !Types.ObjectId.isValid(taskId))) throw new HttpProblem(422, 'VALIDATION_FAILED', 'Danh sách task không hợp lệ.');
+    if (taskIds.some((taskId) => !Types.ObjectId.isValid(taskId)))
+      throw new HttpProblem(422, 'VALIDATION_FAILED', 'Danh sách task không hợp lệ.');
     const tasks = await TaskTemplateModel.find({ classroomId: classroom._id }).session(session);
     const existingIds = new Set(tasks.map((task) => String(task._id)));
     if (existingIds.size !== taskIds.length || taskIds.some((taskId) => !existingIds.has(taskId))) {
-      throw new HttpProblem(422, 'VALIDATION_FAILED', 'Danh sách reorder phải chứa đúng toàn bộ task của lớp.');
+      throw new HttpProblem(
+        422,
+        'VALIDATION_FAILED',
+        'Danh sách reorder phải chứa đúng toàn bộ task của lớp.',
+      );
     }
-    await TaskTemplateModel.bulkWrite(taskIds.map((taskId, order) => ({
-      updateOne: { filter: { _id: new Types.ObjectId(taskId), classroomId: classroom._id }, update: { $set: { order }, $inc: { version: 1 } } },
-    })), { session });
+    await TaskTemplateModel.bulkWrite(
+      taskIds.map((taskId, order) => ({
+        updateOne: {
+          filter: { _id: new Types.ObjectId(taskId), classroomId: classroom._id },
+          update: { $set: { order }, $inc: { version: 1 } },
+        },
+      })),
+      { session },
+    );
     await bumpTaskRevision(classroom._id, session);
-    const reordered = await TaskTemplateModel.find({ classroomId: classroom._id }).sort({ order: 1, _id: 1 }).session(session);
+    const reordered = await TaskTemplateModel.find({ classroomId: classroom._id })
+      .sort({ order: 1, _id: 1 })
+      .session(session);
     return reordered.map((task) => mapTask(task as TaskHydrated));
   });
 }
