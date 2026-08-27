@@ -10,6 +10,16 @@ export const TaskTemplateSchema = z.strictObject({
   eligibilityRule: TaskEligibilityRuleSchema, version: z.number().int().nonnegative(),
 });
 export const TaskTemplateWriteSchema = TaskTemplateSchema.omit({ id: true, classroomId: true, version: true });
+export const TaskTemplateCreateSchema = TaskTemplateWriteSchema.omit({ order: true }).extend({
+  active: z.boolean().default(true),
+});
+export const TaskTemplatePatchSchema = TaskTemplateCreateSchema.omit({ active: true }).partial().extend({
+  expectedVersion: z.number().int().nonnegative(),
+});
+export const TaskTemplateOrderSchema = z.strictObject({
+  taskIds: z.array(z.string().min(1)).min(1).max(64).refine((values) => new Set(values).size === values.length, 'Danh sách task không được trùng.'),
+  expectedTasksRevision: z.number().int().nonnegative(),
+});
 export type TaskEligibilityRule = z.infer<typeof TaskEligibilityRuleSchema>;
 export type TaskTemplate = z.infer<typeof TaskTemplateSchema>;
 export type WorkloadLevel = z.infer<typeof WorkloadLevelSchema>;

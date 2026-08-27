@@ -22,5 +22,17 @@ export const ClassroomPatchSchema = ClassroomUpsertSchema.partial().extend({
   onboardingStep: z.number().int().min(1).max(6).optional(),
   completeOnboarding: z.boolean().optional(), expectedVersion: z.number().int().nonnegative(),
 });
+export const GroupCreateSchema = z.strictObject({
+  name: z.string().trim().min(1).max(40),
+  expectedVersion: z.number().int().nonnegative(),
+});
+export const GroupPatchSchema = z.strictObject({
+  name: z.string().trim().min(1).max(40).optional(),
+  order: z.number().int().nonnegative().optional(),
+  expectedVersion: z.number().int().nonnegative(),
+}).refine((value) => value.name !== undefined || value.order !== undefined, {
+  message: 'Cần ít nhất một thay đổi cho tổ.',
+});
+export const VersionMutationSchema = z.strictObject({ expectedVersion: z.number().int().nonnegative() });
 export type Classroom = z.infer<typeof ClassroomSchema>;
 export type Group = z.infer<typeof GroupSchema>;

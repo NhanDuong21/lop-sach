@@ -12,7 +12,7 @@ export function testConfig(environment: 'development' | 'test' | 'production' = 
     port: 3000,
     mongoUri: 'mongodb://unused-by-app-factory',
     appOrigin: environment === 'production' ? 'https://lop-sach.test' : 'http://localhost:5173',
-    logLevel: 'silent',
+    logLevel: process.env.LOP_SACH_TEST_LOG_LEVEL ?? 'silent',
     ...(environment === 'production' ? { proxySecret: TEST_PROXY_SECRET } : {}),
   };
 }

@@ -18,7 +18,17 @@ export function createApp(config: AppConfig, options: { readonly rateLimits?: bo
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', config.environment === 'production' ? 1 : false);
-  const logger = pino({ level: config.logLevel, redact: ['req.headers.cookie', 'req.body.password', 'req.body.currentPassword', 'req.body.newPassword'] });
+  const logger = pino({
+    level: config.logLevel,
+    redact: [
+      'req.headers.cookie',
+      'req.headers.authorization',
+      'req.headers["x-lop-sach-proxy-secret"]',
+      'req.body.password',
+      'req.body.currentPassword',
+      'req.body.newPassword',
+    ],
+  });
   app.use(helmet());
   app.use(requestContext);
   app.use(pinoHttp({ logger, autoLogging: false }));
@@ -27,7 +37,7 @@ export function createApp(config: AppConfig, options: { readonly rateLimits?: bo
   app.use('/health', createHealthRouter());
   app.use('/api/v1', proxyAuth(config));
   if (options.rateLimits !== false) app.use('/api/v1', generalRateLimit);
-  app.use('/api/v1', jsonOnly, originGuard(config.appOrigin), createApiRouter(config));
+  app.use('/api/v1', jsonOnly, originGuard(config.appOrigin), createApiRouter(config, options));
   app.use(notFound);
   app.use(errorHandler);
   return app;

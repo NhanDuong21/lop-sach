@@ -1,4 +1,6 @@
 import type { ErrorRequestHandler } from 'express';
+import mongoose from 'mongoose';
+import { MongoServerError } from 'mongodb';
 import { ZodError } from 'zod';
 import { HttpProblem, problemDetails } from '../shared/problem.js';
 
@@ -12,6 +14,12 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, request, respo
     });
     return;
   }
-  const problem = error instanceof HttpProblem ? error : new HttpProblem(500, 'INTERNAL_ERROR', 'Đã xảy ra lỗi máy chủ.');
+  const expectedPersistenceConflict = error instanceof mongoose.Error.VersionError || (error instanceof MongoServerError && error.code === 11_000);
+  const problem = error instanceof HttpProblem
+    ? error
+    : expectedPersistenceConflict
+      ? new HttpProblem(409, 'VERSION_CONFLICT', 'Dữ liệu đã thay đổi. Hãy tải lại và thử lại.')
+      : new HttpProblem(500, 'INTERNAL_ERROR', 'Đã xảy ra lỗi máy chủ.');
+  if (!(error instanceof HttpProblem) && !expectedPersistenceConflict) request.log.error({ err: error, requestId }, 'Unhandled request failure');
   response.status(problem.status).json(problemDetails(problem, request.originalUrl, requestId));
 };
