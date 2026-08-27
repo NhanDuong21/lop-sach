@@ -1,5 +1,6 @@
 import type { AuthUser } from '@lop-sach/contracts';
 import { apiRequest } from '../../lib/api-client.js';
+import { clearOfflineCache } from '../../lib/offline-cache.js';
 
 export async function login(input: {
   readonly username: string;
@@ -16,7 +17,11 @@ export async function getCurrentUser(): Promise<AuthUser> {
   return response.data;
 }
 export async function logout(): Promise<void> {
-  await apiRequest('/auth/logout', { method: 'POST', body: '{}' });
+  try {
+    await apiRequest('/auth/logout', { method: 'POST', body: '{}' });
+  } finally {
+    await clearOfflineCache();
+  }
 }
 export async function changePassword(input: {
   readonly currentPassword: string;

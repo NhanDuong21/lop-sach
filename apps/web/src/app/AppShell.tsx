@@ -24,7 +24,12 @@ export function AppShell({
             <span className="mobile-brand">Lớp Sạch</span>
             <small>{displayName}</small>
           </div>
-          <Button variant="secondary" className="logout-button" onClick={onLogout}>
+          <Button
+            variant="secondary"
+            className="logout-button"
+            aria-label="Đăng xuất"
+            onClick={onLogout}
+          >
             <LogOut size={17} aria-hidden="true" />
             <span>Đăng xuất</span>
           </Button>

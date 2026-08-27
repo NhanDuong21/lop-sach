@@ -73,9 +73,72 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   const pngDownloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Xuất PNG' }).click();
   expect((await pngDownloadPromise).suggestedFilename()).toBe('lop-sach-10c8-2026-08-24.png');
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Tuần này' })).toBeVisible();
+  await expect(page.getByText('Bản phát hành 1')).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<boolean>((resolve) => {
+            const request = indexedDB.open('lop-sach-display-cache', 1);
+            request.onsuccess = () => {
+              const transaction = request.result.transaction('current-week', 'readonly');
+              const get = transaction.objectStore('current-week').get('published-current-week');
+              get.onsuccess = () => {
+                request.result.close();
+                resolve(Boolean(get.result));
+              };
+              get.onerror = () => resolve(false);
+            };
+            request.onerror = () => resolve(false);
+          }),
+      ),
+    )
+    .toBe(true);
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  if (!(await page.evaluate(() => Boolean(navigator.serviceWorker.controller))))
+    await page.reload();
+  await expect
+    .poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller)))
+    .toBe(true);
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        const requests = (
+          await Promise.all(
+            (await caches.keys()).map(async (name) => (await caches.open(name)).keys()),
+          )
+        ).flat();
+        return requests.some((request) => new URL(request.url).pathname.startsWith('/assets/'));
+      }),
+    )
+    .toBe(true);
+  await page.context().setOffline(true);
+  expect(
+    await page.evaluate(async () => {
+      const script = document.querySelector<HTMLScriptElement>('script[type="module"]');
+      return script?.src ? (await fetch(script.src)).status : 0;
+    }),
+  ).toBe(200);
+  await expect(page.getByRole('heading', { name: 'Tuần này · Ngoại tuyến' })).toBeVisible();
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('heading', { name: 'Tuần này · Ngoại tuyến' })).toBeVisible();
+  await expect(page.getByText('Chỉ xem bản đã lưu; mọi thay đổi đều bị chặn.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Tạo tuần khác' })).toHaveCount(0);
+  await page.context().setOffline(false);
+  await page.reload();
+  await page.getByRole('button', { name: 'Đăng xuất' }).click();
+  await expect(page.getByRole('button', { name: 'Đăng nhập' })).toBeVisible();
+  await page.context().setOffline(true);
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(
+    page.getByRole('heading', { name: 'Chưa có lịch đã lưu cho tuần này' }),
+  ).toBeVisible();
   const dimensions = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,
   }));
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.innerWidth);
+  await page.context().setOffline(false);
 });

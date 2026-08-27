@@ -15,17 +15,32 @@ import { SettingsPage } from '../features/settings/SettingsPage.js';
 import { StudentsPage } from '../features/students/StudentsPage.js';
 import { TaskTemplatesPage } from '../features/tasks/TaskTemplatesPage.js';
 import { AppShell } from './AppShell.js';
+import { useOnlineState } from '../lib/online-state.js';
+import { OfflineBanner } from '../components/layout/OfflineBanner.js';
 
 export function App(): React.JSX.Element {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const user = useQuery({ queryKey: ['auth', 'me'], queryFn: getCurrentUser, retry: false });
+  const online = useOnlineState();
+  const user = useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: getCurrentUser,
+    retry: false,
+    enabled: online,
+  });
   const classroom = useQuery({
     queryKey: ['classroom'],
     queryFn: getClassroom,
-    enabled: Boolean(user.data?.hasClassroom),
+    enabled: online && Boolean(user.data?.hasClassroom),
     retry: false,
   });
+  if (!online)
+    return (
+      <main className="offline-shell">
+        <OfflineBanner />
+        <CurrentWeekPage classroomName="" />
+      </main>
+    );
   if (user.isPending) return <LoadingState label="Đang kiểm tra phiên đăng nhập" />;
   if (!user.data)
     return (

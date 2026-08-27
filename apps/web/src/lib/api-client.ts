@@ -7,7 +7,8 @@ export class ApiError extends Error {
 }
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
-  if (!navigator.onLine && init.method && init.method !== 'GET')
+  const method = (init.method ?? 'GET').toUpperCase();
+  if (!navigator.onLine && !['GET', 'HEAD', 'OPTIONS'].includes(method))
     throw new Error('Không thể thay đổi dữ liệu khi ngoại tuyến.');
   const response = await fetch(`/api/v1${path}`, {
     ...init,
