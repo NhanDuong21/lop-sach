@@ -236,10 +236,22 @@ export const CompleteDutyWeekSchema = VersionedDutyWeekMutationSchema.extend({
     .max(128)
     .default([]),
 });
+export const CompletionOptionsSchema = z.array(
+  z.strictObject({
+    slotId: z.string().min(1),
+    students: z.array(
+      z.strictObject({
+        id: z.string().min(1),
+        displayName: z.string().min(1),
+      }),
+    ),
+  }),
+);
 
 export const HistorySummaryItemSchema = z.strictObject({
   id: z.string(),
   weekStart: DateOnlySchema,
+  weekEnd: DateOnlySchema,
   groupName: z.string(),
   status: z.literal('COMPLETED'),
   publicationRevision: z.number().int().positive(),
@@ -265,3 +277,4 @@ export type FairnessResult = z.infer<typeof FairnessResultSchema>;
 export type StudentFairnessBaseline = z.infer<typeof StudentFairnessBaselineSchema>;
 export type HistorySummaryItem = z.infer<typeof HistorySummaryItemSchema>;
 export type HistoryMetric = z.infer<typeof HistoryMetricSchema>;
+export type CompletionOptions = z.infer<typeof CompletionOptionsSchema>;

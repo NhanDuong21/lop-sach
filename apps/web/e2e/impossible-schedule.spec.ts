@@ -93,7 +93,7 @@ test('keeps an impossible schedule visible, unassigned and unpublished', async (
   expect(generated.data.fairness.score).toBeLessThanOrEqual(64);
 
   await page.goto(`/weeks/${generated.data.id}`);
-  await expect(page.getByRole('heading', { name: 'Tuần 2026-08-31' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tuần 31/08 – 31/08/2026' })).toBeVisible();
   await expect(page.getByText('Còn vị trí chưa phân công.').first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Phát hành' })).toBeDisabled();
   await expect(page.getByText(/time overlap/iu)).toHaveCount(0);

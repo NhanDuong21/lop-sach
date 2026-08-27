@@ -29,6 +29,17 @@ export async function createStudent(input: StudentWriteInput): Promise<Student> 
     })
   ).data;
 }
+export async function createStudents(input: {
+  readonly groupId: string;
+  readonly displayNames: readonly string[];
+}): Promise<readonly Student[]> {
+  return (
+    await apiRequest<{ data: Student[] }>('/students/bulk', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+  ).data;
+}
 export async function patchStudent(studentId: string, input: StudentPatchInput): Promise<Student> {
   return (
     await apiRequest<{ data: Student }>(`/students/${encodeURIComponent(studentId)}`, {

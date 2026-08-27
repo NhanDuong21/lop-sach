@@ -1,4 +1,9 @@
-import type { SchoolDay, StudentGender, TaskEligibilityRule } from '@lop-sach/contracts';
+import type {
+  SchoolDay,
+  StudentGender,
+  TaskEligibilityRule,
+  WorkloadLevel,
+} from '@lop-sach/contracts';
 
 export const schoolDayLabels: Record<SchoolDay, string> = {
   MONDAY: 'Thứ Hai',
@@ -20,4 +25,10 @@ export const eligibilityLabels: Record<TaskEligibilityRule, string> = {
   MALE_ONLY: 'Chỉ nam',
   PREFER_FEMALE: 'Ưu tiên nữ',
   FEMALE_ONLY: 'Chỉ nữ',
+};
+export const workloadLabels: Record<WorkloadLevel, string> = {
+  1: 'Nhẹ',
+  2: 'Vừa',
+  3: 'Nặng',
+  4: 'Rất nặng',
 };

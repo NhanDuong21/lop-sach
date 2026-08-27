@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/Button.js';
 import { LoadingState } from '../../components/ui/LoadingState.js';
 import { Notice } from '../../components/ui/Notice.js';
 import { StatusBadge } from '../../components/ui/StatusBadge.js';
-import { eligibilityLabels } from '../../lib/vietnamese-labels.js';
+import { eligibilityLabels, workloadLabels } from '../../lib/vietnamese-labels.js';
 import { getClassroom } from '../classroom/classroom.api.js';
 import { TaskForm } from './TaskForm.js';
 import {
@@ -81,7 +81,7 @@ export function TaskTemplatesPage({
         <div className="section-heading">
           <div>
             <h2>Danh sách công việc</h2>
-            <p>Không suy giới tính từ tên công việc.</p>
+            <p>Điều kiện nam hoặc nữ chỉ áp dụng khi bạn chủ động chọn.</p>
           </div>
           <Button onClick={() => setEditing('new')}>
             <Plus size={17} />
@@ -103,12 +103,12 @@ export function TaskTemplatesPage({
                 <div>
                   <strong>{task.name}</strong>
                   <p>
-                    {task.requiredStudents} người · mức {task.workloadLevel} ·{' '}
+                    {task.requiredStudents} người · {workloadLabels[task.workloadLevel]} ·{' '}
                     {task.schoolDays.length} ngày/tuần · {eligibilityLabels[task.eligibilityRule]}
                   </p>
                 </div>
                 <StatusBadge tone={task.active ? 'success' : 'neutral'}>
-                  {task.active ? 'Đang dùng' : 'Đã tắt'}
+                  {task.active ? 'Đang áp dụng' : 'Ngừng áp dụng'}
                 </StatusBadge>
                 <div className="icon-actions">
                   <Button
@@ -131,7 +131,7 @@ export function TaskTemplatesPage({
                     Sửa
                   </Button>
                   <Button variant="secondary" onClick={() => activeMutation.mutate(task)}>
-                    {task.active ? 'Tắt' : 'Bật'}
+                    {task.active ? 'Ngừng áp dụng' : 'Áp dụng lại'}
                   </Button>
                 </div>
               </article>

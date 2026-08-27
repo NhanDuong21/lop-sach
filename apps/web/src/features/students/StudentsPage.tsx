@@ -1,16 +1,19 @@
 import type { Student } from '@lop-sach/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, UserRound } from 'lucide-react';
+import { ListPlus, Plus, UserRound } from 'lucide-react';
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/ui/Button.js';
 import { LoadingState } from '../../components/ui/LoadingState.js';
 import { Notice } from '../../components/ui/Notice.js';
 import { StatusBadge } from '../../components/ui/StatusBadge.js';
 import { getClassroom } from '../classroom/classroom.api.js';
 import { listTasks } from '../tasks/tasks.api.js';
+import { BulkStudentForm } from './BulkStudentForm.js';
 import { StudentForm } from './StudentForm.js';
 import {
   createStudent,
+  createStudents,
   listStudents,
   moveStudent,
   patchStudent,
@@ -24,11 +27,12 @@ export function StudentsPage({
   readonly compact?: boolean;
 }): React.JSX.Element {
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
   const classroom = useQuery({ queryKey: ['classroom'], queryFn: getClassroom });
   const students = useQuery({ queryKey: ['students'], queryFn: listStudents });
   const tasks = useQuery({ queryKey: ['tasks'], queryFn: listTasks });
-  const [editing, setEditing] = useState<Student | 'new'>();
-  const [groupFilter, setGroupFilter] = useState('ALL');
+  const [editing, setEditing] = useState<Student | 'new' | 'bulk'>();
+  const [groupFilter, setGroupFilter] = useState(searchParams.get('groupId') ?? 'ALL');
   const update = useMutation({
     mutationFn: async ({
       input,
@@ -64,6 +68,14 @@ export function StudentsPage({
       void queryClient.invalidateQueries({ queryKey: ['classroom'] });
     },
   });
+  const bulkCreate = useMutation({
+    mutationFn: createStudents,
+    onSuccess: () => {
+      setEditing(undefined);
+      void queryClient.invalidateQueries({ queryKey: ['students'] });
+      void queryClient.invalidateQueries({ queryKey: ['classroom'] });
+    },
+  });
   if (classroom.isPending || students.isPending || tasks.isPending) return <LoadingState />;
   if (!classroom.data || !students.data || !tasks.data)
     return <Notice tone="error">Không tải được danh sách học sinh.</Notice>;
@@ -88,10 +100,16 @@ export function StudentsPage({
               {students.data.filter((student) => student.active).length} học sinh đang hoạt động
             </p>
           </div>
-          <Button onClick={() => setEditing('new')}>
-            <Plus size={17} />
-            Thêm học sinh
-          </Button>
+          <div className="button-row">
+            <Button variant="secondary" onClick={() => setEditing('new')}>
+              <Plus size={17} />
+              Thêm một bạn
+            </Button>
+            <Button onClick={() => setEditing('bulk')}>
+              <ListPlus size={17} />
+              Thêm nhanh nhiều bạn
+            </Button>
+          </div>
         </div>
         <label htmlFor="group-filter">Lọc theo tổ</label>
         <select
@@ -106,7 +124,7 @@ export function StudentsPage({
             </option>
           ))}
         </select>
-        {update.isError || activeMutation.isError ? (
+        {update.isError || activeMutation.isError || bulkCreate.isError ? (
           <Notice tone="error">
             Không thể lưu học sinh. Hãy kiểm tra phiên bản dữ liệu và thử lại.
           </Notice>
@@ -130,14 +148,14 @@ export function StudentsPage({
                   </p>
                 </div>
                 <StatusBadge tone={student.active ? 'success' : 'neutral'}>
-                  {student.active ? 'Đang học' : 'Đã tắt'}
+                  {student.active ? 'Đang tham gia' : 'Ngừng tham gia'}
                 </StatusBadge>
                 <div className="button-row">
                   <Button variant="secondary" onClick={() => setEditing(student)}>
                     Sửa
                   </Button>
                   <Button variant="secondary" onClick={() => activeMutation.mutate(student)}>
-                    {student.active ? 'Tắt' : 'Bật'}
+                    {student.active ? 'Ngừng tham gia' : 'Tham gia lại'}
                   </Button>
                 </div>
               </article>
@@ -147,18 +165,33 @@ export function StudentsPage({
       </section>
       {editing ? (
         <section className="card">
-          <h2>{editing === 'new' ? 'Thêm học sinh' : `Sửa ${editing.displayName}`}</h2>
-          <StudentForm
-            key={editing === 'new' ? 'new' : editing.id}
-            groups={classroom.data.groups}
-            tasks={tasks.data}
-            {...(editing === 'new' ? {} : { student: editing })}
-            pending={update.isPending}
-            onCancel={() => setEditing(undefined)}
-            onSubmit={(input) =>
-              update.mutate({ input, ...(editing === 'new' ? {} : { student: editing }) })
-            }
-          />
+          <h2>
+            {editing === 'new'
+              ? 'Thêm một học sinh'
+              : editing === 'bulk'
+                ? 'Thêm nhanh nhiều học sinh'
+                : `Sửa ${editing.displayName}`}
+          </h2>
+          {editing === 'bulk' ? (
+            <BulkStudentForm
+              groups={classroom.data.groups}
+              pending={bulkCreate.isPending}
+              onCancel={() => setEditing(undefined)}
+              onSubmit={(input) => bulkCreate.mutate(input)}
+            />
+          ) : (
+            <StudentForm
+              key={editing === 'new' ? 'new' : editing.id}
+              groups={classroom.data.groups}
+              tasks={tasks.data}
+              {...(editing === 'new' ? {} : { student: editing })}
+              pending={update.isPending}
+              onCancel={() => setEditing(undefined)}
+              onSubmit={(input) =>
+                update.mutate({ input, ...(editing === 'new' ? {} : { student: editing }) })
+              }
+            />
+          )}
         </section>
       ) : null}
     </div>

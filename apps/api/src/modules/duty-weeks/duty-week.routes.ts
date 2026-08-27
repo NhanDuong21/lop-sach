@@ -26,6 +26,7 @@ import {
   getDutyWeek,
   getDutyWeekGenerationContext,
   getReplacementSuggestions,
+  getCompletionOptions,
   historyMetrics,
   listHistorySummary,
   listDutyWeeks,
@@ -275,6 +276,18 @@ export function createDutyWeekRouter(): Router {
           authenticatedUser(response).id,
           request.params.weekId ?? '',
           input.expectedVersion,
+        ),
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+  router.get('/:weekId/completion-options', async (request, response, next) => {
+    try {
+      response.json({
+        data: await getCompletionOptions(
+          authenticatedUser(response).id,
+          request.params.weekId ?? '',
         ),
       });
     } catch (error) {

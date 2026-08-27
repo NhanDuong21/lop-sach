@@ -47,6 +47,9 @@ export function StudentForm({
   const [exemptEnd, setExemptEnd] = useState(
     firstExemption?.type === 'EXEMPT_DATE_RANGE' ? firstExemption.endDate : '',
   );
+  const hasAdvancedValues = Boolean(
+    participationStart || participationEnd || student?.restrictions.length,
+  );
   const submit = (): void => {
     const restrictions: Record<string, unknown>[] = [];
     if (noHeavy) restrictions.push({ type: 'NO_HEAVY_TASKS' });
@@ -99,7 +102,7 @@ export function StudentForm({
           </select>
         </div>
         <div>
-          <label htmlFor="student-gender">Giới tính</label>
+          <label htmlFor="student-gender">Giới tính (không bắt buộc)</label>
           <select
             id="student-gender"
             value={gender}
@@ -113,88 +116,97 @@ export function StudentForm({
           </select>
         </div>
       </div>
-      <fieldset>
-        <legend>Thời gian tham gia</legend>
-        <div className="form-grid">
-          <div>
-            <label htmlFor="participation-start">Từ ngày</label>
-            <input
-              id="participation-start"
-              type="date"
-              value={participationStart ?? ''}
-              onChange={(event) => setParticipationStart(event.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="participation-end">Đến ngày</label>
-            <input
-              id="participation-end"
-              type="date"
-              value={participationEnd ?? ''}
-              onChange={(event) => setParticipationEnd(event.target.value)}
-            />
-          </div>
-        </div>
-      </fieldset>
-      <fieldset>
-        <legend>Hạn chế phân công</legend>
-        <Notice>
-          Vắng một ngày cụ thể sẽ được đánh dấu khi tạo tuần trực, không lưu trong hồ sơ học sinh.
-        </Notice>
-        <label className="check-choice">
-          <input
-            type="checkbox"
-            checked={noHeavy}
-            onChange={(event) => setNoHeavy(event.target.checked)}
-          />
-          Không giao công việc nặng
-        </label>
-        <div className="subsection">
-          <span className="field-label">Không giao công việc cụ thể</span>
-          <div className="choice-grid">
-            {tasks.map((task) => (
-              <label className="check-choice" key={task.id}>
+      <details className="advanced-settings" open={hasAdvancedValues || undefined}>
+        <summary>
+          <strong>Thiết lập nâng cao</strong>
+          <span>Hạn chế và thời gian tham gia</span>
+        </summary>
+        <div className="advanced-settings-content">
+          <fieldset>
+            <legend>Thời gian tham gia</legend>
+            <div className="form-grid">
+              <div>
+                <label htmlFor="participation-start">Từ ngày</label>
                 <input
-                  type="checkbox"
-                  checked={excludedTasks.has(task.id)}
-                  onChange={(event) =>
-                    setExcludedTasks((current) => {
-                      const next = new Set(current);
-                      if (event.target.checked) next.add(task.id);
-                      else next.delete(task.id);
-                      return next;
-                    })
-                  }
+                  id="participation-start"
+                  type="date"
+                  value={participationStart ?? ''}
+                  onChange={(event) => setParticipationStart(event.target.value)}
                 />
-                {task.name}
-              </label>
-            ))}
-          </div>
-        </div>
-        <div className="subsection">
-          <span className="field-label">Miễn trong khoảng ngày</span>
-          <div className="form-grid">
-            <div>
-              <label htmlFor="exempt-start">Từ ngày</label>
-              <input
-                id="exempt-start"
-                type="date"
-                value={exemptStart}
-                onChange={(event) => setExemptStart(event.target.value)}
-              />
+              </div>
+              <div>
+                <label htmlFor="participation-end">Đến ngày</label>
+                <input
+                  id="participation-end"
+                  type="date"
+                  value={participationEnd ?? ''}
+                  onChange={(event) => setParticipationEnd(event.target.value)}
+                />
+              </div>
             </div>
-            <div>
-              <label htmlFor="exempt-end">Đến ngày</label>
+          </fieldset>
+          <fieldset>
+            <legend>Hạn chế phân công</legend>
+            <Notice>
+              Vắng một ngày cụ thể sẽ được đánh dấu khi tạo tuần trực, không lưu trong hồ sơ học
+              sinh.
+            </Notice>
+            <label className="check-choice">
               <input
-                id="exempt-end"
-                type="date"
-                value={exemptEnd}
-                onChange={(event) => setExemptEnd(event.target.value)}
+                type="checkbox"
+                checked={noHeavy}
+                onChange={(event) => setNoHeavy(event.target.checked)}
               />
+              Không giao công việc nặng
+            </label>
+            <div className="subsection">
+              <span className="field-label">Không giao công việc cụ thể</span>
+              <div className="choice-grid">
+                {tasks.map((task) => (
+                  <label className="check-choice" key={task.id}>
+                    <input
+                      type="checkbox"
+                      checked={excludedTasks.has(task.id)}
+                      onChange={(event) =>
+                        setExcludedTasks((current) => {
+                          const next = new Set(current);
+                          if (event.target.checked) next.add(task.id);
+                          else next.delete(task.id);
+                          return next;
+                        })
+                      }
+                    />
+                    {task.name}
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
+            <div className="subsection">
+              <span className="field-label">Miễn trong khoảng ngày</span>
+              <div className="form-grid">
+                <div>
+                  <label htmlFor="exempt-start">Từ ngày</label>
+                  <input
+                    id="exempt-start"
+                    type="date"
+                    value={exemptStart}
+                    onChange={(event) => setExemptStart(event.target.value)}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="exempt-end">Đến ngày</label>
+                  <input
+                    id="exempt-end"
+                    type="date"
+                    value={exemptEnd}
+                    onChange={(event) => setExemptEnd(event.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          </fieldset>
         </div>
-      </fieldset>
+      </details>
       <div className="button-row">
         {onCancel ? (
           <Button variant="secondary" onClick={onCancel}>

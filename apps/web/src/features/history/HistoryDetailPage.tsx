@@ -6,6 +6,7 @@ import { WeekSummary } from '../current-week/WeekSummary.js';
 import { getClassroom } from '../classroom/classroom.api.js';
 import { getDutyWeek } from '../duty-weeks/duty-weeks.api.js';
 import { WeekExportActions } from '../duty-weeks/WeekExportActions.js';
+import { formatWeekRange } from '../../lib/date-labels.js';
 
 export function HistoryDetailPage(): React.JSX.Element {
   const { weekId = '' } = useParams();
@@ -14,13 +15,21 @@ export function HistoryDetailPage(): React.JSX.Element {
   if (week.isPending || classroom.isPending) return <LoadingState label="Đang tải lịch sử tuần" />;
   if (!week.data || !classroom.data)
     return <Notice tone="error">Không tải được tuần lịch sử này.</Notice>;
+  const weekEnd = week.data.taskOccurrences
+    .filter((occurrence) => occurrence.enabled)
+    .map((occurrence) => occurrence.date)
+    .sort()
+    .at(-1);
   return (
     <div className="page-stack">
       <header className="page-heading">
         <p className="eyebrow">Tuần đã hoàn tất</p>
-        <h1>Tuần {week.data.weekStart}</h1>
+        <h1>Tuần {formatWeekRange(week.data.weekStart, weekEnd)}</h1>
         <p>
-          {week.data.groupSnapshot.name} · Bản phát hành {week.data.publicationRevision}
+          {week.data.groupSnapshot.name}
+          {week.data.publicationRevision > 1
+            ? ` · Lần công bố ${week.data.publicationRevision}`
+            : ''}
         </p>
       </header>
       <WeekExportActions week={week.data} classroomName={classroom.data.name} />
@@ -35,8 +44,8 @@ export function HistoryDetailPage(): React.JSX.Element {
       <section className="card compact-history">
         <h2>Lịch sử thay đổi</h2>
         <p>
-          {week.data.changeLogSummary.totalCompacted} thay đổi cũ đã được rút gọn; còn{' '}
-          {week.data.changeLog.length} mục chi tiết gần nhất.
+          Ứng dụng đã lưu {week.data.changeLogSummary.totalCompacted} thay đổi trước đó và{' '}
+          {week.data.changeLog.length} thay đổi gần nhất.
         </p>
       </section>
       <Link className="text-link" to="/history">

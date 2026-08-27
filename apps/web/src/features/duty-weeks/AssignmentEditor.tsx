@@ -1,5 +1,6 @@
 import type { DutyWeek } from '@lop-sach/contracts';
-import { Lock, LockOpen, RefreshCw } from 'lucide-react';
+import { CircleHelp, Lock, LockOpen, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '../../components/ui/Button.js';
 
 type Assignment = DutyWeek['assignments'][number];
@@ -28,6 +29,7 @@ export function AssignmentEditor({
   readonly onReplacement: () => void;
   readonly onToggleSwap: () => void;
 }): React.JSX.Element {
+  const [explanationOpen, setExplanationOpen] = useState(false);
   return (
     <div className={`assignment-row${swapSelected ? ' assignment-selected' : ''}`}>
       <div className="assignment-field">
@@ -48,16 +50,35 @@ export function AssignmentEditor({
             ))}
         </select>
         {assignment ? (
-          <small>
-            {assignment.source === 'AUTO'
-              ? 'Tự động'
-              : assignment.source === 'REPLACEMENT'
-                ? 'Thay thế'
-                : assignment.source === 'SWAP'
-                  ? 'Hoán đổi'
-                  : 'Thủ công'}
-            {assignment.locked ? ' · Đã khóa' : ''}
-          </small>
+          <div className="assignment-meta">
+            <small>
+              {assignment.source === 'AUTO'
+                ? 'Tự động'
+                : assignment.source === 'REPLACEMENT'
+                  ? 'Thay thế'
+                  : assignment.source === 'SWAP'
+                    ? 'Hoán đổi'
+                    : 'Thủ công'}
+              {assignment.locked ? ' · Đã khóa' : ''}
+            </small>
+            {assignment.explanation.length > 0 ? (
+              <button
+                type="button"
+                className="text-action"
+                aria-expanded={explanationOpen}
+                onClick={() => setExplanationOpen((current) => !current)}
+              >
+                <CircleHelp size={15} aria-hidden="true" /> Vì sao phân công?
+              </button>
+            ) : null}
+            {explanationOpen ? (
+              <ul className="assignment-explanation">
+                {assignment.explanation.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
         ) : null}
       </div>
       {assignment ? (

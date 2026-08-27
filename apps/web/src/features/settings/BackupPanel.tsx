@@ -59,6 +59,7 @@ export function BackupPanel(): React.JSX.Element {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const performExport = async (): Promise<void> => {
     setBusy(true);
@@ -67,7 +68,7 @@ export function BackupPanel(): React.JSX.Element {
       const exported = await exportBackup();
       downloadBackup(exported);
       setPreRestoreExported(true);
-      setMessage('Đã xuất bản sao hiện tại. Hãy cất tệp ở nơi an toàn.');
+      setMessage('Đã tải bản sao lưu. Hãy cất tệp ở nơi an toàn.');
     } catch {
       setError('Không thể xuất bản sao lúc này.');
     } finally {
@@ -81,6 +82,7 @@ export function BackupPanel(): React.JSX.Element {
     setConfirmation('');
     setMessage(null);
     setError(null);
+    setSelectedFile(file ?? null);
     if (!file) return;
     if (file.size > MAX_BACKUP_BYTES) {
       setError('Tệp sao lưu vượt quá giới hạn 2 MB.');
@@ -128,7 +130,7 @@ export function BackupPanel(): React.JSX.Element {
           disabled={busy}
           onClick={() => void performExport()}
         >
-          <Download size={17} aria-hidden="true" /> Xuất bản sao hiện tại
+          <Download size={17} aria-hidden="true" /> Tải bản sao lưu
         </button>
       </div>
       <p className="muted">
@@ -138,8 +140,9 @@ export function BackupPanel(): React.JSX.Element {
       {message ? <Notice tone="success">{message}</Notice> : null}
       {error ? <Notice tone="error">{error}</Notice> : null}
       <label className="file-picker">
-        <Upload size={18} aria-hidden="true" />
-        <span>Chọn tệp sao lưu để kiểm tra</span>
+        <span className="button button-secondary">
+          <Upload size={17} aria-hidden="true" /> Chọn tệp sao lưu
+        </span>
         <input
           aria-label="Tệp sao lưu"
           type="file"
@@ -147,6 +150,11 @@ export function BackupPanel(): React.JSX.Element {
           disabled={busy}
           onChange={(event) => void selectFile(event.target.files?.[0])}
         />
+        <span className="file-picker-name">
+          {selectedFile
+            ? `${selectedFile.name} · ${(selectedFile.size / 1024).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} KB`
+            : 'Chưa chọn tệp nào'}
+        </span>
       </label>
       {validation ? (
         <div className="backup-validation">
@@ -157,9 +165,7 @@ export function BackupPanel(): React.JSX.Element {
           </span>
           <span>Xuất lúc {new Date(validation.exportedAt).toLocaleString('vi-VN')}</span>
           {!preRestoreExported ? (
-            <Notice tone="warning">
-              Phải xuất bản sao dữ liệu hiện tại trước khi có thể phục hồi.
-            </Notice>
+            <Notice tone="warning">Hãy tải bản sao lưu dữ liệu hiện tại trước khi phục hồi.</Notice>
           ) : null}
           <label htmlFor="restore-confirmation">
             Nhập <strong>PHỤC HỒI</strong> để xác nhận thay thế toàn bộ dữ liệu lớp

@@ -89,6 +89,21 @@ export const StudentCreateSchema = StudentWriteFieldsSchema.extend({
   groupId: z.string().min(1),
   active: z.boolean().default(true),
 }).superRefine(validateParticipationRange);
+export const StudentBulkCreateSchema = z
+  .strictObject({
+    groupId: z.string().min(1),
+    displayNames: z.array(z.string().trim().min(1).max(80)).min(1).max(60),
+  })
+  .superRefine((value, context) => {
+    const normalized = value.displayNames.map((name) => name.toLocaleLowerCase('vi-VN'));
+    if (new Set(normalized).size !== normalized.length) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Danh sách có tên bị lặp. Hãy giữ mỗi học sinh trên một dòng.',
+        path: ['displayNames'],
+      });
+    }
+  });
 export const StudentPatchSchema = StudentWriteFieldsSchema.partial()
   .extend({
     expectedVersion: z.number().int().nonnegative(),
@@ -103,3 +118,4 @@ export type Student = z.infer<typeof StudentSchema>;
 export type StudentRestriction = z.infer<typeof StudentRestrictionSchema>;
 export type StudentRestrictionWrite = z.infer<typeof StudentRestrictionWriteSchema>;
 export type StudentGender = z.infer<typeof StudentGenderSchema>;
+export type StudentBulkCreate = z.infer<typeof StudentBulkCreateSchema>;

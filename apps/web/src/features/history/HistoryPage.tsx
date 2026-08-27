@@ -3,6 +3,7 @@ import { AlertCircle, History } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LoadingState } from '../../components/ui/LoadingState.js';
 import { StatusBadge } from '../../components/ui/StatusBadge.js';
+import { formatPoints, formatWeekRange } from '../../lib/date-labels.js';
 import { getHistoryMetrics, getHistorySummary } from './history.api.js';
 
 export function HistoryPage(): React.JSX.Element {
@@ -38,12 +39,15 @@ export function HistoryPage(): React.JSX.Element {
                 <h2>Khối lượng đã hoàn thành</h2>
               </div>
             </div>
+            <p className="muted">
+              Điểm chỉ dùng để chia công việc cân bằng, không phải điểm thi đua hay xếp hạng.
+            </p>
             <div className="metrics-table" role="table" aria-label="Thống kê lịch sử">
               {metrics.data?.map((metric) => (
                 <div className="metric-row" role="row" key={metric.studentId}>
                   <strong role="cell">{metric.studentDisplayName}</strong>
-                  <span role="cell">{metric.dutyCount} lượt</span>
-                  <span role="cell">{metric.actualPoints.toFixed(1)} điểm việc</span>
+                  <span role="cell">{metric.dutyCount} công việc</span>
+                  <span role="cell">{formatPoints(metric.actualPoints)} điểm</span>
                 </div>
               ))}
             </div>
@@ -52,15 +56,22 @@ export function HistoryPage(): React.JSX.Element {
             {summary.data?.map((week) => (
               <Link className="history-card card" to={`/history/${week.id}`} key={week.id}>
                 <div>
-                  <span className="muted">Tuần {week.weekStart}</span>
+                  <span className="muted">
+                    Tuần {formatWeekRange(week.weekStart, week.weekEnd)}
+                  </span>
                   <h2>{week.groupName}</h2>
                   <span>
-                    {week.actualPoints.toFixed(1)} điểm việc · Bản {week.publicationRevision}
+                    {formatPoints(week.actualPoints)} điểm
+                    {week.publicationRevision > 1
+                      ? ` · Lần công bố ${week.publicationRevision}`
+                      : ''}
                   </span>
                 </div>
                 <div className="history-card-status">
                   <StatusBadge tone="success">{week.fairness?.label ?? 'Đã hoàn tất'}</StatusBadge>
-                  {week.warningCount > 0 ? <span>{week.warningCount} lượt cần lưu ý</span> : null}
+                  {week.warningCount > 0 ? (
+                    <span>{week.warningCount} lưu ý khi phân công</span>
+                  ) : null}
                 </div>
               </Link>
             ))}

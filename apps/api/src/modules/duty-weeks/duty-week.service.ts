@@ -350,14 +350,21 @@ export async function listHistorySummary(ownerId: string): Promise<readonly Hist
   });
   return weeks.map((rawWeek) => {
     const week = rawWeek as DutyWeekHydrated;
+    const enabledDates = week.taskOccurrences
+      .filter((occurrence) => occurrence.enabled)
+      .map((occurrence) => occurrence.date)
+      .sort();
     return {
       id: String(week._id),
       weekStart: DateOnlySchema.parse(week.weekStart),
+      weekEnd: DateOnlySchema.parse(
+        enabledDates.at(-1) ?? addDateOnlyDays(DateOnlySchema.parse(week.weekStart), 6),
+      ),
       groupName: week.groupSnapshot.name,
       status: 'COMPLETED' as const,
       publicationRevision: week.publicationRevision,
       fairness: week.fairness,
-      warningCount: week.warnings.length,
+      warningCount: new Set(week.warnings.map((warning) => warning.code)).size,
       actualPoints: week.completionLedger.reduce((total, entry) => total + entry.actualPoints, 0),
       usedAssignedPerformerFallback: week.completionLedger.some(
         (entry) => entry.usedAssignedPerformerFallback,
@@ -971,6 +978,54 @@ export async function publishDutyWeek(
   week.publicationRevision += 1;
   appendDutyWeekChange(week, ownerId, 'WEEK_PUBLISHED');
   return saveWeek(week, false);
+}
+
+export async function getCompletionOptions(
+  ownerId: string,
+  weekId: string,
+): Promise<
+  readonly {
+    readonly slotId: string;
+    readonly students: readonly { readonly id: string; readonly displayName: string }[];
+  }[]
+> {
+  const week = await findWeek(ownerId, weekId);
+  assertPublished(week);
+  const occurrenceById = new Map(
+    week.taskOccurrences.map((occurrence) => [occurrence.id, occurrence]),
+  );
+  return week.assignments
+    .filter((assignment) => assignment.studentId !== null)
+    .map((assignment) => {
+      const occurrence = occurrenceById.get(assignment.occurrenceId);
+      if (!occurrence) {
+        throw new HttpProblem(422, 'VALIDATION_FAILED', 'Không tìm thấy công việc của phân công.');
+      }
+      const students = week.studentSnapshots
+        .filter((student) =>
+          isStudentEligible(
+            {
+              id: student.id,
+              groupId: student.groupId,
+              active: student.active,
+              gender: student.gender,
+              participationStart: student.participationStart,
+              participationEnd: student.participationEnd,
+              restrictions: student.restrictions,
+            },
+            schedulerOccurrence(occurrence),
+            week.selectedGroupId,
+            week.absences,
+          ),
+        )
+        .map((student) => ({ id: student.id, displayName: student.displayName }))
+        .sort(
+          (left, right) =>
+            left.displayName.localeCompare(right.displayName, 'vi-VN') ||
+            left.id.localeCompare(right.id),
+        );
+      return { slotId: assignment.slotId, students };
+    });
 }
 
 function schedulerOccurrence(

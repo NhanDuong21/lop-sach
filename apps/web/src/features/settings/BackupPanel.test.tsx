@@ -73,7 +73,8 @@ describe('BackupPanel', () => {
     const restore = screen.getByRole('button', { name: 'Phục hồi bản sao đã kiểm tra' });
     expect(restore).toBeDisabled();
 
-    await user.click(screen.getByRole('button', { name: 'Xuất bản sao hiện tại' }));
+    expect(screen.getByText(/backup\.json · [\d,.]+ KB/u)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Tải bản sao lưu' }));
     await waitFor(() => expect(screen.getByText(/cất tệp ở nơi an toàn/u)).toBeVisible());
     await user.type(screen.getByLabelText(/Nhập PHỤC HỒI/u), 'PHỤC HỒI');
     expect(restore).toBeEnabled();

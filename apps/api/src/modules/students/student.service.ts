@@ -164,6 +164,31 @@ export async function createStudent(ownerId: string, input: StudentCreateInput):
   });
 }
 
+export async function createStudents(
+  ownerId: string,
+  input: { readonly groupId: string; readonly displayNames: readonly string[] },
+): Promise<readonly Student[]> {
+  return withTransaction(async (session) => {
+    const classroom = await ownerClassroom(ownerId, session);
+    activeGroup(classroom, input.groupId);
+    const students = await StudentModel.create(
+      input.displayNames.map((displayName) => ({
+        classroomId: classroom._id,
+        groupId: input.groupId,
+        displayName,
+        active: true,
+        gender: 'UNSPECIFIED' as const,
+        participationStart: null,
+        participationEnd: null,
+        restrictions: [],
+      })),
+      { session, ordered: true },
+    );
+    await bumpStudentRevision(classroom._id, session);
+    return students.map((student) => mapStudent(student as StudentHydrated));
+  });
+}
+
 export async function patchStudent(
   ownerId: string,
   studentId: string,

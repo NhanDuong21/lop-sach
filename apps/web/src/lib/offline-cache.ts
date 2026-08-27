@@ -83,7 +83,7 @@ export function currentWeekDisplay(
     groupName: week.groupSnapshot.name,
     status: week.status,
     publicationRevision: week.publicationRevision,
-    warningCount: week.warnings.length,
+    warningCount: new Set(week.warnings.map((warning) => warning.code)).size,
     days: dates.map((date) => ({
       date,
       tasks: week.taskOccurrences

@@ -15,6 +15,7 @@ import { createTestOwner, testApp } from './test-app.js';
 type TestAgent = ReturnType<typeof request.agent>;
 const ClassroomEnvelopeSchema = z.strictObject({ data: ClassroomSchema });
 const StudentEnvelopeSchema = z.strictObject({ data: StudentSchema });
+const StudentListEnvelopeSchema = z.strictObject({ data: z.array(StudentSchema) });
 const TaskEnvelopeSchema = z.strictObject({ data: TaskTemplateSchema });
 const TaskListEnvelopeSchema = z.strictObject({ data: z.array(TaskTemplateSchema) });
 
@@ -44,6 +45,46 @@ async function createDefaultClassroom(agent: TestAgent): Promise<Classroom> {
 }
 
 describe('classroom master data', () => {
+  it('adds a pasted student list atomically with safe defaults', async () => {
+    const agent = await authenticatedAgent();
+    const classroom = await createDefaultClassroom(agent);
+    const groupId = classroom.groups[0]?.id ?? '';
+    const response = await agent
+      .post('/api/v1/students/bulk')
+      .set('Origin', 'http://localhost:5173')
+      .send({ groupId, displayNames: ['Nguyễn Văn An', 'Trần Thị Bình', 'Lê Minh Châu'] })
+      .expect(201);
+    const students = StudentListEnvelopeSchema.parse(response.body as unknown).data;
+    expect(students.map((student) => student.displayName)).toEqual([
+      'Nguyễn Văn An',
+      'Trần Thị Bình',
+      'Lê Minh Châu',
+    ]);
+    expect(students).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          groupId,
+          active: true,
+          gender: 'UNSPECIFIED',
+          restrictions: [],
+          participationStart: null,
+          participationEnd: null,
+        }),
+      ]),
+    );
+    const refreshed = ClassroomEnvelopeSchema.parse(
+      (await agent.get('/api/v1/classroom').expect(200)).body as unknown,
+    ).data;
+    expect(refreshed.revisionCounters.students).toBe(1);
+
+    await agent
+      .post('/api/v1/students/bulk')
+      .set('Origin', 'http://localhost:5173')
+      .send({ groupId, displayNames: ['Tên lặp', 'tên lặp'] })
+      .expect(422);
+    expect(await StudentModel.countDocuments()).toBe(3);
+  });
+
   it('creates stable default groups/tasks and updates auth status', async () => {
     const agent = await authenticatedAgent();
     const classroom = await createDefaultClassroom(agent);

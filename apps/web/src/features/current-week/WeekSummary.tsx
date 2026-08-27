@@ -1,5 +1,6 @@
 import type { DutyWeek } from '@lop-sach/contracts';
 import { Notice } from '../../components/ui/Notice.js';
+import { formatDutyDate } from '../../lib/date-labels.js';
 import { uniqueWarningCodes, warningCountText, warningLabels } from '../../lib/week-warnings.js';
 
 export function WeekSummary({ week }: { readonly week: DutyWeek }): React.JSX.Element {
@@ -20,7 +21,7 @@ export function WeekSummary({ week }: { readonly week: DutyWeek }): React.JSX.El
       ) : null}
       {dates.map((date) => (
         <section className="summary-day" key={date}>
-          <h3>{date}</h3>
+          <h3>{formatDutyDate(date)}</h3>
           {week.taskOccurrences
             .filter((occurrence) => occurrence.enabled && occurrence.date === date)
             .map((occurrence) => (

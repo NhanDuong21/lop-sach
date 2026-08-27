@@ -15,7 +15,8 @@ body {
 }
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
   min-height: 44px;
   border-radius: 10px;
@@ -41,17 +42,22 @@ button:disabled {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
+textarea:focus-visible,
 a:focus-visible {
   outline: 3px solid #86c9a2;
   outline-offset: 2px;
 }
 input,
-select {
+select,
+textarea {
   width: 100%;
   border: 1px solid #cbd5ce;
   padding: 0.65rem 0.75rem;
   background: white;
   color: #17211b;
+}
+textarea {
+  resize: vertical;
 }
 input[type='checkbox'] {
   width: 18px;
@@ -304,6 +310,33 @@ legend,
   margin: 0 0 0.4rem;
   font-size: 0.9rem;
 }
+.field-help {
+  color: #647068;
+  margin: 0.4rem 0 0;
+  font-size: 0.9rem;
+}
+.advanced-settings {
+  border: 1px solid #dfe7e1;
+  border-radius: 12px;
+  margin: 1rem 0;
+}
+.advanced-settings summary {
+  cursor: pointer;
+  padding: 0.9rem 1rem;
+}
+.advanced-settings summary strong,
+.advanced-settings summary span {
+  display: block;
+}
+.advanced-settings summary span {
+  color: #647068;
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+.advanced-settings-content {
+  border-top: 1px solid #e1e8e3;
+  padding: 0 1rem 0.25rem;
+}
 .notice {
   border-radius: 10px;
   padding: 0.75rem 0.9rem;
@@ -375,6 +408,19 @@ legend,
 .icon-actions button {
   min-width: 44px;
   padding: 0.55rem 0.7rem;
+}
+.group-summary strong,
+.group-summary span {
+  display: block;
+}
+.group-summary span,
+.group-action-help {
+  color: #647068;
+  font-size: 0.9rem;
+}
+.group-action-help {
+  flex-basis: 100%;
+  margin: 0;
 }
 .inline-form {
   display: flex;
@@ -743,6 +789,32 @@ legend,
   color: #647068;
   margin-top: 0.25rem;
 }
+.assignment-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin-top: 0.25rem;
+}
+.assignment-meta small {
+  margin: 0;
+}
+.text-action {
+  min-height: auto;
+  width: auto;
+  margin: 0;
+  padding: 0.15rem 0;
+  background: transparent;
+  color: #245f3d;
+  font-size: 0.86rem;
+}
+.assignment-explanation {
+  flex-basis: 100%;
+  margin: 0.2rem 0 0;
+  padding-left: 1.1rem;
+  color: #4f5c54;
+  font-size: 0.88rem;
+}
 .assignment-actions {
   display: flex;
   align-items: center;
@@ -800,6 +872,20 @@ legend,
   max-height: min(86vh, 760px);
   overflow-y: auto;
 }
+.completion-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+.completion-choice-grid .button {
+  display: grid;
+  gap: 0.2rem;
+  min-height: 88px;
+}
+.completion-choice-grid small {
+  font-weight: 450;
+}
 .actual-performer-list {
   display: grid;
   gap: 0.55rem;
@@ -816,6 +902,20 @@ legend,
 .actual-performer-row strong,
 .actual-performer-row span {
   display: block;
+}
+.completion-change-choice {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0;
+}
+.completion-change-choice input {
+  flex: none;
+}
+.completion-change-choice small {
+  display: block;
+  color: #647068;
+  font-weight: 450;
 }
 .actual-performer-row span {
   color: #647068;
@@ -887,18 +987,34 @@ legend,
   gap: 1rem;
 }
 .file-picker {
-  display: flex;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
   gap: 0.65rem;
   border: 1px dashed #9db6a5;
   border-radius: 12px;
   padding: 1rem;
-  color: #245a3a;
   cursor: pointer;
 }
 .file-picker input {
-  margin-left: auto;
-  max-width: 240px;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.file-picker .button {
+  min-height: 44px;
+}
+.file-picker-name {
+  min-width: 0;
+  align-self: center;
+  color: #58665d;
+  overflow-wrap: anywhere;
 }
 .backup-validation {
   border-top: 1px solid #e1e8e3;
@@ -999,6 +1115,11 @@ legend,
     grid-column: 1 / -1;
   }
 }
+@media (min-width: 761px) {
+  .settings-grid {
+    display: none;
+  }
+}
 @media (max-width: 480px) {
   .login-panel {
     padding: 1.35rem;
@@ -1046,16 +1167,20 @@ legend,
   .actual-performer-row {
     grid-template-columns: 1fr;
   }
-  .history-card,
-  .file-picker {
+  .completion-choice-grid {
+    grid-template-columns: 1fr;
+  }
+  .history-card {
     align-items: stretch;
     flex-direction: column;
   }
   .history-card-status {
     justify-items: start;
   }
-  .file-picker input {
-    margin-left: 0;
-    max-width: 100%;
+  .file-picker {
+    grid-template-columns: 1fr;
+  }
+  .file-picker .button {
+    width: 100%;
   }
 }

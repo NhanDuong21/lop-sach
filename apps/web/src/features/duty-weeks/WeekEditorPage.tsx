@@ -16,6 +16,7 @@ import { LoadingState } from '../../components/ui/LoadingState.js';
 import { Notice } from '../../components/ui/Notice.js';
 import { StatusBadge } from '../../components/ui/StatusBadge.js';
 import { ApiError } from '../../lib/api-client.js';
+import { formatDutyDate, formatWeekRange } from '../../lib/date-labels.js';
 import { schoolDayLabels } from '../../lib/vietnamese-labels.js';
 import { getClassroom } from '../classroom/classroom.api.js';
 import { DayCard } from './DayCard.js';
@@ -26,6 +27,7 @@ import {
   generateDutyWeek,
   getDutyWeek,
   getGenerationContext,
+  getCompletionOptions,
   patchDutyWeek,
   patchOccurrence,
   preflightDutyWeek,
@@ -82,16 +84,19 @@ function CompleteWeekDialog({
   ) => void;
   readonly onCancel: () => void;
 }): React.JSX.Element | null {
+  const [mode, setMode] = useState<'CHOICE' | 'CHANGES'>('CHOICE');
+  const [changedSlots, setChangedSlots] = useState<ReadonlySet<string>>(new Set());
   const [actualBySlot, setActualBySlot] = useState<Readonly<Record<string, string>>>({});
+  const completionOptions = useQuery({
+    queryKey: ['duty-week', week.id, 'completion-options'],
+    queryFn: () => getCompletionOptions(week.id),
+    enabled: open && mode === 'CHANGES',
+  });
   useEffect(() => {
     if (!open) return;
-    setActualBySlot(
-      Object.fromEntries(
-        week.assignments.flatMap((assignment) =>
-          assignment.studentId === null ? [] : [[assignment.slotId, assignment.studentId]],
-        ),
-      ),
-    );
+    setMode('CHOICE');
+    setChangedSlots(new Set());
+    setActualBySlot({});
   }, [open, week]);
   if (!open) return null;
   const occurrenceById = new Map(
@@ -108,7 +113,15 @@ function CompleteWeekDialog({
         left.slotIndex - right.slotIndex
       );
     });
-  const allSelected = assigned.every((assignment) => Boolean(actualBySlot[assignment.slotId]));
+  const allSelected = [...changedSlots].every((slotId) => Boolean(actualBySlot[slotId]));
+  const submitChanges = (): void => {
+    onConfirm(
+      [...changedSlots].map((slotId) => ({
+        slotId,
+        studentId: actualBySlot[slotId] ?? '',
+      })),
+    );
+  };
   return (
     <div className="dialog-backdrop" role="presentation">
       <section
@@ -117,50 +130,105 @@ function CompleteWeekDialog({
         aria-modal="true"
         aria-labelledby="complete-title"
       >
-        <h2 id="complete-title">Ghi nhận người thực hiện thực tế</h2>
-        <p>
-          Giữ nguyên các lượt đúng như lịch; chỉ đổi những lượt có người làm thay. Hệ thống sẽ kiểm
-          tra người thay thuộc {week.groupSnapshot.name} và đủ điều kiện cho công việc.
-        </p>
+        <h2 id="complete-title">Hoàn thành tuần trực</h2>
         {error ? <Notice tone="error">{error}</Notice> : null}
         {assigned.length === 0 ? (
           <Notice tone="warning">Tuần không có phân công để hoàn thành.</Notice>
+        ) : mode === 'CHOICE' ? (
+          <>
+            <p>Người thực hiện thực tế có giống lịch đã phân công không?</p>
+            <div className="completion-choice-grid">
+              <Button disabled={pending} onClick={() => onConfirm([])}>
+                Không có ai làm thay
+                <small>Giữ nguyên tất cả phân công</small>
+              </Button>
+              <Button variant="secondary" disabled={pending} onClick={() => setMode('CHANGES')}>
+                Có người làm thay
+                <small>Chọn đúng các lượt đã thay đổi</small>
+              </Button>
+            </div>
+          </>
+        ) : completionOptions.isPending ? (
+          <LoadingState label="Đang tìm người thay đủ điều kiện" />
+        ) : completionOptions.isError || !completionOptions.data ? (
+          <Notice tone="error">Không tải được danh sách người thay phù hợp.</Notice>
         ) : (
           <div className="actual-performer-list">
             {assigned.map((assignment) => {
               const occurrence = week.taskOccurrences.find(
                 (item) => item.id === assignment.occurrenceId,
               );
+              const usedByOtherSlots = new Set(
+                assigned
+                  .filter(
+                    (item) =>
+                      item.occurrenceId === assignment.occurrenceId &&
+                      item.slotId !== assignment.slotId,
+                  )
+                  .flatMap((item) => [actualBySlot[item.slotId] ?? item.studentId ?? '']),
+              );
+              const eligible =
+                completionOptions.data
+                  .find((item) => item.slotId === assignment.slotId)
+                  ?.students.filter(
+                    (student) =>
+                      student.id !== assignment.studentId && !usedByOtherSlots.has(student.id),
+                  ) ?? [];
+              const changed = changedSlots.has(assignment.slotId);
               return (
                 <div className="actual-performer-row" key={assignment.slotId}>
-                  <div>
-                    <strong>{occurrence?.taskName ?? 'Công việc'}</strong>
+                  <label className="completion-change-choice">
+                    <input
+                      type="checkbox"
+                      checked={changed}
+                      disabled={eligible.length === 0}
+                      onChange={(event) => {
+                        setChangedSlots((current) => {
+                          const next = new Set(current);
+                          if (event.target.checked) next.add(assignment.slotId);
+                          else next.delete(assignment.slotId);
+                          return next;
+                        });
+                        if (!event.target.checked) {
+                          setActualBySlot((current) => {
+                            const next = { ...current };
+                            delete next[assignment.slotId];
+                            return next;
+                          });
+                        }
+                      }}
+                    />
                     <span>
-                      {occurrence?.date} · vị trí {assignment.slotIndex + 1}
+                      <strong>{occurrence?.taskName ?? 'Công việc'}</strong>
+                      <small>
+                        {occurrence ? formatDutyDate(occurrence.date) : ''} · đang giao cho{' '}
+                        {assignment.studentDisplayName}
+                      </small>
                     </span>
-                  </div>
-                  <label className="sr-only" htmlFor={`actual-${assignment.slotId}`}>
-                    Người thực hiện {occurrence?.taskName} ngày {occurrence?.date.slice(8)}/
-                    {occurrence?.date.slice(5, 7)}, vị trí {assignment.slotIndex + 1}
                   </label>
-                  <select
-                    id={`actual-${assignment.slotId}`}
-                    value={actualBySlot[assignment.slotId] ?? ''}
-                    onChange={(event) =>
-                      setActualBySlot((current) => ({
-                        ...current,
-                        [assignment.slotId]: event.target.value,
-                      }))
-                    }
-                  >
-                    {week.studentSnapshots
-                      .filter((student) => student.active)
-                      .map((student) => (
+                  {changed ? (
+                    <select
+                      aria-label={`Người làm thay ${occurrence?.taskName ?? 'công việc'}`}
+                      value={actualBySlot[assignment.slotId] ?? ''}
+                      onChange={(event) =>
+                        setActualBySlot((current) => ({
+                          ...current,
+                          [assignment.slotId]: event.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">Chọn người làm thay</option>
+                      {eligible.map((student) => (
                         <option value={student.id} key={student.id}>
                           {student.displayName}
                         </option>
                       ))}
-                  </select>
+                    </select>
+                  ) : eligible.length === 0 ? (
+                    <small className="muted">
+                      Không có người thay nào đủ điều kiện cho lượt này.
+                    </small>
+                  ) : null}
                 </div>
               );
             })}
@@ -170,22 +238,21 @@ function CompleteWeekDialog({
           Sau khi hoàn thành, kết quả thực tế và dữ liệu lịch sử sẽ không thể thay đổi.
         </Notice>
         <div className="button-row">
-          <Button variant="secondary" onClick={onCancel} disabled={pending}>
-            Hủy
-          </Button>
           <Button
-            disabled={pending || !allSelected || assigned.length === 0}
-            onClick={() =>
-              onConfirm(
-                assigned.map((assignment) => ({
-                  slotId: assignment.slotId,
-                  studentId: actualBySlot[assignment.slotId] ?? '',
-                })),
-              )
-            }
+            variant="secondary"
+            onClick={() => (mode === 'CHANGES' ? setMode('CHOICE') : onCancel())}
+            disabled={pending}
           >
-            Hoàn thành tuần
+            {mode === 'CHANGES' ? 'Quay lại' : 'Hủy'}
           </Button>
+          {mode === 'CHANGES' ? (
+            <Button
+              disabled={pending || !allSelected || changedSlots.size === 0}
+              onClick={submitChanges}
+            >
+              Lưu thay đổi và hoàn thành
+            </Button>
+          ) : null}
         </div>
       </section>
     </div>
@@ -215,6 +282,7 @@ export function WeekEditorPage(): React.JSX.Element {
   const [publishOpen, setPublishOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
   const [oneOffOpen, setOneOffOpen] = useState(false);
+  const [deleteOccurrenceId, setDeleteOccurrenceId] = useState<string>();
   const [oneOffDate, setOneOffDate] = useState('');
   const [oneOffName, setOneOffName] = useState('');
   const [oneOffHeadcount, setOneOffHeadcount] = useState(1);
@@ -310,12 +378,14 @@ export function WeekEditorPage(): React.JSX.Element {
           <p className="eyebrow">
             {classroom.data.name} · {week.groupSnapshot.name}
           </p>
-          <h1>Tuần {week.weekStart}</h1>
+          <h1>Tuần {formatWeekRange(week.weekStart, dates.at(-1))}</h1>
           <div className="week-meta">
             <StatusBadge tone={week.status === 'DRAFT' ? 'warning' : 'success'}>
               {statusLabels[week.status]}
             </StatusBadge>
-            <span>Lần phát hành {week.publicationRevision}</span>
+            {week.publicationRevision > 1 ? (
+              <span>Lần công bố {week.publicationRevision}</span>
+            ) : null}
           </div>
         </div>
         <div className="button-row">
@@ -560,12 +630,22 @@ export function WeekEditorPage(): React.JSX.Element {
                 patchOccurrence(week.id, occurrenceId, { enabled, expectedVersion: week.version }),
               )
             }
-            onDeleteOccurrence={(occurrenceId) =>
-              run(() => deleteOccurrence(week.id, occurrenceId, week.version))
-            }
+            onDeleteOccurrence={setDeleteOccurrenceId}
           />
         ))}
       </div>
+      <ConfirmDialog
+        open={Boolean(deleteOccurrenceId)}
+        title="Xóa công việc phát sinh?"
+        description={`Công việc “${week.taskOccurrences.find((item) => item.id === deleteOccurrenceId)?.taskName ?? 'đã chọn'}” và các phân công của công việc này sẽ bị xóa khỏi tuần.`}
+        confirmLabel="Xóa công việc"
+        onCancel={() => setDeleteOccurrenceId(undefined)}
+        onConfirm={() => {
+          const occurrenceId = deleteOccurrenceId;
+          setDeleteOccurrenceId(undefined);
+          if (occurrenceId) run(() => deleteOccurrence(week.id, occurrenceId, week.version));
+        }}
+      />
       <ConfirmDialog
         open={pendingGroupId !== null}
         title="Đổi tổ trực?"

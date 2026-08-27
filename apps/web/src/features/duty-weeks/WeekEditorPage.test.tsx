@@ -1,11 +1,16 @@
 import { parseDateOnly, type Classroom, type DutyWeek } from '@lop-sach/contracts';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getClassroom } from '../classroom/classroom.api.js';
-import { getDutyWeek } from './duty-weeks.api.js';
+import {
+  completeDutyWeek,
+  deleteOccurrence,
+  getCompletionOptions,
+  getDutyWeek,
+} from './duty-weeks.api.js';
 import { WeekEditorPage } from './WeekEditorPage.js';
 
 vi.mock('../classroom/classroom.api.js', () => ({ getClassroom: vi.fn() }));
@@ -15,6 +20,7 @@ vi.mock('./duty-weeks.api.js', () => ({
   deleteOccurrence: vi.fn(),
   generateDutyWeek: vi.fn(),
   getDutyWeek: vi.fn(),
+  getCompletionOptions: vi.fn(),
   getGenerationContext: vi.fn(),
   getReplacementSuggestions: vi.fn(),
   patchDutyWeek: vi.fn(),
@@ -125,8 +131,19 @@ const week: DutyWeek = {
 };
 
 beforeEach(() => {
+  cleanup();
+  vi.clearAllMocks();
   vi.mocked(getClassroom).mockResolvedValue(classroom);
   vi.mocked(getDutyWeek).mockResolvedValue(week);
+  vi.mocked(getCompletionOptions).mockResolvedValue([
+    {
+      slotId: 'slot-1',
+      students: [
+        { id: 'student-1', displayName: 'Nguyễn An' },
+        { id: 'student-2', displayName: 'Trần Bình' },
+      ],
+    },
+  ]);
 });
 
 describe('WeekEditorPage', () => {
@@ -141,9 +158,11 @@ describe('WeekEditorPage', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(await screen.findByRole('heading', { name: 'Tuần 2026-08-24' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Tuần 24/08 – 24/08/2026' }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Dữ liệu lớp đã thay đổi/u)).toBeInTheDocument();
-    expect(screen.getByText(/nhiều công việc trong cùng ngày/u)).toBeInTheDocument();
+    expect(screen.getByText(/nhận thêm việc trong cùng ngày/u)).toBeInTheDocument();
     expect(screen.getByText(/mở khóa toàn bộ phân công/u)).toBeInTheDocument();
     expect(screen.getByLabelText('Tổ trực')).toBeDisabled();
     expect(screen.getByLabelText('Nguyễn An vắng Thứ Hai, ngày 24/08')).toBeInTheDocument();
@@ -176,9 +195,66 @@ describe('WeekEditorPage', () => {
     expect(screen.getByRole('button', { name: 'Sao chép văn bản' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Xuất PNG' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Hoàn thành tuần' }));
-    expect(
-      screen.getByLabelText('Người thực hiện Lau bảng ngày 24/08, vị trí 1'),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/chỉ đổi những lượt có người làm thay/u)).toBeInTheDocument();
+    expect(screen.getByText(/có giống lịch đã phân công không/u)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Không có ai làm thay/u })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Có người làm thay/u }));
+    expect(await screen.findByText(/đang giao cho Nguyễn An/u)).toBeInTheDocument();
+  });
+
+  it('completes the common no-substitution path without reviewing every assignment', async () => {
+    vi.mocked(completeDutyWeek).mockResolvedValue({
+      ...week,
+      status: 'COMPLETED',
+      publicationRevision: 1,
+    });
+    vi.mocked(getDutyWeek).mockResolvedValue({
+      ...week,
+      status: 'PUBLISHED',
+      requiresGeneration: false,
+      generationStale: false,
+      publicationRevision: 1,
+    });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/weeks/week-1']}>
+          <Routes>
+            <Route path="/weeks/:weekId" element={<WeekEditorPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Hoàn thành tuần' }));
+    await userEvent.click(screen.getByRole('button', { name: /Không có ai làm thay/u }));
+    expect(completeDutyWeek).toHaveBeenCalledWith('week-1', week.version, []);
+  });
+
+  it('asks for confirmation before deleting a one-off task', async () => {
+    vi.mocked(getDutyWeek).mockResolvedValue({
+      ...week,
+      taskOccurrences: [
+        {
+          ...week.taskOccurrences[0]!,
+          source: 'ONE_OFF',
+          taskTemplateId: null,
+          taskTemplateRevision: null,
+          taskName: 'Lau cửa sổ',
+        },
+      ],
+    });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/weeks/week-1']}>
+          <Routes>
+            <Route path="/weeks/:weekId" element={<WeekEditorPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Xóa Lau cửa sổ' }));
+    expect(deleteOccurrence).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: 'Xóa công việc phát sinh?' })).toBeInTheDocument();
+    expect(screen.getByText(/các phân công của công việc này sẽ bị xóa/u)).toBeInTheDocument();
   });
 });

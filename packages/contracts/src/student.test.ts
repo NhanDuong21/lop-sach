@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { StudentRestrictionSchema, StudentWriteSchema } from './student.js';
+import {
+  StudentBulkCreateSchema,
+  StudentRestrictionSchema,
+  StudentWriteSchema,
+} from './student.js';
 
 describe('student availability contracts', () => {
   it('accepts only the three persistent restriction types', () => {
@@ -22,5 +26,17 @@ describe('student availability contracts', () => {
       restrictions: [],
     });
     expect(result.success).toBe(false);
+  });
+  it('trims pasted names and rejects duplicate lines', () => {
+    expect(
+      StudentBulkCreateSchema.parse({ groupId: 'group-1', displayNames: [' An ', ' Bình '] })
+        .displayNames,
+    ).toEqual(['An', 'Bình']);
+    expect(
+      StudentBulkCreateSchema.safeParse({
+        groupId: 'group-1',
+        displayNames: ['Nguyễn An', 'nguyễn an'],
+      }).success,
+    ).toBe(false);
   });
 });

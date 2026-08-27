@@ -1,4 +1,5 @@
 import type { DutyWeek } from '@lop-sach/contracts';
+import { formatWeekRange } from './date-labels.js';
 import { warningCountText } from './week-warnings.js';
 
 function vietnameseDateLabel(date: string): string {
@@ -22,14 +23,16 @@ export function sanitizedExportFilename(value: string): string {
 }
 
 export function dutyWeekText(week: DutyWeek, classroomName: string): string {
+  const scheduledDates = [
+    ...new Set(week.taskOccurrences.filter((item) => item.enabled).map((item) => item.date)),
+  ].sort();
+  const scheduledEnd = scheduledDates.at(-1);
   const lines = [
     `LỚP SẠCH — ${classroomName}`,
-    `Tuần ${week.weekStart} · ${week.groupSnapshot.name} · Bản phát hành ${String(week.publicationRevision)}`,
+    `Tuần ${formatWeekRange(week.weekStart, scheduledEnd)} · ${week.groupSnapshot.name}${week.publicationRevision > 1 ? ` · Lần công bố ${String(week.publicationRevision)}` : ''}`,
     '',
   ];
-  for (const date of [
-    ...new Set(week.taskOccurrences.filter((item) => item.enabled).map((item) => item.date)),
-  ].sort()) {
+  for (const date of scheduledDates) {
     lines.push(vietnameseDateLabel(date));
     for (const occurrence of week.taskOccurrences
       .filter((item) => item.enabled && item.date === date)
@@ -44,7 +47,7 @@ export function dutyWeekText(week: DutyWeek, classroomName: string): string {
     }
     lines.push('');
   }
-  if (week.warnings.length > 0) lines.push(`Lưu ý đã duyệt: ${warningCountText(week)}`);
+  if (week.warnings.length > 0) lines.push(`Lưu ý: Có ${warningCountText(week)}.`);
   return `${lines.join('\n').trim()}\n`;
 }
 

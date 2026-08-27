@@ -29,5 +29,6 @@ describe('StudentForm availability controls', () => {
     expect(screen.getByText('Miễn trong khoảng ngày')).toBeInTheDocument();
     expect(screen.queryByText('Không có mặt vào ngày')).not.toBeInTheDocument();
     expect(screen.getByText(/Vắng một ngày cụ thể/u)).toBeInTheDocument();
+    expect(screen.getByText('Thiết lập nâng cao').closest('details')).not.toHaveAttribute('open');
   });
 });

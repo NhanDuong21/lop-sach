@@ -1,4 +1,5 @@
 import type {
+  CompletionOptions,
   DutyGroupSelectionBasis,
   DutyWeek,
   TaskEligibilityRule,
@@ -184,6 +185,14 @@ export async function completeDutyWeek(
       method: 'POST',
       body: JSON.stringify({ expectedVersion, actualPerformers }),
     })
+  ).data;
+}
+
+export async function getCompletionOptions(weekId: string): Promise<CompletionOptions> {
+  return (
+    await apiRequest<{ data: CompletionOptions }>(
+      `/duty-weeks/${encodeURIComponent(weekId)}/completion-options`,
+    )
   ).data;
 }
 

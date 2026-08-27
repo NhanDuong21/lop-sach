@@ -41,7 +41,7 @@ export function GenerationPanel({
         </Notice>
       ) : (
         <Notice tone="success">
-          <ShieldCheck size={17} aria-hidden="true" /> Dữ liệu dùng để phân công hiện hợp lệ.
+          <ShieldCheck size={17} aria-hidden="true" /> Phân công đã đủ điều kiện để công bố.
         </Notice>
       )}
       {uniqueWarnings.map((code) => (

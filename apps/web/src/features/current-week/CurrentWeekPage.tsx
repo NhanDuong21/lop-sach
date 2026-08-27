@@ -14,6 +14,7 @@ import {
   type CachedCurrentWeek,
 } from '../../lib/offline-cache.js';
 import { useOnlineState } from '../../lib/online-state.js';
+import { formatDutyDate, formatWeekRange } from '../../lib/date-labels.js';
 
 function currentMonday(): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -80,8 +81,10 @@ export function CurrentWeekPage({
               <div>
                 <h2>{cached.groupName}</h2>
                 <p>
-                  Bản phát hành {cached.publicationRevision} · Lưu lúc{' '}
-                  {new Date(cached.cachedAt).toLocaleString('vi-VN')}
+                  {cached.publicationRevision > 1
+                    ? `Lần công bố ${cached.publicationRevision} · `
+                    : 'Lịch đã công bố · '}
+                  Lưu lúc {new Date(cached.cachedAt).toLocaleString('vi-VN')}
                 </p>
               </div>
               <StatusBadge tone="success">
@@ -89,12 +92,12 @@ export function CurrentWeekPage({
               </StatusBadge>
             </div>
             {cached.warningCount > 0 ? (
-              <Notice tone="warning">Lịch có {cached.warningCount} lượt cần lưu ý đã duyệt.</Notice>
+              <Notice tone="warning">Có {cached.warningCount} lưu ý khi phân công.</Notice>
             ) : null}
             <div className="week-summary">
               {cached.days.map((day) => (
                 <section className="summary-day" key={day.date}>
-                  <h3>{day.date}</h3>
+                  <h3>{formatDutyDate(day.date)}</h3>
                   {day.tasks.map((task, index) => (
                     <div className="summary-task" key={`${day.date}-${String(index)}`}>
                       <strong>{task.taskName}</strong>
@@ -112,12 +115,17 @@ export function CurrentWeekPage({
   if (weeks.isPending) return <LoadingState label="Đang tải lịch tuần này" />;
   if (weeks.isError) return <Notice tone="error">Không tải được lịch tuần này.</Notice>;
   const week = onlineWeek;
+  const weekEnd = week?.taskOccurrences
+    .filter((occurrence) => occurrence.enabled)
+    .map((occurrence) => occurrence.date)
+    .sort()
+    .at(-1);
   return (
     <div className="page-stack">
       <header className="page-heading">
         <p className="eyebrow">{classroomName}</p>
         <h1>Tuần này</h1>
-        <p>Lịch tuần {weekStart}; dữ liệu phát hành sẽ được chuẩn bị cho chế độ đọc ngoại tuyến.</p>
+        <p>Tuần {formatWeekRange(weekStart, weekEnd)}. Lịch đã công bố có thể xem khi mất mạng.</p>
       </header>
       {!week ? (
         <section className="card empty-state">
@@ -137,7 +145,9 @@ export function CurrentWeekPage({
               <p>
                 {week.status === 'DRAFT'
                   ? 'Lịch đang được chuẩn bị.'
-                  : `Bản phát hành ${week.publicationRevision}`}
+                  : week.publicationRevision > 1
+                    ? `Lần công bố ${week.publicationRevision}`
+                    : 'Lịch đã công bố'}
               </p>
             </div>
             <StatusBadge tone={week.status === 'DRAFT' ? 'warning' : 'success'}>

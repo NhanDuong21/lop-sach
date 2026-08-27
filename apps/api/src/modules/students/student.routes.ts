@@ -1,5 +1,6 @@
 import {
   StudentCreateSchema,
+  StudentBulkCreateSchema,
   StudentMoveSchema,
   StudentPatchSchema,
   VersionMutationSchema,
@@ -9,6 +10,7 @@ import { z } from 'zod';
 import { authenticatedUser } from '../../middleware/authenticate.js';
 import {
   createStudent,
+  createStudents,
   listStudents,
   moveStudent,
   patchStudent,
@@ -43,6 +45,18 @@ export function createStudentRouter(): Router {
         data: await createStudent(
           authenticatedUser(response).id,
           StudentCreateSchema.parse(request.body),
+        ),
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+  router.post('/bulk', async (request, response, next) => {
+    try {
+      response.status(201).json({
+        data: await createStudents(
+          authenticatedUser(response).id,
+          StudentBulkCreateSchema.parse(request.body),
         ),
       });
     } catch (error) {

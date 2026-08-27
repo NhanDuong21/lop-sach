@@ -44,23 +44,24 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   await expect(page.getByRole('heading', { name: 'Tạo tuần mới' })).toBeVisible();
   await page.getByLabel('Ngày Thứ Hai đầu tuần').fill('2026-08-24');
   await page.getByRole('button', { name: 'Tạo tuần và kiểm tra vắng mặt' }).click();
-  await expect(page.getByRole('heading', { name: 'Tuần 2026-08-24' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tuần 24/08 – 24/08/2026' })).toBeVisible();
   await page.getByRole('button', { name: 'Tạo phân công' }).click();
-  await expect(page.getByText('Dữ liệu dùng để phân công hiện hợp lệ.')).toBeVisible();
+  await expect(page.getByText('Phân công đã đủ điều kiện để công bố.')).toBeVisible();
   await page.getByRole('button', { name: 'Phát hành' }).click();
   await expect(page.getByRole('heading', { name: 'Phát hành lịch tuần?' })).toBeVisible();
   await page.getByRole('dialog').getByRole('button', { name: 'Phát hành' }).click();
   await expect(page.getByText('Đã phát hành')).toBeVisible();
   await page.getByRole('button', { name: 'Hoàn thành tuần' }).click();
-  await expect(
-    page.getByRole('heading', { name: 'Ghi nhận người thực hiện thực tế' }),
-  ).toBeVisible();
-  await page.getByRole('dialog').getByRole('button', { name: 'Hoàn thành tuần' }).click();
+  await expect(page.getByRole('heading', { name: 'Hoàn thành tuần trực' })).toBeVisible();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /Không có ai làm thay/u })
+    .click();
   await expect(page.getByText('Đã hoàn thành')).toBeVisible();
   await page.getByRole('link', { name: 'Lịch sử' }).last().click();
   await expect(page.getByRole('heading', { name: 'Lịch sử trực nhật' })).toBeVisible();
-  await page.getByRole('link', { name: /Tuần 2026-08-24/u }).click();
-  await expect(page.getByRole('heading', { name: 'Tuần 2026-08-24' })).toBeVisible();
+  await page.getByRole('link', { name: /Tuần 24\/08 – 24\/08\/2026/u }).click();
+  await expect(page.getByRole('heading', { name: 'Tuần 24/08 – 24/08/2026' })).toBeVisible();
   const textDownloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Xuất văn bản' }).click();
   const textDownload = await textDownloadPromise;
@@ -69,14 +70,14 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   expect(textPath).not.toBeNull();
   const exportedText = await readFile(textPath ?? '', 'utf8');
   expect(exportedText).toContain('LỚP SẠCH — 10C8');
-  expect(exportedText).toContain('Tuần 2026-08-24 · Tổ 1 · Bản phát hành 1');
+  expect(exportedText).toContain('Tuần 24/08 – 24/08/2026 · Tổ 1');
   expect(exportedText).not.toContain('generationContextHash');
   const pngDownloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Xuất PNG' }).click();
   expect((await pngDownloadPromise).suggestedFilename()).toBe('lop-sach-10c8-2026-08-24.png');
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Tuần này' })).toBeVisible();
-  await expect(page.getByText('Bản phát hành 1')).toBeVisible();
+  await expect(page.getByText('Lịch đã công bố', { exact: true })).toBeVisible();
   const accessibility = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();

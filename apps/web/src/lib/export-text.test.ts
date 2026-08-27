@@ -76,9 +76,10 @@ const week = {
 describe('dutyWeekText', () => {
   it('formats a Vietnamese chat-ready schedule and explains warning counts', () => {
     const text = dutyWeekText(week, '10C8');
+    expect(text).toContain('Tuần 24/08 – 24/08/2026 · Tổ 1');
     expect(text).toContain('Thứ Hai, 24/08/2026');
     expect(text).toContain('- Lau bảng: Nguyễn An');
-    expect(text).toContain('2 lượt cần lưu ý thuộc 1 loại cảnh báo');
+    expect(text).toContain('Có 1 lưu ý khi phân công');
     expect(text).not.toContain('\n2026-08-24\n');
   });
 });

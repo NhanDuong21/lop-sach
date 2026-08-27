@@ -26,8 +26,10 @@ export function PublishDialog({
       >
         <h2 id="publish-title">Phát hành lịch tuần?</h2>
         <p>
-          Lịch của {week.groupSnapshot.name} sẽ chuyển sang chỉ đọc và không thể tạo lại. Bản phát
-          hành kế tiếp là lần {week.publicationRevision + 1}.
+          Lịch của {week.groupSnapshot.name} sẽ chuyển sang chỉ đọc và không thể tạo lại.
+          {week.publicationRevision > 0
+            ? ` Đây là lần công bố ${week.publicationRevision + 1}.`
+            : ''}
         </p>
         {week.warnings.length > 0 ? (
           <p className="muted">Có {warningCountText(week)} đã hiển thị trong lịch.</p>

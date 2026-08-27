@@ -1,6 +1,7 @@
 import './setup.js';
 import {
   ClassroomSchema,
+  CompletionOptionsSchema,
   DutyWeekSchema,
   ProblemDetailsSchema,
   StudentSchema,
@@ -18,6 +19,7 @@ type TestAgent = ReturnType<typeof request.agent>;
 const ClassroomEnvelopeSchema = z.strictObject({ data: ClassroomSchema });
 const StudentEnvelopeSchema = z.strictObject({ data: StudentSchema });
 const WeekEnvelopeSchema = z.strictObject({ data: DutyWeekSchema });
+const CompletionOptionsEnvelopeSchema = z.strictObject({ data: CompletionOptionsSchema });
 
 beforeEach(createTestOwner);
 
@@ -148,6 +150,12 @@ describe('duty-week lifecycle', () => {
     const published = WeekEnvelopeSchema.parse(publishedResponse.body as unknown).data;
     expect(published.status).toBe('PUBLISHED');
     expect(published.publicationRevision).toBe(1);
+    const completionOptions = CompletionOptionsEnvelopeSchema.parse(
+      (await agent.get(`/api/v1/duty-weeks/${draft.id}/completion-options`).expect(200))
+        .body as unknown,
+    ).data;
+    expect(completionOptions).toHaveLength(published.assignments.length);
+    expect(completionOptions.every((item) => item.students.length > 0)).toBe(true);
     await agent
       .post(`/api/v1/duty-weeks/${draft.id}/generate`)
       .set('Origin', 'http://localhost:5173')

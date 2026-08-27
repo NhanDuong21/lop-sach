@@ -2,16 +2,9 @@ import type { DutyWeek } from '@lop-sach/contracts';
 import { Trash2 } from 'lucide-react';
 import { Button } from '../../components/ui/Button.js';
 import { StatusBadge } from '../../components/ui/StatusBadge.js';
+import { formatDutyDate } from '../../lib/date-labels.js';
+import { workloadLabels } from '../../lib/vietnamese-labels.js';
 import { AssignmentEditor } from './AssignmentEditor.js';
-
-function dateLabel(date: string): string {
-  return new Intl.DateTimeFormat('vi-VN', {
-    weekday: 'long',
-    day: '2-digit',
-    month: '2-digit',
-    timeZone: 'UTC',
-  }).format(new Date(`${date}T00:00:00Z`));
-}
 
 export function DayCard({
   date,
@@ -42,8 +35,7 @@ export function DayCard({
     <section className="day-card card">
       <header className="day-header">
         <div>
-          <p className="eyebrow">{dateLabel(date)}</p>
-          <h2>{date}</h2>
+          <h2>{formatDutyDate(date)}</h2>
         </div>
         <StatusBadge>{occurrences.filter((item) => item.enabled).length} công việc</StatusBadge>
       </header>
@@ -57,7 +49,8 @@ export function DayCard({
               <div>
                 <h3>{occurrence.taskName}</h3>
                 <p>
-                  Mức {occurrence.workloadLevel} · {occurrence.requiredStudents} học sinh
+                  {workloadLabels[occurrence.workloadLevel]} · {occurrence.requiredStudents} học
+                  sinh
                 </p>
               </div>
               {week.status === 'DRAFT' ? (
