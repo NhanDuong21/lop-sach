@@ -16,12 +16,13 @@ export function createStudent(
 }
 
 export function createOccurrence(
-  overrides: Partial<SchedulerOccurrence> & Pick<SchedulerOccurrence, 'id' | 'date'>,
+  overrides: Omit<Partial<SchedulerOccurrence>, 'date'> &
+    Pick<SchedulerOccurrence, 'id'> & { readonly date: string },
 ): SchedulerOccurrence {
   const requiredStudents = overrides.requiredStudents ?? 1;
   return {
     id: overrides.id,
-    date: overrides.date,
+    date: parseDateOnly(overrides.date),
     taskTemplateId: overrides.taskTemplateId ?? `task-${overrides.id}`,
     taskFingerprint: overrides.taskFingerprint ?? `fingerprint-${overrides.id}`,
     taskName: overrides.taskName ?? `Công việc ${overrides.id}`,
@@ -50,7 +51,7 @@ export function createContext(): SchedulerContext {
       weekConfigurationRevision: 6,
     },
     input: {
-      weekStart: '2026-08-24',
+      weekStart: parseDateOnly('2026-08-24'),
       selectedGroupId: 'group-1',
       students: [
         createStudent({
@@ -91,17 +92,32 @@ export function createContext(): SchedulerContext {
         }),
       ],
       absences: [
-        { studentId: 'student-c', date: '2026-08-26' },
-        { studentId: 'student-b', date: '2026-08-24' },
+        { studentId: 'student-c', date: parseDateOnly('2026-08-26') },
+        { studentId: 'student-b', date: parseDateOnly('2026-08-24') },
       ],
       existingAssignments: [
         { slotId: 'occurrence-b-slot-2', studentId: 'student-c', source: 'AUTO', locked: false },
         { slotId: 'occurrence-b-slot-1', studentId: 'student-b', source: 'MANUAL', locked: true },
       ],
       historicalBaseline: [
-        { studentId: 'student-c', aggregateActualPoints: 2, aggregateOpportunityPoints: 8 },
-        { studentId: 'student-a', aggregateActualPoints: 4, aggregateOpportunityPoints: 8 },
-        { studentId: 'student-b', aggregateActualPoints: 3, aggregateOpportunityPoints: 8 },
+        {
+          studentId: 'student-c',
+          aggregateActualPoints: 2,
+          aggregateOpportunityPoints: 8,
+          recentWeeks: [],
+        },
+        {
+          studentId: 'student-a',
+          aggregateActualPoints: 4,
+          aggregateOpportunityPoints: 8,
+          recentWeeks: [],
+        },
+        {
+          studentId: 'student-b',
+          aggregateActualPoints: 3,
+          aggregateOpportunityPoints: 8,
+          recentWeeks: [],
+        },
       ],
     },
   };

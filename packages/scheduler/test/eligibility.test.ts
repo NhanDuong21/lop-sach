@@ -3,7 +3,7 @@ import { parseDateOnly } from '@lop-sach/contracts';
 import { isStudentEligible } from '../src/index.js';
 import { createOccurrence, createStudent } from './fixtures.js';
 
-const date = '2026-08-25';
+const date = parseDateOnly('2026-08-25');
 
 describe('scheduler hard eligibility', () => {
   it('applies group, active, participation and duty-week absence rules', () => {
@@ -27,7 +27,7 @@ describe('scheduler hard eligibility', () => {
     ).toBe(false);
     expect(
       isStudentEligible(
-        createStudent({ id: 'late', participationStart: '2026-08-26' }),
+        createStudent({ id: 'late', participationStart: parseDateOnly('2026-08-26') }),
         occurrence,
         'group-1',
         [],
@@ -35,7 +35,7 @@ describe('scheduler hard eligibility', () => {
     ).toBe(false);
     expect(
       isStudentEligible(
-        createStudent({ id: 'left', participationEnd: '2026-08-24' }),
+        createStudent({ id: 'left', participationEnd: parseDateOnly('2026-08-24') }),
         occurrence,
         'group-1',
         [],

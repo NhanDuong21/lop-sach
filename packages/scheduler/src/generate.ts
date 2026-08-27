@@ -1,14 +1,19 @@
 import { schedulerInputHash } from './canonical-hash.js';
 import { isStudentEligible } from './eligibility.js';
+import { calculateFairnessResult } from './fairness.js';
+import { improveSchedule } from './improve.js';
 import { normalizeSchedulerContext } from './normalize.js';
 import { candidateTieValue } from './seed.js';
+import { scoreCandidate, warningsForCandidate } from './score.js';
 import type {
+  CandidateScore,
   ExistingAssignment,
   GeneratedAssignment,
   SchedulerContext,
   SchedulerOccurrence,
   SchedulerOutput,
   SchedulerSlot,
+  SchedulerWarning,
 } from './types.js';
 import { validateAssignments } from './validate.js';
 
@@ -109,7 +114,7 @@ export function generateSchedule(rawContext: SchedulerContext): SchedulerOutput 
   const seed = `${context.input.weekStart}|${context.generationRevision}`;
   for (const item of remaining) {
     const occurrenceStudents = assignedByOccurrence.get(item.occurrence.id) ?? new Set<string>();
-    const candidates = context.input.students.filter(
+    const hardEligibleStudents = context.input.students.filter(
       (student) =>
         isStudentEligible(
           student,
@@ -118,46 +123,86 @@ export function generateSchedule(rawContext: SchedulerContext): SchedulerOutput 
           context.input.absences,
         ) && !occurrenceStudents.has(student.id),
     );
+    const candidateCurrentPoints = hardEligibleStudents.map(
+      (student) => currentPoints.get(student.id) ?? 0,
+    );
+    const minimumCurrentPoints =
+      candidateCurrentPoints.length > 0 ? Math.min(...candidateCurrentPoints) : 0;
+    const candidates: CandidateScore[] = hardEligibleStudents.map((student) =>
+      scoreCandidate(context, assignments, item.occurrence, student, minimumCurrentPoints),
+    );
     candidates.sort(
       (left, right) =>
-        (currentPoints.get(left.id) ?? 0) - (currentPoints.get(right.id) ?? 0) ||
-        candidateTieValue(seed, item.slot.id, left.id) -
-          candidateTieValue(seed, item.slot.id, right.id) ||
-        left.id.localeCompare(right.id),
+        left.requiredRelaxationLevel - right.requiredRelaxationLevel ||
+        left.penalty - right.penalty ||
+        candidateTieValue(seed, item.slot.id, left.studentId) -
+          candidateTieValue(seed, item.slot.id, right.studentId) ||
+        left.studentId.localeCompare(right.studentId),
     );
     const selected = candidates[0];
     if (!selected) {
       unassignedSlotIds.push(item.slot.id);
       continue;
     }
-    occurrenceStudents.add(selected.id);
+    occurrenceStudents.add(selected.studentId);
     assignedByOccurrence.set(item.occurrence.id, occurrenceStudents);
     currentPoints.set(
-      selected.id,
-      (currentPoints.get(selected.id) ?? 0) + item.occurrence.workloadLevel,
+      selected.studentId,
+      (currentPoints.get(selected.studentId) ?? 0) + item.occurrence.workloadLevel,
     );
     assignments.push({
       slotId: item.slot.id,
       occurrenceId: item.occurrence.id,
-      studentId: selected.id,
+      studentId: selected.studentId,
       source: 'AUTO',
       locked: false,
-      reasonCodes: ['ELIGIBLE', 'LOW_CURRENT_WEEK_LOAD'],
+      reasonCodes: selected.reasonCodes,
     });
   }
-  assignments.sort((left, right) => left.slotId.localeCompare(right.slotId));
-  const violations = validateAssignments(context, assignments);
+  const improvedAssignments = [...improveSchedule(context, assignments)].sort((left, right) =>
+    left.slotId.localeCompare(right.slotId),
+  );
+  const violations = validateAssignments(context, improvedAssignments);
   if (violations.length > 0)
     throw new Error(
       `SCHEDULER_INVARIANT_FAILED:${violations.map((violation) => violation.code).join(',')}`,
     );
+  const warnings: SchedulerWarning[] = [];
+  for (const assignment of improvedAssignments) {
+    if (assignment.source !== 'AUTO') continue;
+    const occurrence = enabledOccurrences.find((item) => item.id === assignment.occurrenceId);
+    const student = studentMap.get(assignment.studentId);
+    if (!occurrence || !student) continue;
+    const others = improvedAssignments.filter((item) => item.slotId !== assignment.slotId);
+    warnings.push(
+      ...warningsForCandidate(
+        assignment.slotId,
+        scoreCandidate(context, others, occurrence, student),
+      ),
+    );
+  }
+  const sortedUnassignedSlotIds = [...unassignedSlotIds].sort();
+  warnings.push(
+    ...sortedUnassignedSlotIds.map((slotId) => ({
+      code: 'UNASSIGNED_SLOT' as const,
+      slotId,
+      studentId: null,
+    })),
+  );
+  warnings.sort(
+    (left, right) => left.slotId.localeCompare(right.slotId) || left.code.localeCompare(right.code),
+  );
   return {
     schedulerEngineVersion: context.schedulerEngineVersion,
     inputHash,
-    assignments,
-    unassignedSlotIds: unassignedSlotIds.sort(),
-    warnings: unassignedSlotIds
-      .sort()
-      .map((slotId) => ({ code: 'UNASSIGNED_SLOT', slotId, studentId: null })),
+    assignments: improvedAssignments,
+    unassignedSlotIds: sortedUnassignedSlotIds,
+    warnings,
+    fairness: calculateFairnessResult(
+      context,
+      improvedAssignments,
+      sortedUnassignedSlotIds,
+      warnings,
+    ),
   };
 }

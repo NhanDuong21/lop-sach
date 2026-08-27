@@ -1,4 +1,6 @@
 import type {
+  DateOnly,
+  FairnessResult,
   StudentGender,
   StudentRestriction,
   TaskEligibilityRule,
@@ -10,8 +12,8 @@ export interface SchedulerStudent {
   readonly groupId: string;
   readonly active: boolean;
   readonly gender: StudentGender;
-  readonly participationStart: string | null;
-  readonly participationEnd: string | null;
+  readonly participationStart: DateOnly | null;
+  readonly participationEnd: DateOnly | null;
   readonly restrictions: readonly StudentRestriction[];
 }
 
@@ -21,7 +23,7 @@ export interface SchedulerSlot {
 }
 export interface SchedulerOccurrence {
   readonly id: string;
-  readonly date: string;
+  readonly date: DateOnly;
   readonly taskTemplateId: string | null;
   readonly taskFingerprint: string;
   readonly taskName: string;
@@ -34,7 +36,7 @@ export interface SchedulerOccurrence {
 }
 export interface SchedulerAbsence {
   readonly studentId: string;
-  readonly date: string;
+  readonly date: DateOnly;
 }
 export interface ExistingAssignment {
   readonly slotId: string;
@@ -46,9 +48,26 @@ export interface StudentHistoricalBaseline {
   readonly studentId: string;
   readonly aggregateActualPoints: number;
   readonly aggregateOpportunityPoints: number;
+  readonly recentWeeks: readonly StudentRecentWeekSummary[];
+}
+export interface RecentTaskSummary {
+  readonly taskFingerprint: string;
+  readonly count: number;
+  readonly lastPerformedDate: DateOnly;
+}
+export interface RecentPairingSummary {
+  readonly studentId: string;
+  readonly count: number;
+}
+export interface StudentRecentWeekSummary {
+  readonly weekStart: DateOnly;
+  readonly tasks: readonly RecentTaskSummary[];
+  readonly dutyDates: readonly DateOnly[];
+  readonly heavyDutyDates: readonly DateOnly[];
+  readonly pairings: readonly RecentPairingSummary[];
 }
 export interface SchedulerInput {
-  readonly weekStart: string;
+  readonly weekStart: DateOnly;
   readonly selectedGroupId: string;
   readonly students: readonly SchedulerStudent[];
   readonly occurrences: readonly SchedulerOccurrence[];
@@ -77,7 +96,12 @@ export interface GeneratedAssignment {
   readonly reasonCodes: readonly string[];
 }
 export interface SchedulerWarning {
-  readonly code: 'UNASSIGNED_SLOT' | 'SAME_DAY_ASSIGNMENT_RELAXED';
+  readonly code:
+    | 'UNASSIGNED_SLOT'
+    | 'SAME_DAY_ASSIGNMENT_RELAXED'
+    | 'RECENT_TASK_REPEAT_RELAXED'
+    | 'CONSECUTIVE_DATES_RELAXED'
+    | 'WORKLOAD_BALANCE_RELAXED';
   readonly slotId: string;
   readonly studentId: string | null;
 }
@@ -87,9 +111,36 @@ export interface SchedulerOutput {
   readonly assignments: readonly GeneratedAssignment[];
   readonly unassignedSlotIds: readonly string[];
   readonly warnings: readonly SchedulerWarning[];
+  readonly fairness: FairnessResult;
 }
 export interface ConstraintViolation {
   readonly code: string;
   readonly slotId?: string;
   readonly studentId?: string;
+}
+
+export interface CandidateScoreFacts {
+  readonly normalizedHistoricalLoad: number;
+  readonly currentWeekPoints: number;
+  readonly recentTaskFrequency: number;
+  readonly repeatedTaskPreviousWeek: boolean;
+  readonly sameDayAssignmentCount: number;
+  readonly sameDayAllLightweight: boolean;
+  readonly recentHeavyDutyCount: number;
+  readonly consecutiveDutyDate: boolean;
+  readonly repeatedPairingCount: number;
+  readonly softGenderMismatch: boolean;
+  readonly taskRecentlyPerformed: boolean;
+}
+
+export interface CandidateScore {
+  readonly studentId: string;
+  readonly penalty: number;
+  readonly requiredRelaxationLevel: 0 | 1 | 2 | 3 | 4;
+  readonly facts: CandidateScoreFacts;
+  readonly reasonCodes: readonly string[];
+}
+
+export interface ReplacementSuggestion extends CandidateScore {
+  readonly explanations: readonly string[];
 }

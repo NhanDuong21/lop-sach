@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { parseDateOnly } from '@lop-sach/contracts';
 import { generateSchedule, validateAssignments } from '../src/index.js';
 import { createContext, createOccurrence, createStudent } from './fixtures.js';
 
@@ -63,7 +64,10 @@ describe('deterministic generation', () => {
       ...context,
       input: {
         ...context.input,
-        absences: [...context.input.absences, { studentId: 'student-b', date: '2026-08-25' }],
+        absences: [
+          ...context.input.absences,
+          { studentId: 'student-b', date: parseDateOnly('2026-08-25') },
+        ],
       },
     };
     expect(() => generateSchedule(invalid)).toThrow(

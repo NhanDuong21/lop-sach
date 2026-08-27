@@ -1,4 +1,5 @@
 import type { StudentRestriction } from '@lop-sach/contracts';
+import { normalizeHistoricalBaseline } from './fairness.js';
 import type { SchedulerContext, SchedulerOccurrence, SchedulerStudent } from './types.js';
 
 function compareText(left: string, right: string): number {
@@ -65,9 +66,9 @@ export function normalizeSchedulerContext(context: SchedulerContext): SchedulerC
         (left, right) =>
           compareText(left.slotId, right.slotId) || compareText(left.studentId, right.studentId),
       ),
-      historicalBaseline: [...context.input.historicalBaseline].sort((left, right) =>
-        compareText(left.studentId, right.studentId),
-      ),
+      historicalBaseline: [...context.input.historicalBaseline]
+        .map(normalizeHistoricalBaseline)
+        .sort((left, right) => compareText(left.studentId, right.studentId)),
     },
   };
 }

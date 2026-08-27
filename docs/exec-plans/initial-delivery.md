@@ -4,27 +4,27 @@
 
 - Bắt đầu: 2026-08-27
 - Nhánh: `main`
-- Milestone hiện tại: 6 — Fairness/replacements
+- Milestone hiện tại: 7 — Duty-week lifecycle
 - Production topology: `DEFERRED_EXTERNAL_CREDENTIALS`
 
 ## Milestones
 
-| Milestone                      | Trạng thái               | Commit                                                       | Validation                                                  |
-| ------------------------------ | ------------------------ | ------------------------------------------------------------ | ----------------------------------------------------------- |
-| 0. Repository foundation       | Hoàn tất                 | `chore(repo): establish repository foundation`               | `pnpm check` xanh                                           |
-| 1. Contracts/date-only         | Hoàn tất                 | `feat(contracts): define shared duty scheduling contracts`   | 5 tests xanh; typecheck/lint xanh                           |
-| 2. Auth/migrations/login shell | Hoàn tất                 | `feat(auth): add secure sessions and deployment-ready login` | 20 tests xanh; full `pnpm check` xanh                       |
-| 2.5. Deployment topology spike | Hoàn tất phần repository | `chore(deploy): add verifiable production topology`          | Repo gates xanh; production `DEFERRED_EXTERNAL_CREDENTIALS` |
-| 3. Master-data API             | Hoàn tất                 | `feat(classroom): add revisioned classroom master data`      | 25 tests xanh; full `pnpm check` xanh                       |
-| 4. Master-data UI              | Hoàn tất                 | `feat(web): complete onboarding and classroom management`    | 28 tests + API runtime import; full `pnpm check` xanh       |
-| 5. Scheduler core/hash         | Hoàn tất                 | `feat(scheduler): add canonical deterministic generation`    | 17 scheduler tests; full `pnpm check` xanh                  |
-| 6. Fairness/replacements       | Đang thực hiện           | Chưa có                                                      | Chưa chạy                                                   |
-| 7. Duty-week lifecycle         | Chưa bắt đầu             | Chưa có                                                      | Chưa chạy                                                   |
-| 8. Weekly UI                   | Chưa bắt đầu             | Chưa có                                                      | Chưa chạy                                                   |
-| 9. History/export/backup       | Chưa bắt đầu             | Chưa có                                                      | Chưa chạy                                                   |
-| 10. PWA/offline                | Chưa bắt đầu             | Chưa có                                                      | Chưa chạy                                                   |
-| 11. Quality/docs               | Chưa bắt đầu             | Chưa có                                                      | Chưa chạy                                                   |
-| 12. Production deployment      | Bị chặn ngoài repo       | Chưa có                                                      | Chưa chạy                                                   |
+| Milestone                      | Trạng thái               | Commit                                                          | Validation                                                  |
+| ------------------------------ | ------------------------ | --------------------------------------------------------------- | ----------------------------------------------------------- |
+| 0. Repository foundation       | Hoàn tất                 | `chore(repo): establish repository foundation`                  | `pnpm check` xanh                                           |
+| 1. Contracts/date-only         | Hoàn tất                 | `feat(contracts): define shared duty scheduling contracts`      | 5 tests xanh; typecheck/lint xanh                           |
+| 2. Auth/migrations/login shell | Hoàn tất                 | `feat(auth): add secure sessions and deployment-ready login`    | 20 tests xanh; full `pnpm check` xanh                       |
+| 2.5. Deployment topology spike | Hoàn tất phần repository | `chore(deploy): add verifiable production topology`             | Repo gates xanh; production `DEFERRED_EXTERNAL_CREDENTIALS` |
+| 3. Master-data API             | Hoàn tất                 | `feat(classroom): add revisioned classroom master data`         | 25 tests xanh; full `pnpm check` xanh                       |
+| 4. Master-data UI              | Hoàn tất                 | `feat(web): complete onboarding and classroom management`       | 28 tests + API runtime import; full `pnpm check` xanh       |
+| 5. Scheduler core/hash         | Hoàn tất                 | `feat(scheduler): add canonical deterministic generation`       | 17 scheduler tests; full `pnpm check` xanh                  |
+| 6. Fairness/replacements       | Hoàn tất                 | `feat(scheduler): add bounded fairness and explainable ranking` | 25 scheduler tests; full `pnpm check` xanh                  |
+| 7. Duty-week lifecycle         | Đang thực hiện           | Chưa có                                                         | Chưa chạy                                                   |
+| 8. Weekly UI                   | Chưa bắt đầu             | Chưa có                                                         | Chưa chạy                                                   |
+| 9. History/export/backup       | Chưa bắt đầu             | Chưa có                                                         | Chưa chạy                                                   |
+| 10. PWA/offline                | Chưa bắt đầu             | Chưa có                                                         | Chưa chạy                                                   |
+| 11. Quality/docs               | Chưa bắt đầu             | Chưa có                                                         | Chưa chạy                                                   |
+| 12. Production deployment      | Bị chặn ngoài repo       | Chưa có                                                         | Chưa chạy                                                   |
 
 ## Quyết định
 
@@ -52,6 +52,7 @@
 - Milestone 4: web có auth/onboarding route guards, wizard sáu bước resumable, responsive desktop sidebar/mobile bottom navigation, classroom/group/student/task CRUD UI, password-change flow và Vietnamese loading/empty/error states. Student form chỉ có no-heavy, task-exclusion và exempt-date-range; test xác nhận không có control absence theo ngày. Bốn component tests, production build và full gate xanh. Runtime smoke trong lúc chuẩn bị Browser QA phát hiện compiled Node 24 không tương thích named runtime imports từ Mongoose; mọi model/service đã đổi sang default runtime import và `pnpm check` nay có `test:api-runtime` để chặn regression.
 - In-app Browser không có instance khả dụng trong phiên nên không có tuyên bố visual Browser smoke. Responsive layout được kiểm tra bằng component/build gates và CSS breakpoint 760/480 px; interactive Browser verification vẫn phải chạy khi surface khả dụng hoặc trong E2E milestone.
 - Milestone 5: scheduler framework-independent đã có canonical JSON với object-key sorting, semantic-set normalization và SHA-256 đa runtime từ `@noble/hashes`; FNV-1a chỉ dùng cho deterministic candidate tie-breaking. Context hash bao gồm engine version, generation revision và classroom/student/task/week revisions. Hard eligibility chỉ dùng group/active/participation, duty-week absence, ba persistent restriction types và hard gender rule; không có start time, end time, time bucket hay same-day hard constraint. Manual/locked assignment hợp lệ được giữ; fixed assignment không hợp lệ làm generation fail rõ ràng. 17 scheduler tests xanh, gồm SHA-256 known vector, permutation-invariant hash/output, version/revision mutation, outdated-client reload response, lock preservation, impossible schedule và repeated invariant permutations. Full `pnpm check` xanh với 45 tests toàn repository và API compiled runtime import.
+- Milestone 6: fairness dùng aggregate actual/opportunity với prior `P=4`; baseline chỉ giữ tám eligible completed-week summaries gần nhất và deterministic loại tuần thứ chín. Candidate scoring áp dụng đúng trọng số đã duyệt, controlled relaxation theo bốn cấp và warning có cấu trúc; nhiều assignment cùng ngày vẫn là soft constraint. Local improvement chỉ swap assignment `AUTO` chưa lock, có giới hạn `min(500, 4 × slotCount²)`, chỉ nhận strict improvement và validate hard constraints sau mỗi accepted swap/lần cuối. Replacement dùng cùng hard filters, xếp hạng deterministic, sinh giải thích tiếng Việt từ fact thật và chỉ đổi slot đích. Fairness score/label/cap khi unassigned đã được triển khai. 25 scheduler tests xanh, gồm new-student shrinkage, eight-week truncation, same-day relaxation, local improvement và replacement isolation; full `pnpm check` xanh với 53 tests toàn repository.
 
 ## Remaining work
 
