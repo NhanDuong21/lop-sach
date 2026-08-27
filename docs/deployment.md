@@ -11,6 +11,7 @@ Import Git repository với Root Directory để trống, nghĩa là repository 
 - Install command: để Vercel nhận `pnpm-lock.yaml` và `packageManager` ở root.
 - Framework preset: Vite hoặc Other; `vercel.json` ở root là nguồn cấu hình checked-in.
 - Production server variables: `LOP_SACH_API_ORIGIN` và `LOP_SACH_PROXY_SECRET`.
+- Xác nhận Vercel function runtime dùng `NODE_ENV=production`; proxy dùng giá trị này để bắt buộc HTTPS upstream. Đây là platform runtime value, không phải secret.
 - Không tạo biến `VITE_*` cho upstream hoặc proxy secret.
 - Preview không được trỏ production API mặc định.
 
@@ -46,7 +47,19 @@ Trước lần cài đầu tiên, ghi lại hostname, CPU architecture, RAM, dis
 - Vercel tạo `X-Forwarded-For` đã sanitize. Nginx ghi đè header chuyển tới Express từ giá trị đó; Express production tin đúng một hop Nginx và kiểm tra proxy secret trước rate limiting. Request direct không có secret bị từ chối.
 - Nếu host 1 GiB chưa có swap, tạo 1 GiB swap chỉ sau khi xác minh đúng disk/mount và free space.
 
-Thay `api.example.invalid` trong Nginx template bằng DNS thật, chạy `nginx -t`, xem diff candidate config rồi mới reload. Không ghi secret trong Nginx config hoặc repository.
+Các path và service name đã implement:
+
+- Release root: `/opt/lop-sach/releases/<release-id>`.
+- Active symlink: `/opt/lop-sach/current`.
+- API environment: `/etc/lop-sach/api.env`.
+- systemd source template: `ops/systemd/lop-sach-api.service`.
+- systemd installed unit: `/etc/systemd/system/lop-sach-api.service`.
+- Nginx source template: `ops/nginx/lop-sach-api.conf`.
+- Nginx installed candidate: `/etc/nginx/sites-available/lop-sach-api.conf`.
+- Nginx enabled symlink: `/etc/nginx/sites-enabled/lop-sach-api.conf`.
+- Rollback helper sau khi admin review/install: `/usr/local/sbin/lop-sach-rollback-api`.
+
+Trong lần bootstrap VPS, copy đúng hai template trên tới installed paths, tạo enabled symlink, rồi chạy `systemctl daemon-reload`, `systemctl enable lop-sach-api.service` và `nginx -t` trước khi start/reload. Thay toàn bộ `api.example.invalid` trong Nginx candidate bằng API hostname thật, bao gồm `server_name` và hai certificate paths. Xem diff candidate trước khi cài; không ghi secret trong Nginx config hoặc repository.
 
 ## Environment file trên VPS
 
@@ -60,18 +73,69 @@ LOG_LEVEL=info
 LOP_SACH_PROXY_SECRET=<random secret at least 32 characters>
 ```
 
-## Topology smoke gate
+`NODE_ENV=production` không nằm trong file này vì unit `lop-sach-api.service` đặt trực tiếp và deploy script cũng export trước khi chạy migration. Giữ `PORT=3000`: Nginx upstream, systemd readiness và deploy/rollback scripts hiện cùng dùng cổng này. Thay đổi port cần sửa đồng bộ các file vận hành rồi redeploy, không chỉ sửa environment file.
 
-Đặt các biến sau trong terminal/secret store, không ghi vào shell history hoặc Git:
+## Migration và owner bootstrap
 
-```text
-LOP_SACH_TOPOLOGY_WEB_ORIGIN
-LOP_SACH_TOPOLOGY_API_ORIGIN
-LOP_SACH_SMOKE_USERNAME
-LOP_SACH_SMOKE_PASSWORD
+Trong source checkout dành cho development, lệnh migration là:
+
+```bash
+pnpm --filter @lop-sach/api db:migrate
 ```
 
-Sau đó chạy `ops/scripts/smoke-test.sh` và `ops/scripts/topology-smoke-test.sh`. Playwright kiểm tra HTTPS, login qua frontend origin, cookie host/flags, `auth/me` sau refresh, Origin sai bị 403, logout xóa/revoke session, liveness/readiness và `no-store`.
+Production không có `tsx` dev dependency. `deploy-api.sh` source `/etc/lop-sach/api.env`, export `NODE_ENV=production` và chạy migration đã compile trên inactive release bằng:
+
+```bash
+/usr/bin/node /opt/lop-sach/releases/<release-id>/apps/api/dist/cli/migrate.js
+```
+
+Script chỉ đổi `/opt/lop-sach/current` sau khi lệnh này thành công. Không chạy migration thủ công trên active release như một cách bỏ qua deploy gate.
+
+Sau deployment đầu tiên, tạo owner đúng một lần từ terminal quản trị bảo mật. Không truyền password qua CLI argument và không ghi password vào shell history:
+
+```bash
+sudo -i
+set -a
+source /etc/lop-sach/api.env
+set +a
+export NODE_ENV=production
+read -r -p "Owner username: " OWNER_USERNAME
+read -r -p "Owner display name: " OWNER_DISPLAY_NAME
+read -r -s -p "Owner password: " OWNER_PASSWORD
+printf '\n'
+export OWNER_USERNAME OWNER_DISPLAY_NAME OWNER_PASSWORD
+sudo -u lop-sach --preserve-env=NODE_ENV,PORT,MONGODB_URI,APP_ORIGIN,LOG_LEVEL,LOP_SACH_PROXY_SECRET,OWNER_USERNAME,OWNER_DISPLAY_NAME,OWNER_PASSWORD \
+  /usr/bin/node /opt/lop-sach/current/apps/api/dist/cli/owner.js
+unset OWNER_PASSWORD OWNER_USERNAME OWNER_DISPLAY_NAME
+exit
+```
+
+`OWNER_PASSWORD` phải có ít nhất 12 ký tự; nên tạo bằng password manager. Chạy lại CLI với cùng normalized username sẽ đổi password/display name và revoke toàn bộ session. V1 không cho tạo owner thứ hai.
+
+## Topology smoke gate
+
+Smoke cơ bản không cần credential. Đặt đúng hai biến mà `smoke-test.sh` đọc:
+
+```bash
+export LOP_SACH_WEB_ORIGIN=https://<frontend-host>
+export LOP_SACH_API_ORIGIN=https://<api-host>
+ops/scripts/smoke-test.sh
+```
+
+Topology smoke có login cần bốn biến riêng sau trong terminal/secret store; không ghi username/password vào shell history hoặc Git:
+
+```bash
+export LOP_SACH_TOPOLOGY_WEB_ORIGIN=https://<frontend-host>
+export LOP_SACH_TOPOLOGY_API_ORIGIN=https://<api-host>
+read -r -p "Smoke owner username: " LOP_SACH_SMOKE_USERNAME
+read -r -s -p "Smoke owner password: " LOP_SACH_SMOKE_PASSWORD
+printf '\n'
+export LOP_SACH_SMOKE_USERNAME LOP_SACH_SMOKE_PASSWORD
+ops/scripts/topology-smoke-test.sh
+unset LOP_SACH_SMOKE_PASSWORD LOP_SACH_SMOKE_USERNAME
+```
+
+Playwright kiểm tra HTTPS, login qua frontend origin, cookie host/flags, `auth/me` sau refresh, Origin sai bị 403, logout xóa/revoke session, liveness/readiness và `no-store`.
 
 Không chuyển gate thành `VERIFIED` nếu test bị skip, thiếu biến, chỉ chạy local hoặc chưa đi qua đúng Vercel/Nginx production chain.
 
@@ -113,4 +177,10 @@ Trước kỳ nghỉ dài hoặc tắt VPS:
 
 ## Rollback và retention
 
-Giữ ít nhất ba release. `rollback-api.sh` chỉ nhận một release ID đã tồn tại dưới `/opt/lop-sach/releases`, đổi symlink atomically và kiểm tra readiness; script không down-migrate database. Backup ứng dụng là bắt buộc trước release ảnh hưởng schema, restore hoặc kỳ nghỉ dài.
+Giữ ít nhất ba release. Sau khi admin đã review và cài `ops/scripts/rollback-api.sh` thành `/usr/local/sbin/lop-sach-rollback-api` với owner root và mode `0750`, lệnh rollback chính xác là:
+
+```bash
+sudo /usr/local/sbin/lop-sach-rollback-api <existing-release-id>
+```
+
+Script chỉ nhận release ID đã tồn tại dưới `/opt/lop-sach/releases`, đổi symlink atomically, restart `lop-sach-api.service` và kiểm tra `http://127.0.0.1:3000/health/ready`; script không down-migrate database. Backup ứng dụng là bắt buộc trước release ảnh hưởng schema, restore hoặc kỳ nghỉ dài.
