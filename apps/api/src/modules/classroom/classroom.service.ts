@@ -1,11 +1,13 @@
 import { ClassroomSchema, type Classroom } from '@lop-sach/contracts';
-import { Types, type ClientSession, type HydratedDocument } from 'mongoose';
+import mongoose, { type ClientSession, type HydratedDocument } from 'mongoose';
 import { withTransaction } from '../../database/transaction.js';
 import { createId } from '../../shared/ids.js';
 import { HttpProblem } from '../../shared/problem.js';
 import { StudentModel } from '../students/student.model.js';
 import { TaskTemplateModel } from '../task-templates/task-template.model.js';
 import { ClassroomModel, type ClassroomDocument } from './classroom.model.js';
+
+const { Types } = mongoose;
 
 interface ClassroomCreateInput {
   readonly name: string;
@@ -46,7 +48,7 @@ function mapClassroom(document: ClassroomHydrated): Classroom {
   });
 }
 
-function ownerObjectId(ownerId: string): Types.ObjectId {
+function ownerObjectId(ownerId: string): mongoose.Types.ObjectId {
   return new Types.ObjectId(ownerId);
 }
 

@@ -1,9 +1,11 @@
 import { TaskTemplateSchema, type TaskTemplate, type TaskEligibilityRule, type WorkloadLevel } from '@lop-sach/contracts';
-import { Types, type ClientSession, type HydratedDocument } from 'mongoose';
+import mongoose, { type ClientSession, type HydratedDocument } from 'mongoose';
 import { withTransaction } from '../../database/transaction.js';
 import { HttpProblem } from '../../shared/problem.js';
 import { ClassroomModel, type ClassroomDocument } from '../classroom/classroom.model.js';
 import { TaskTemplateModel, type TaskTemplateDocument } from './task-template.model.js';
+
+const { Types } = mongoose;
 
 interface TaskCreateInput {
   readonly name: string;
@@ -48,12 +50,12 @@ async function ownerClassroom(ownerId: string, session?: ClientSession): Promise
   return classroom as ClassroomHydrated;
 }
 
-function taskObjectId(taskId: string): Types.ObjectId {
+function taskObjectId(taskId: string): mongoose.Types.ObjectId {
   if (!Types.ObjectId.isValid(taskId)) throw new HttpProblem(404, 'RESOURCE_NOT_FOUND', 'Không tìm thấy task.');
   return new Types.ObjectId(taskId);
 }
 
-async function findTask(classroomId: Types.ObjectId, taskId: string, session?: ClientSession): Promise<TaskHydrated> {
+async function findTask(classroomId: mongoose.Types.ObjectId, taskId: string, session?: ClientSession): Promise<TaskHydrated> {
   const query = TaskTemplateModel.findOne({ _id: taskObjectId(taskId), classroomId });
   if (session) query.session(session);
   const task = await query;
@@ -61,7 +63,7 @@ async function findTask(classroomId: Types.ObjectId, taskId: string, session?: C
   return task as TaskHydrated;
 }
 
-async function bumpTaskRevision(classroomId: Types.ObjectId, session: ClientSession): Promise<void> {
+async function bumpTaskRevision(classroomId: mongoose.Types.ObjectId, session: ClientSession): Promise<void> {
   await ClassroomModel.updateOne({ _id: classroomId }, {
     $inc: { 'revisionCounters.tasks': 1, dataRevision: 1, version: 1 },
   }, { session });

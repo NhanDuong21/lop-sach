@@ -4,7 +4,7 @@
 
 - Bắt đầu: 2026-08-27
 - Nhánh: `main`
-- Milestone hiện tại: 4 — Master-data UI
+- Milestone hiện tại: 5 — Scheduler core/hash
 - Production topology: `DEFERRED_EXTERNAL_CREDENTIALS`
 
 ## Milestones
@@ -16,8 +16,8 @@
 | 2. Auth/migrations/login shell | Hoàn tất | `feat(auth): add secure sessions and deployment-ready login` | 20 tests xanh; full `pnpm check` xanh |
 | 2.5. Deployment topology spike | Hoàn tất phần repository | `chore(deploy): add verifiable production topology` | Repo gates xanh; production `DEFERRED_EXTERNAL_CREDENTIALS` |
 | 3. Master-data API | Hoàn tất | `feat(classroom): add revisioned classroom master data` | 25 tests xanh; full `pnpm check` xanh |
-| 4. Master-data UI | Đang thực hiện | Chưa có | Chưa chạy |
-| 5. Scheduler core/hash | Chưa bắt đầu | Chưa có | Chưa chạy |
+| 4. Master-data UI | Hoàn tất | `feat(web): complete onboarding and classroom management` | 28 tests + API runtime import; full `pnpm check` xanh |
+| 5. Scheduler core/hash | Đang thực hiện | Chưa có | Chưa chạy |
 | 6. Fairness/replacements | Chưa bắt đầu | Chưa có | Chưa chạy |
 | 7. Duty-week lifecycle | Chưa bắt đầu | Chưa có | Chưa chạy |
 | 8. Weekly UI | Chưa bắt đầu | Chưa có | Chưa chạy |
@@ -49,6 +49,8 @@
 - Milestone 2.5: root Vercel config, Nginx/systemd templates, atomic release/rollback scripts và Playwright production-topology harness đã được thêm. `pnpm check` xanh với 6 proxy tests, 9 API integration tests, 5 contract tests và 1 web component test; Playwright discover đúng 1 topology test; bốn Linux scripts qua `bash -n`, LF check và Git mode `100755`. Health outage test chứng minh liveness vẫn 200 và readiness trả safe 503 khi database mất kết nối.
 - Production topology chưa được chạy. Gate chính xác: `DEFERRED_EXTERNAL_CREDENTIALS`. Còn thiếu `LOP_SACH_TOPOLOGY_WEB_ORIGIN`, `LOP_SACH_TOPOLOGY_API_ORIGIN`, `LOP_SACH_SMOKE_USERNAME`, `LOP_SACH_SMOKE_PASSWORD`, cùng Vercel/VPS/DNS/Atlas access. Không có production URL nào đã được xác minh.
 - Milestone 3: classroom/groups, students và task-template APIs dùng owner/classroom scoping, stable group IDs, optimistic entity versions và transactionally incremented classroom/student/task revision counters. Classroom mới có bốn tổ và ba task mặc định. Student persistence/API chỉ chấp nhận `NO_HEAVY_TASKS`, `TASK_EXCLUSION`, `EXEMPT_DATE_RANGE`; request `UNAVAILABLE_DATE` bị 422 và không ghi database. Group có active-student guard; deactivate/move giữ document thay vì xóa. Task reorder yêu cầu đúng toàn bộ set và tasks revision. Full gate xanh: 6 proxy tests, 5 contract tests, 13 API integration tests và 1 web test.
+- Milestone 4: web có auth/onboarding route guards, wizard sáu bước resumable, responsive desktop sidebar/mobile bottom navigation, classroom/group/student/task CRUD UI, password-change flow và Vietnamese loading/empty/error states. Student form chỉ có no-heavy, task-exclusion và exempt-date-range; test xác nhận không có control absence theo ngày. Bốn component tests, production build và full gate xanh. Runtime smoke trong lúc chuẩn bị Browser QA phát hiện compiled Node 24 không tương thích named runtime imports từ Mongoose; mọi model/service đã đổi sang default runtime import và `pnpm check` nay có `test:api-runtime` để chặn regression.
+- In-app Browser không có instance khả dụng trong phiên nên không có tuyên bố visual Browser smoke. Responsive layout được kiểm tra bằng component/build gates và CSS breakpoint 760/480 px; interactive Browser verification vẫn phải chạy khi surface khả dụng hoặc trong E2E milestone.
 
 ## Remaining work
 

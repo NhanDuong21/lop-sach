@@ -1,11 +1,13 @@
 import { StudentSchema, type Student, type StudentRestrictionWrite } from '@lop-sach/contracts';
-import { Types, type ClientSession, type HydratedDocument } from 'mongoose';
+import mongoose, { type ClientSession, type HydratedDocument } from 'mongoose';
 import { withTransaction } from '../../database/transaction.js';
 import { createId } from '../../shared/ids.js';
 import { HttpProblem } from '../../shared/problem.js';
 import { ClassroomModel, type ClassroomDocument } from '../classroom/classroom.model.js';
 import { TaskTemplateModel } from '../task-templates/task-template.model.js';
 import { StudentModel, type StudentDocument } from './student.model.js';
+
+const { Types } = mongoose;
 
 interface StudentCreateInput {
   readonly displayName: string;
@@ -63,12 +65,12 @@ function activeGroup(classroom: ClassroomHydrated, groupId: string): void {
   }
 }
 
-function studentObjectId(studentId: string): Types.ObjectId {
+function studentObjectId(studentId: string): mongoose.Types.ObjectId {
   if (!Types.ObjectId.isValid(studentId)) throw new HttpProblem(404, 'RESOURCE_NOT_FOUND', 'Không tìm thấy học sinh.');
   return new Types.ObjectId(studentId);
 }
 
-async function findStudent(classroomId: Types.ObjectId, studentId: string, session?: ClientSession): Promise<StudentHydrated> {
+async function findStudent(classroomId: mongoose.Types.ObjectId, studentId: string, session?: ClientSession): Promise<StudentHydrated> {
   const query = StudentModel.findOne({ _id: studentObjectId(studentId), classroomId });
   if (session) query.session(session);
   const student = await query;
@@ -76,7 +78,7 @@ async function findStudent(classroomId: Types.ObjectId, studentId: string, sessi
   return student as StudentHydrated;
 }
 
-async function validateRestrictions(classroomId: Types.ObjectId, restrictions: readonly StudentRestrictionWrite[], session?: ClientSession): Promise<void> {
+async function validateRestrictions(classroomId: mongoose.Types.ObjectId, restrictions: readonly StudentRestrictionWrite[], session?: ClientSession): Promise<void> {
   const rawIds = restrictions.filter((restriction) => restriction.type === 'TASK_EXCLUSION').map((restriction) => restriction.taskTemplateId);
   if (rawIds.some((id) => !Types.ObjectId.isValid(id))) throw new HttpProblem(422, 'VALIDATION_FAILED', 'Task bị loại trừ không hợp lệ.');
   const uniqueIds = [...new Set(rawIds)];
@@ -90,7 +92,7 @@ function persistedRestrictions(restrictions: readonly StudentRestrictionWrite[])
   return restrictions.map((restriction) => ({ id: createId(), ...restriction }));
 }
 
-async function bumpStudentRevision(classroomId: Types.ObjectId, session: ClientSession): Promise<void> {
+async function bumpStudentRevision(classroomId: mongoose.Types.ObjectId, session: ClientSession): Promise<void> {
   await ClassroomModel.updateOne({ _id: classroomId }, {
     $inc: { 'revisionCounters.students': 1, dataRevision: 1, version: 1 },
   }, { session });

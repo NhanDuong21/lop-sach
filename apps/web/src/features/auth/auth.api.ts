@@ -10,3 +10,4 @@ export async function getCurrentUser(): Promise<AuthUser> {
   return response.data;
 }
 export async function logout(): Promise<void> { await apiRequest('/auth/logout', { method: 'POST', body: '{}' }); }
+export async function changePassword(input: { readonly currentPassword: string; readonly newPassword: string }): Promise<void> { await apiRequest('/auth/change-password', { method: 'POST', body: JSON.stringify(input) }); }
