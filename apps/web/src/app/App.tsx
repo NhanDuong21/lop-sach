@@ -9,6 +9,7 @@ import { CurrentWeekPage } from '../features/current-week/CurrentWeekPage.js';
 import { NewWeekPage } from '../features/duty-weeks/NewWeekPage.js';
 import { WeekEditorPage } from '../features/duty-weeks/WeekEditorPage.js';
 import { HistoryPage } from '../features/history/HistoryPage.js';
+import { HistoryDetailPage } from '../features/history/HistoryDetailPage.js';
 import { OnboardingPage } from '../features/onboarding/OnboardingPage.js';
 import { SettingsPage } from '../features/settings/SettingsPage.js';
 import { StudentsPage } from '../features/students/StudentsPage.js';
@@ -66,6 +67,7 @@ export function App(): React.JSX.Element {
         <Route path="class/students" element={<StudentsPage />} />
         <Route path="settings/tasks" element={<TaskTemplatesPage />} />
         <Route path="history" element={<HistoryPage />} />
+        <Route path="history/:weekId" element={<HistoryDetailPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="onboarding" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />

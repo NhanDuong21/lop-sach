@@ -25,7 +25,10 @@ export function WeekSummary({ week }: { readonly week: DutyWeek }): React.JSX.El
                     .map(
                       (slot) =>
                         week.assignments.find((assignment) => assignment.slotId === slot.id)
-                          ?.studentDisplayName ?? 'Chưa phân công',
+                          ?.actualStudentDisplayName ??
+                        week.assignments.find((assignment) => assignment.slotId === slot.id)
+                          ?.studentDisplayName ??
+                        'Chưa phân công',
                     )
                     .join(', ')}
                 </span>

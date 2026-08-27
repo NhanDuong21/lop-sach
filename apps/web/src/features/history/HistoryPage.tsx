@@ -1,6 +1,15 @@
-import { History } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { AlertCircle, History } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { LoadingState } from '../../components/ui/LoadingState.js';
+import { StatusBadge } from '../../components/ui/StatusBadge.js';
+import { getHistoryMetrics, getHistorySummary } from './history.api.js';
 
 export function HistoryPage(): React.JSX.Element {
+  const summary = useQuery({ queryKey: ['history', 'summary'], queryFn: getHistorySummary });
+  const metrics = useQuery({ queryKey: ['history', 'metrics'], queryFn: getHistoryMetrics });
+  if (summary.isPending || metrics.isPending)
+    return <LoadingState label="Đang tải lịch sử trực nhật" />;
   return (
     <div className="page-stack">
       <header className="page-heading">
@@ -8,11 +17,56 @@ export function HistoryPage(): React.JSX.Element {
         <h1>Lịch sử trực nhật</h1>
         <p>Các tuần hoàn tất sẽ giữ snapshot để không đổi khi sửa dữ liệu lớp.</p>
       </header>
-      <section className="card empty-state">
-        <History size={30} aria-hidden="true" />
-        <h2>Chưa có tuần đã hoàn tất</h2>
-        <p>Sau khi một tuần được hoàn tất, kết quả thực tế sẽ xuất hiện tại đây.</p>
-      </section>
+      {summary.isError || metrics.isError ? (
+        <section className="card empty-state">
+          <AlertCircle size={30} aria-hidden="true" />
+          <h2>Không tải được lịch sử</h2>
+          <p>Hãy kiểm tra kết nối và thử lại.</p>
+        </section>
+      ) : summary.data?.length === 0 ? (
+        <section className="card empty-state">
+          <History size={30} aria-hidden="true" />
+          <h2>Chưa có tuần đã hoàn tất</h2>
+          <p>Sau khi một tuần được hoàn tất, kết quả thực tế sẽ xuất hiện tại đây.</p>
+        </section>
+      ) : (
+        <>
+          <section className="card">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">Tổng hợp actual performer</p>
+                <h2>Khối lượng đã hoàn thành</h2>
+              </div>
+            </div>
+            <div className="metrics-table" role="table" aria-label="Thống kê lịch sử">
+              {metrics.data?.map((metric) => (
+                <div className="metric-row" role="row" key={metric.studentId}>
+                  <strong role="cell">{metric.studentDisplayName}</strong>
+                  <span role="cell">{metric.dutyCount} lượt</span>
+                  <span role="cell">{metric.actualPoints.toFixed(1)} điểm việc</span>
+                </div>
+              ))}
+            </div>
+          </section>
+          <section className="history-list" aria-label="Các tuần đã hoàn tất">
+            {summary.data?.map((week) => (
+              <Link className="history-card card" to={`/history/${week.id}`} key={week.id}>
+                <div>
+                  <span className="muted">Tuần {week.weekStart}</span>
+                  <h2>{week.groupName}</h2>
+                  <span>
+                    {week.actualPoints.toFixed(1)} điểm việc · Bản {week.publicationRevision}
+                  </span>
+                </div>
+                <div className="history-card-status">
+                  <StatusBadge tone="success">{week.fairness?.label ?? 'Đã hoàn tất'}</StatusBadge>
+                  {week.warningCount > 0 ? <span>{week.warningCount} cảnh báo</span> : null}
+                </div>
+              </Link>
+            ))}
+          </section>
+        </>
+      )}
     </div>
   );
 }

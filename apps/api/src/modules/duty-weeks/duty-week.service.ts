@@ -7,6 +7,8 @@ import {
   weekDates,
   type DutyGroupSelectionBasis,
   type DutyWeek,
+  type HistoryMetric,
+  type HistorySummaryItem,
   type TaskEligibilityRule,
   type WorkloadLevel,
   WorkloadLevelSchema,
@@ -338,6 +340,63 @@ export async function listDutyWeeks(
 export async function getDutyWeek(ownerId: string, weekId: string): Promise<DutyWeek> {
   const week = await findWeek(ownerId, weekId);
   return mapDutyWeek(week, await generationContextIsStale(week));
+}
+
+export async function listHistorySummary(ownerId: string): Promise<readonly HistorySummaryItem[]> {
+  const classroom = await ownerClassroom(ownerId);
+  const weeks = await DutyWeekModel.find({ classroomId: classroom._id, status: 'COMPLETED' }).sort({
+    weekStart: -1,
+    _id: -1,
+  });
+  return weeks.map((rawWeek) => {
+    const week = rawWeek as DutyWeekHydrated;
+    return {
+      id: String(week._id),
+      weekStart: DateOnlySchema.parse(week.weekStart),
+      groupName: week.groupSnapshot.name,
+      status: 'COMPLETED' as const,
+      publicationRevision: week.publicationRevision,
+      fairness: week.fairness,
+      warningCount: week.warnings.length,
+      actualPoints: week.completionLedger.reduce((total, entry) => total + entry.actualPoints, 0),
+      usedAssignedPerformerFallback: week.completionLedger.some(
+        (entry) => entry.usedAssignedPerformerFallback,
+      ),
+    };
+  });
+}
+
+export async function historyMetrics(ownerId: string): Promise<readonly HistoryMetric[]> {
+  const classroom = await ownerClassroom(ownerId);
+  const weeks = await DutyWeekModel.find({ classroomId: classroom._id, status: 'COMPLETED' }).sort({
+    weekStart: 1,
+    _id: 1,
+  });
+  const metrics = new Map<string, HistoryMetric>();
+  for (const rawWeek of weeks) {
+    const week = rawWeek as DutyWeekHydrated;
+    const names = new Map(
+      week.studentSnapshots.map((student) => [student.id, student.displayName]),
+    );
+    for (const entry of week.completionLedger) {
+      const previous = metrics.get(entry.studentId);
+      metrics.set(entry.studentId, {
+        studentId: entry.studentId,
+        studentDisplayName:
+          names.get(entry.studentId) ?? previous?.studentDisplayName ?? 'Học sinh trong snapshot',
+        actualPoints: (previous?.actualPoints ?? 0) + entry.actualPoints,
+        opportunityPoints: (previous?.opportunityPoints ?? 0) + entry.opportunityPoints,
+        dutyCount:
+          (previous?.dutyCount ?? 0) + entry.tasks.reduce((total, task) => total + task.count, 0),
+        completedWeekCount: (previous?.completedWeekCount ?? 0) + 1,
+      });
+    }
+  }
+  return [...metrics.values()].sort(
+    (left, right) =>
+      right.actualPoints - left.actualPoints ||
+      left.studentDisplayName.localeCompare(right.studentDisplayName, 'vi'),
+  );
 }
 
 export async function createDutyWeek(ownerId: string, input: CreateWeekInput): Promise<DutyWeek> {
@@ -942,7 +1001,10 @@ interface MutableCompletionLedgerEntry {
   readonly pairings: Map<string, number>;
 }
 
-function completionLedger(week: DutyWeekHydrated): DutyWeek['completionLedger'] {
+function completionLedger(
+  week: DutyWeekHydrated,
+  fallbackStudentIds: ReadonlySet<string>,
+): DutyWeek['completionLedger'] {
   const mutable = new Map<string, MutableCompletionLedgerEntry>(
     week.studentSnapshots.map((student) => [
       student.id,
@@ -1021,7 +1083,7 @@ function completionLedger(week: DutyWeekHydrated): DutyWeek['completionLedger'] 
       pairings: [...entry.pairings.entries()]
         .map(([studentId, count]) => ({ studentId, count }))
         .sort((left, right) => left.studentId.localeCompare(right.studentId)),
-      usedAssignedPerformerFallback: false,
+      usedAssignedPerformerFallback: fallbackStudentIds.has(entry.studentId),
     }))
     .sort((left, right) => left.studentId.localeCompare(right.studentId));
 }
@@ -1048,6 +1110,7 @@ export async function completeDutyWeek(
   }
   const snapshotById = new Map(week.studentSnapshots.map((student) => [student.id, student]));
   const occurrenceStudentKeys = new Set<string>();
+  const fallbackStudentIds = new Set<string>();
   for (const assignment of week.assignments) {
     if (assignment.studentId === null) {
       throw new HttpProblem(
@@ -1057,6 +1120,7 @@ export async function completeDutyWeek(
       );
     }
     const actualStudentId = actualBySlot.get(assignment.slotId) ?? assignment.studentId;
+    if (!actualBySlot.has(assignment.slotId)) fallbackStudentIds.add(actualStudentId);
     const student = snapshotById.get(actualStudentId);
     const occurrence = week.taskOccurrences.find((item) => item.id === assignment.occurrenceId);
     if (!student || !occurrence || student.groupId !== week.selectedGroupId) {
@@ -1101,7 +1165,7 @@ export async function completeDutyWeek(
     assignment.actualStudentDisplayName = student.displayName;
   }
   for (const slotId of actualBySlot.keys()) slotDetails(week, slotId);
-  week.completionLedger = completionLedger(week);
+  week.completionLedger = completionLedger(week, fallbackStudentIds);
   week.status = 'COMPLETED';
   appendDutyWeekChange(week, ownerId, 'WEEK_COMPLETED');
   return saveWeek(week, false);

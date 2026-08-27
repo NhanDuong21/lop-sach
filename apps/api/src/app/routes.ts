@@ -2,9 +2,13 @@ import { Router } from 'express';
 import type { AppConfig } from '../config/env.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { createAuthRouter } from '../modules/auth/auth.routes.js';
+import { createBackupRouter } from '../modules/backup/backup.routes.js';
 import { sessionCookiePolicy } from '../modules/auth/cookie-policy.js';
 import { createClassroomRouter } from '../modules/classroom/classroom.routes.js';
-import { createDutyWeekRouter } from '../modules/duty-weeks/duty-week.routes.js';
+import {
+  createDutyWeekRouter,
+  createHistoryRouter,
+} from '../modules/duty-weeks/duty-week.routes.js';
 import { createStudentRouter } from '../modules/students/student.routes.js';
 import { createTaskTemplateRouter } from '../modules/task-templates/task-template.routes.js';
 
@@ -19,5 +23,7 @@ export function createApiRouter(
   router.use('/students', requireAuth, createStudentRouter());
   router.use('/task-templates', requireAuth, createTaskTemplateRouter());
   router.use('/duty-weeks', requireAuth, createDutyWeekRouter());
+  router.use('/history', requireAuth, createHistoryRouter());
+  router.use('/backup', requireAuth, createBackupRouter());
   return router;
 }

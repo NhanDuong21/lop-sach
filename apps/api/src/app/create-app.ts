@@ -35,6 +35,7 @@ export function createApp(
   app.use(helmet());
   app.use(requestContext);
   app.use(pinoHttp({ logger, autoLogging: false }));
+  app.use('/api/v1/backup', express.json({ limit: '2mb', strict: true }));
   app.use(express.json({ limit: '256kb', strict: true }));
   app.use(cookieParser());
   app.use('/health', createHealthRouter());

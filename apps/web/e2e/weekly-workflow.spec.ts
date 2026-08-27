@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 
-test('creates, generates and publishes a weekly schedule at 360 px', async ({ page }) => {
+test('creates, publishes, completes and exports a weekly schedule at 360 px', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 780 });
   await page.goto('/login');
   await page.getByLabel('Tên đăng nhập').fill('owner');
@@ -49,6 +50,29 @@ test('creates, generates and publishes a weekly schedule at 360 px', async ({ pa
   await expect(page.getByRole('heading', { name: 'Phát hành lịch tuần?' })).toBeVisible();
   await page.getByRole('dialog').getByRole('button', { name: 'Phát hành' }).click();
   await expect(page.getByText('Đã phát hành')).toBeVisible();
+  await page.getByRole('button', { name: 'Hoàn thành tuần' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Ghi nhận người thực hiện thực tế' }),
+  ).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', { name: 'Hoàn thành tuần' }).click();
+  await expect(page.getByText('Đã hoàn thành')).toBeVisible();
+  await page.getByRole('link', { name: 'Lịch sử' }).last().click();
+  await expect(page.getByRole('heading', { name: 'Lịch sử trực nhật' })).toBeVisible();
+  await page.getByRole('link', { name: /Tuần 2026-08-24/u }).click();
+  await expect(page.getByRole('heading', { name: 'Tuần 2026-08-24' })).toBeVisible();
+  const textDownloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Xuất văn bản' }).click();
+  const textDownload = await textDownloadPromise;
+  expect(textDownload.suggestedFilename()).toBe('lop-sach-10c8-2026-08-24.txt');
+  const textPath = await textDownload.path();
+  expect(textPath).not.toBeNull();
+  const exportedText = await readFile(textPath ?? '', 'utf8');
+  expect(exportedText).toContain('LỚP SẠCH — 10C8');
+  expect(exportedText).toContain('Tuần 2026-08-24 · Tổ 1 · Bản phát hành 1');
+  expect(exportedText).not.toContain('generationContextHash');
+  const pngDownloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Xuất PNG' }).click();
+  expect((await pngDownloadPromise).suggestedFilename()).toBe('lop-sach-10c8-2026-08-24.png');
   const dimensions = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

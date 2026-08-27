@@ -26,6 +26,8 @@ import {
   getDutyWeek,
   getDutyWeekGenerationContext,
   getReplacementSuggestions,
+  historyMetrics,
+  listHistorySummary,
   listDutyWeeks,
   patchDutyWeek,
   patchTaskOccurrence,
@@ -290,6 +292,25 @@ export function createDutyWeekRouter(): Router {
           input.expectedVersion,
         ),
       });
+    } catch (error) {
+      next(error);
+    }
+  });
+  return router;
+}
+
+export function createHistoryRouter(): Router {
+  const router = Router();
+  router.get('/summary', async (_request, response, next) => {
+    try {
+      response.json({ data: await listHistorySummary(authenticatedUser(response).id) });
+    } catch (error) {
+      next(error);
+    }
+  });
+  router.get('/metrics', async (_request, response, next) => {
+    try {
+      response.json({ data: await historyMetrics(authenticatedUser(response).id) });
     } catch (error) {
       next(error);
     }

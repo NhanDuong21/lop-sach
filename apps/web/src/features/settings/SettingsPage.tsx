@@ -1,6 +1,7 @@
 import { ClipboardList, School, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PasswordPanel } from './PasswordPanel.js';
+import { BackupPanel } from './BackupPanel.js';
 
 export function SettingsPage(): React.JSX.Element {
   return (
@@ -33,6 +34,7 @@ export function SettingsPage(): React.JSX.Element {
           </div>
         </Link>
       </section>
+      <BackupPanel />
       <PasswordPanel />
     </div>
   );

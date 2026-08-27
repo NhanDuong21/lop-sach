@@ -237,9 +237,31 @@ export const CompleteDutyWeekSchema = VersionedDutyWeekMutationSchema.extend({
     .default([]),
 });
 
+export const HistorySummaryItemSchema = z.strictObject({
+  id: z.string(),
+  weekStart: DateOnlySchema,
+  groupName: z.string(),
+  status: z.literal('COMPLETED'),
+  publicationRevision: z.number().int().positive(),
+  fairness: FairnessResultSchema.nullable(),
+  warningCount: z.number().int().nonnegative(),
+  actualPoints: z.number().nonnegative(),
+  usedAssignedPerformerFallback: z.boolean(),
+});
+export const HistoryMetricSchema = z.strictObject({
+  studentId: z.string(),
+  studentDisplayName: z.string(),
+  actualPoints: z.number().nonnegative(),
+  opportunityPoints: z.number().nonnegative(),
+  dutyCount: z.number().int().nonnegative(),
+  completedWeekCount: z.number().int().nonnegative(),
+});
+
 export type AssignmentSource = z.infer<typeof AssignmentSourceSchema>;
 export type DutyGroupSelectionBasis = z.infer<typeof DutyGroupSelectionBasisSchema>;
 export type DutyWeek = z.infer<typeof DutyWeekSchema>;
 export type DutyWeekStatus = z.infer<typeof DutyWeekStatusSchema>;
 export type FairnessResult = z.infer<typeof FairnessResultSchema>;
 export type StudentFairnessBaseline = z.infer<typeof StudentFairnessBaselineSchema>;
+export type HistorySummaryItem = z.infer<typeof HistorySummaryItemSchema>;
+export type HistoryMetric = z.infer<typeof HistoryMetricSchema>;
