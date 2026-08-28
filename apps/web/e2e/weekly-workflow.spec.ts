@@ -38,10 +38,15 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   };
   const groupId = classroom.data.groups[0]?.id;
   expect(groupId).toBeTruthy();
-  for (const displayName of ['An', 'Bình', 'Chi', 'Dũng']) {
+  for (const student of [
+    { displayName: 'An', gender: 'MALE' },
+    { displayName: 'Bình', gender: 'FEMALE' },
+    { displayName: 'Chi', gender: 'UNSPECIFIED' },
+    { displayName: 'Dũng', gender: 'UNSPECIFIED' },
+  ] as const) {
     const response = await page.request.post('/api/v1/students', {
       headers: { Origin: origin },
-      data: { displayName, groupId, active: true, gender: 'UNSPECIFIED', restrictions: [] },
+      data: { ...student, groupId, active: true, restrictions: [] },
     });
     expect(response.status()).toBe(201);
   }
@@ -58,6 +63,11 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   await expect(page.getByRole('heading', { name: 'Học sinh', exact: true })).toBeVisible();
   await expect(page.locator('.student-row')).toHaveCount(4);
   await expect(page.locator('.student-row .initial-avatar').first()).toBeVisible();
+  await expect(page.locator('.student-row').filter({ hasText: 'An' })).toContainText('Tổ 1 · Nam');
+  await expect(page.locator('.student-row').filter({ hasText: 'Bình' })).toContainText('Tổ 1 · Nữ');
+  await expect(page.locator('.student-row').filter({ hasText: 'Chi' })).toContainText(
+    'Tổ 1 · Chưa thiết lập',
+  );
   await expect(page.locator('.bottom-navigation a.active')).toContainText('Lớp học');
   await expectClassTabsFit();
   await expectNoHorizontalOverflow();

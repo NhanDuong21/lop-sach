@@ -12,6 +12,7 @@ import { InitialAvatar } from '../../components/ui/InitialAvatar.js';
 import { ModalDialog } from '../../components/ui/ModalDialog.js';
 import { Notice } from '../../components/ui/Notice.js';
 import { StatusBadge } from '../../components/ui/StatusBadge.js';
+import { genderLabels } from '../../lib/vietnamese-labels.js';
 import { getClassroom } from '../classroom/classroom.api.js';
 import { listTasks } from '../tasks/tasks.api.js';
 import { BulkStudentForm } from './BulkStudentForm.js';
@@ -218,6 +219,7 @@ export function StudentsPage({
                     <p>
                       {classroom.data.groups.find((group) => group.id === student.groupId)?.name ??
                         'Tổ đã lưu'}
+                      {` · ${genderLabels[student.gender]}`}
                       {student.restrictions.length > 0
                         ? ` · ${student.restrictions.length} hạn chế`
                         : ''}

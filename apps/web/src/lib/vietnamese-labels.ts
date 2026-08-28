@@ -17,7 +17,7 @@ export const schoolDayLabels: Record<SchoolDay, string> = {
 export const genderLabels: Record<StudentGender, string> = {
   MALE: 'Nam',
   FEMALE: 'Nữ',
-  UNSPECIFIED: 'Chưa xác định',
+  UNSPECIFIED: 'Chưa thiết lập',
 };
 export const eligibilityLabels: Record<TaskEligibilityRule, string> = {
   ANY: 'Tất cả học sinh',
