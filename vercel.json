@@ -18,6 +18,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "/api/proxy?__lop_sach_path=:path*"
+    },
+    {
       "source": "/((?!api/|assets/|icons/|robots.txt|service-worker.js|manifest.webmanifest).*)",
       "destination": "/index.html"
     }

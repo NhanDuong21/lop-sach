@@ -3,8 +3,9 @@ import {
   buildUpstreamHeaders,
   createProxyConfig,
   proxyRequest,
+  resolveProxyPath,
   validateProxyPath,
-} from './proxy-core.js';
+} from './_proxy-core.js';
 
 const config = createProxyConfig({
   LOP_SACH_API_ORIGIN: 'http://127.0.0.1:3000',
@@ -17,6 +18,14 @@ describe('fixed upstream proxy', () => {
     expect(validateProxyPath('/api/v1/auth/me?x=1')).toBe('/api/v1/auth/me?x=1');
     expect(() => validateProxyPath('/api/internal')).toThrow('PROXY_ROUTE_NOT_ALLOWED');
     expect(() => validateProxyPath('https://attacker.invalid/api/v1')).toThrow();
+  });
+  it('reconstructs a multi-segment path from the fixed Vercel rewrite', () => {
+    expect(resolveProxyPath('/api/proxy?__lop_sach_path=v1%2Fauth%2Fme&include=session')).toBe(
+      '/api/v1/auth/me?include=session',
+    );
+    expect(() =>
+      resolveProxyPath('/api/proxy?__lop_sach_path=https%3A%2F%2Fattacker.invalid'),
+    ).toThrow('PROXY_ROUTE_NOT_ALLOWED');
   });
   it('forwards allowlisted headers and sanitized platform IP only', () => {
     const headers = buildUpstreamHeaders(

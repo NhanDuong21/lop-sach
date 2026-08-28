@@ -18,6 +18,7 @@
 - [x] Lần chạy kế tiếp vượt toàn bộ `pnpm check` rồi dừng trước E2E vì Playwright CLI thuộc web workspace, không thuộc root. CI và deploy workflow nay gọi CLI bằng filter web tường minh; README dùng cùng lệnh.
 - [x] Lần chạy thứ ba vượt validate/E2E và SSH pinning, nhưng inactive install dừng an toàn vì Corepack khởi chạy từ home riêng của deploy user mà app user không được phép đọc. Helper nay đổi working directory vào release trước khi chạy pnpm dưới app user; chưa có symlink active hoặc service hỏng nào được tạo.
 - [x] Lần chạy thứ tư cài production dependencies và áp dụng migration `0001-initial-indexes`, rồi lộ ra readiness check một lần quá sớm cùng first-deploy rollback nhận nhầm đường dẫn chưa tồn tại. Vòng restart đã dừng, symlink tự tham chiếu đã được gỡ; helper nay chỉ nhận symlink release có thật, poll readiness tối đa 30 giây và trả first deploy lỗi về trạng thái service dừng/không active.
+- [x] API release `74535157a6fbc26fb3f164dc38922185efe6c30c` đã deploy xanh qua workflow. Production smoke sau đó phát hiện Vercel generic function `[...path]` chỉ match một segment; route wildcard tường minh nay đưa mọi `/api/:path*` vào một fixed proxy function, giữ original path trong query nội bộ, và utility/test trong `api` được đổi prefix `_` để Vercel không xuất chúng thành functions.
 
 ## Refinement 11.12 — Lifecycle/history desktop freeze
 

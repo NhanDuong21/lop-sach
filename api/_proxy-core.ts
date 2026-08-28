@@ -64,6 +64,15 @@ export function validateProxyPath(pathAndQuery: string): string {
   return `${parsed.pathname}${parsed.search}`;
 }
 
+export function resolveProxyPath(requestUrl: string | undefined): string {
+  const parsed = new URL(requestUrl ?? '/', 'https://proxy.invalid');
+  const rewrittenPath = parsed.searchParams.get('__lop_sach_path');
+  if (!rewrittenPath) return validateProxyPath(`${parsed.pathname}${parsed.search}`);
+  parsed.searchParams.delete('__lop_sach_path');
+  const normalizedPath = rewrittenPath.replace(/^\/+/, '');
+  return validateProxyPath(`/api/${normalizedPath}${parsed.search}`);
+}
+
 function sanitizedClientIp(headers: Headers): string | null {
   const platformValue = headers.get('x-vercel-forwarded-for');
   if (!platformValue) return null;

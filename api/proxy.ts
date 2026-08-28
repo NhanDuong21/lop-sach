@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { createProxyConfig, proxyRequest } from './proxy-core.js';
+import { createProxyConfig, proxyRequest, resolveProxyPath } from './_proxy-core.js';
 
 async function readBody(request: IncomingMessage, limit: number): Promise<Uint8Array> {
   const chunks: Buffer[] = [];
@@ -24,7 +24,8 @@ export default async function handler(
       if (Array.isArray(value)) headers.set(name, value.join(', '));
       else if (value !== undefined) headers.set(name, value);
     }
-    const backup = request.url?.startsWith('/api/v1/backup/') ?? false;
+    const pathAndQuery = resolveProxyPath(request.url);
+    const backup = pathAndQuery.startsWith('/api/v1/backup/');
     const body =
       request.method === 'GET' || request.method === 'HEAD'
         ? undefined
@@ -32,7 +33,7 @@ export default async function handler(
     const result = await proxyRequest(
       {
         method: request.method ?? 'GET',
-        pathAndQuery: request.url ?? '/',
+        pathAndQuery,
         headers,
         ...(body ? { body } : {}),
       },
