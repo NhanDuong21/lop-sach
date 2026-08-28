@@ -16,6 +16,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
+    "prelint": "pnpm --filter @lop-sach/contracts build && pnpm --filter @lop-sach/scheduler build",
     "test": "pnpm test:proxy && pnpm -r --if-present test",
     "test:api-runtime": "node -e \"import('./apps/api/dist/app/create-app.js')\"",
     "test:e2e": "pnpm --filter @lop-sach/web test:e2e",

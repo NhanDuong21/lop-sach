@@ -14,6 +14,7 @@
 - [x] Vercel project `lop-sach` được liên kết từ repository root. Lần clean build đầu phát hiện web build chưa tự build hai workspace dependency; script web đã được sửa để build contracts và scheduler trước Vite.
 - [ ] Hoàn tất Atlas, DNS, VPS bootstrap, API/frontend deployment, owner bootstrap, production smoke, workflow deploy và rollback verification.
 - [x] VPS bootstrap dùng deploy user/key riêng, UFW chỉ mở 22/80/443, app chạy bằng system user không đăng nhập và GitHub workflow chỉ gọi helper deploy root-owned đã cài sẵn.
+- [x] Lần chạy workflow production đầu tiên dừng ở gate lint trước deploy vì clean Linux checkout chưa có dist của hai workspace package. Root `prelint` nay build contracts và scheduler trước type-aware ESLint để local và CI không phụ thuộc artifact còn sót lại.
 
 ## Refinement 11.12 — Lifecycle/history desktop freeze
 
