@@ -151,7 +151,7 @@ Workflow `Deploy API` chỉ có `workflow_dispatch`, không tự deploy khi push
 - `VPS_DEPLOY_KEY`: private key chỉ dành cho deploy user.
 - `VPS_KNOWN_HOSTS`: host-key line đã xác minh ngoài band; không dùng `StrictHostKeyChecking=no` hoặc `ssh-keyscan` mù trong workflow.
 
-Job validate phải xanh trước job deploy. Job deploy build lại artifact từ đúng commit, chỉ đóng gói root workspace metadata, API dist và dist của hai shared packages, upload vào `/tmp`, rồi gọi `deploy-api.sh` với release ID là full commit SHA. GitHub environment approval là điểm phê duyệt thao tác production không thể coi là repository-side validation.
+Job validate phải xanh trước job deploy. Job deploy build lại artifact từ đúng commit, chỉ đóng gói root workspace metadata, API dist và dist của hai shared packages, rồi upload duy nhất archive vào `/tmp`. Deploy user không được chạy script do workflow upload; SSH chỉ được `sudo` helper root-owned đã cài tại `/usr/local/sbin/lop-sach-deploy-api`, với release ID là full commit SHA. GitHub environment approval là điểm phê duyệt thao tác production không thể coi là repository-side validation.
 
 Trước lần chạy đầu, admin phải tạo user/group `lop-sach`, các thư mục `/opt/lop-sach/releases`, `/etc/lop-sach/api.env`, cài systemd/Nginx candidate sau khi review, và xác minh quyền sudo tối thiểu. Không lưu deploy key, known-hosts, env file hoặc smoke password trong repository/artifact.
 
