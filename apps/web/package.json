@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "pnpm --filter @lop-sach/contracts build && pnpm --filter @lop-sach/scheduler build && vite build",
     "dev": "vite",
     "test": "vitest run --passWithNoTests",
     "test:e2e": "playwright test --grep-invert @topology",

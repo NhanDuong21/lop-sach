@@ -4,8 +4,15 @@
 
 - Bắt đầu: 2026-08-27
 - Nhánh: `main`
-- Milestone hiện tại: 12 — Production deployment (bị chặn ngoài repository)
-- Production topology: `DEFERRED_EXTERNAL_CREDENTIALS`
+- Milestone hiện tại: 12 — Production deployment (đang triển khai)
+- Production topology: `IN_PROGRESS`
+
+## Milestone 12 — Production deployment
+
+- [x] Repository `main` sạch, khớp `origin/main`; pre-deploy `pnpm check`, 3 E2E, audit production, text policy và diff check đều xanh tại `974f76a`.
+- [x] Audit read-only xác nhận VPS `linux8532` là Ubuntu 22.04 x86_64, 1 vCPU, 969 MiB RAM, swap 2 GiB, chưa có runtime ứng dụng; DNS `lopsach.site` còn trống trên nameserver TENTEN.
+- [x] Vercel project `lop-sach` được liên kết từ repository root. Lần clean build đầu phát hiện web build chưa tự build hai workspace dependency; script web đã được sửa để build contracts và scheduler trước Vite.
+- [ ] Hoàn tất Atlas, DNS, VPS bootstrap, API/frontend deployment, owner bootstrap, production smoke, workflow deploy và rollback verification.
 
 ## Refinement 11.12 — Lifecycle/history desktop freeze
 
@@ -59,7 +66,7 @@
 | 11.12. Lifecycle/history freeze | Hoàn tất                 | Chưa commit                                                     | 98 tests + 3 E2E + audit production; Browser smoke xanh     |
 | 11.13. Current-week visual      | Hoàn tất                 | Chưa commit                                                     | 100 tests + 3 E2E + audit production; responsive E2E xanh   |
 | 11.14. Classroom workspace      | Hoàn tất                 | Chưa commit                                                     | 101 tests + 3 E2E + audit production; Browser smoke xanh    |
-| 12. Production deployment       | Bị chặn ngoài repo       | Chưa có                                                         | Chưa chạy                                                   |
+| 12. Production deployment       | Đang triển khai          | Chưa có                                                         | Pre-deploy gates xanh; production chưa verified             |
 
 ## Quyết định
 
@@ -87,6 +94,7 @@
 - Vòng đời tuần trước đây không có thao tác xóa aggregate: backend chỉ hỗ trợ xóa công việc phát sinh, nên tuần nháp tạo nhầm giữ unique `weekStart` vĩnh viễn. Xóa tuần nay là mutation riêng, chỉ chấp nhận `DRAFT` đúng owner và `expectedVersion`; published/completed luôn bị từ chối.
 - Bộ PNG ứng dụng mới đồng nhất artwork nhưng `icon-maskable-512.png` thực tế là 1254 × 1254; manifest cũ vừa tiếp tục dùng SVG làm favicon vừa khai báo sai maskable là 512 × 512. Favicon và manifest nay dùng PNG maskable với kích thước thật, còn SVG cũ đã được loại khỏi source và precache.
 - Playwright từng tái sử dụng API dev ở port `3000`, khiến E2E có thể nhận sai `appOrigin` và phụ thuộc trạng thái người đang UAT. E2E nay mặc định dùng API riêng ở port `3100`, truyền origin qua biến môi trường và không tái sử dụng server có sẵn.
+- Vercel clean build chạy đúng root command nhưng thất bại vì `@lop-sach/web` chỉ gọi Vite trong khi workspace package exports trỏ tới `dist`; web build nay tự build contracts và scheduler để cùng lệnh hoạt động độc lập trên Linux clean checkout.
 
 ## Validation results
 
@@ -123,8 +131,8 @@
 
 ## Remaining work
 
-Milestone 12 cần Vercel/VPS/DNS/Atlas/GitHub environment access và phê duyệt deployment thật. Khi có đủ, chạy forward migrations trên inactive release, chỉ switch sau migration/readiness, tạo owner, chạy product smoke và production topology smoke đầy đủ, rồi ghi URL/kết quả thật tại đây. Không được đổi gate sang `VERIFIED` chỉ từ repository-side tests.
+Hoàn tất Atlas/VPS/DNS/Vercel/GitHub production setup, chạy forward migrations trên inactive release, chỉ switch sau migration/readiness, tạo owner, chạy product smoke và production topology smoke đầy đủ, rồi ghi URL/kết quả thật tại đây. Không được đổi gate sang `VERIFIED` chỉ từ repository-side tests.
 
 ## Known issues
 
-- Chưa có Vercel, VPS, DNS, Atlas và GitHub deployment credentials; production topology giữ trạng thái `DEFERRED_EXTERNAL_CREDENTIALS`, chỉ ảnh hưởng smoke/deployment thật.
+- Chưa có blocker đã xác nhận; production topology giữ trạng thái `IN_PROGRESS` cho tới khi mọi smoke và workflow production đều xanh.
