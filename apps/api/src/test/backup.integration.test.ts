@@ -115,6 +115,7 @@ describe('history and backup', () => {
     expect(summary[0]).toMatchObject({
       id: week.id,
       weekStart: '2026-08-24',
+      groupId: classroom.groups[0]?.id,
       groupName: 'Tổ 1',
       status: 'COMPLETED',
       usedAssignedPerformerFallback: true,
@@ -123,6 +124,9 @@ describe('history and backup', () => {
       .strictObject({ data: z.array(HistoryMetricSchema) })
       .parse((await agent.get('/api/v1/history/metrics').expect(200)).body as unknown).data;
     expect(metrics).toHaveLength(4);
+    expect(metrics.every((item) => item.groupId === classroom.groups[0]?.id)).toBe(true);
+    expect(metrics.every((item) => item.groupName === 'Tổ 1')).toBe(true);
+    expect(metrics.map((item) => item.studentDisplayName)).toEqual(['An', 'Bình', 'Chi', 'Dũng']);
     expect(metrics.reduce((total, item) => total + item.actualPoints, 0)).toBeGreaterThan(0);
   });
 

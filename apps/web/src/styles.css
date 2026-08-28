@@ -976,6 +976,18 @@ legend,
   color: #4f5c54;
   overflow-wrap: anywhere;
 }
+.summary-performers {
+  display: grid;
+  gap: 0.35rem;
+}
+.summary-performer {
+  display: block;
+}
+.summary-performer small {
+  display: block;
+  color: #6b776f;
+  font-size: 0.82rem;
+}
 .metrics-table,
 .history-list,
 .backup-validation {
@@ -1016,6 +1028,41 @@ legend,
   gap: 0.45rem;
   color: #647068;
   font-size: 0.88rem;
+}
+.history-group-tabs {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+}
+.history-group-tabs button {
+  flex: none;
+  min-height: 40px;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid #cbd8cf;
+  background: white;
+  color: #526158;
+}
+.history-group-tabs button[aria-selected='true'] {
+  border-color: #6da985;
+  background: #e7f4ec;
+  color: #1f693f;
+}
+.history-metrics-card h3 {
+  margin-bottom: 0.25rem;
+}
+.history-sort {
+  min-width: 220px;
+  margin: 0;
+}
+.history-sort span {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #647068;
+  font-size: 0.82rem;
+}
+.history-weeks-heading {
+  margin-bottom: 0.7rem;
 }
 .compact-history h2 {
   margin-top: 0;
@@ -1235,6 +1282,10 @@ legend,
   }
   .file-picker .button {
     width: 100%;
+  }
+  .history-sort {
+    width: 100%;
+    min-width: 0;
   }
 }
 
@@ -1558,9 +1609,45 @@ a:visited {
   border-radius: 11px;
   background: #fffdf4;
 }
+.week-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.25rem;
+}
+.week-shortcut {
+  min-height: 66px;
+  display: grid;
+  justify-items: start;
+  gap: 0.1rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #d4dfd7;
+  background: white;
+  color: #26342b;
+  text-align: left;
+}
+.week-shortcut span {
+  color: #647068;
+  font-size: 0.88rem;
+}
+.week-shortcut[aria-pressed='true'] {
+  border-color: #6da985;
+  background: #eef8f1;
+  color: #1f693f;
+}
 .next-step-panel p {
   margin: 0.25rem 0 0.85rem;
   color: #665a39;
+}
+.completed-week-panel {
+  padding: 1rem;
+  border: 1px solid #bcd7c5;
+  border-radius: 11px;
+  background: #f2f8f4;
+}
+.completed-week-panel p {
+  margin: 0.25rem 0 0.85rem;
+  color: #526158;
 }
 .desktop-week-grid {
   display: grid;
@@ -1894,5 +1981,8 @@ a:visited {
   }
   .segmented-filter button {
     flex: 1 1 0;
+  }
+  .week-shortcuts {
+    grid-template-columns: 1fr;
   }
 }

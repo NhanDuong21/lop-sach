@@ -39,6 +39,13 @@ export function HistoryDetailPage(): React.JSX.Element {
         </Notice>
       ) : null}
       <section className="card">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Kết quả tuần trực</p>
+            <h2>Người thực tế đã làm</h2>
+            <p>Trường hợp làm thay được ghi cùng người đã được phân công ban đầu.</p>
+          </div>
+        </div>
         <WeekSummary week={week.data} />
       </section>
       <section className="card compact-history">

@@ -5,6 +5,12 @@ import { runDatabaseMigrations } from '../database/migrations/runner.js';
 import { createTestOwner, testConfig } from './test-app.js';
 import mongoose from 'mongoose';
 
+const apiPort = Number.parseInt(process.env.LOP_SACH_E2E_API_PORT ?? '3000', 10);
+const webOrigin = process.env.LOP_SACH_E2E_WEB_ORIGIN ?? 'http://127.0.0.1:4173';
+if (!Number.isInteger(apiPort) || apiPort < 1 || apiPort > 65_535) {
+  throw new Error('LOP_SACH_E2E_API_PORT must be a valid TCP port.');
+}
+
 const replicaSet = await MongoMemoryReplSet.create({
   replSet: { count: 1, storageEngine: 'wiredTiger' },
 });
@@ -13,9 +19,9 @@ if (!mongoose.connection.db) throw new Error('E2E database unavailable.');
 await runDatabaseMigrations(mongoose.connection.db, 'e2e');
 await createTestOwner();
 const server = createApp(
-  { ...testConfig('development'), appOrigin: 'http://127.0.0.1:4173' },
+  { ...testConfig('development'), appOrigin: webOrigin },
   { rateLimits: false },
-).listen(3000, '127.0.0.1');
+).listen(apiPort, '127.0.0.1');
 
 let closing = false;
 async function shutdown(): Promise<void> {

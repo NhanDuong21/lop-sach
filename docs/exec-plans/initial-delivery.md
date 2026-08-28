@@ -7,6 +7,14 @@
 - Milestone hiện tại: 12 — Production deployment (bị chặn ngoài repository)
 - Production topology: `DEFERRED_EXTERNAL_CREDENTIALS`
 
+## Refinement 11.12 — Lifecycle/history desktop freeze
+
+- [x] Backend và UI chặn hoàn thành trước ngày trực cuối cùng theo `Asia/Ho_Chi_Minh`; việc chuẩn bị tuần kế tiếp vẫn độc lập.
+- [x] Lịch sử được nhóm theo tổ, mặc định sắp học sinh theo tên và chỉ đổi sang tải thấp/cao khi người dùng chọn.
+- [x] Màn chuẩn bị tuần dùng khoảng ngày cụ thể trong trạng thái, lỗi và xác nhận; bỏ copy “tuần này” mơ hồ.
+- [x] Tuần hoàn thành hiển thị người thực tế làm và ghi rõ trường hợp làm thay.
+- [x] Regression tests, full `pnpm check`, E2E liên quan và audit production đều xanh trước khi đánh dấu hoàn tất.
+
 ## Milestones
 
 | Milestone                       | Trạng thái               | Commit                                                          | Validation                                                  |
@@ -31,6 +39,7 @@
 | 11.9. Draft recovery            | Hoàn tất                 | `fix(web): make saved drafts resumable`                         | 91 tests + 3 E2E + audit production; Browser smoke xanh     |
 | 11.10. Draft deletion           | Hoàn tất                 | `feat(duty-weeks): allow safe draft deletion`                   | 93 tests + 3 E2E + audit production; Browser smoke xanh     |
 | 11.11. Unified application icon | Hoàn tất                 | `chore(pwa): use maskable artwork as favicon`                   | 93 tests + 3 E2E + audit production; PWA gate xanh          |
+| 11.12. Lifecycle/history freeze | Hoàn tất                 | Chưa commit                                                     | 98 tests + 3 E2E + audit production; Browser smoke xanh     |
 | 12. Production deployment       | Bị chặn ngoài repo       | Chưa có                                                         | Chưa chạy                                                   |
 
 ## Quyết định
@@ -58,6 +67,7 @@
 - Trang Tuần này trước đây chỉ tải đúng `weekStart` hiện tại, nên draft tuần kế tiếp vẫn tồn tại trong database nhưng hoàn toàn không có lối mở lại; form tạo tuần cũng chỉ phát hiện trùng sau POST và trả lỗi cụt. Trang chủ nay tải riêng các draft, còn form tạo kiểm tra tuần đã tồn tại trước khi cho submit.
 - Vòng đời tuần trước đây không có thao tác xóa aggregate: backend chỉ hỗ trợ xóa công việc phát sinh, nên tuần nháp tạo nhầm giữ unique `weekStart` vĩnh viễn. Xóa tuần nay là mutation riêng, chỉ chấp nhận `DRAFT` đúng owner và `expectedVersion`; published/completed luôn bị từ chối.
 - Bộ PNG ứng dụng mới đồng nhất artwork nhưng `icon-maskable-512.png` thực tế là 1254 × 1254; manifest cũ vừa tiếp tục dùng SVG làm favicon vừa khai báo sai maskable là 512 × 512. Favicon và manifest nay dùng PNG maskable với kích thước thật, còn SVG cũ đã được loại khỏi source và precache.
+- Playwright từng tái sử dụng API dev ở port `3000`, khiến E2E có thể nhận sai `appOrigin` và phụ thuộc trạng thái người đang UAT. E2E nay mặc định dùng API riêng ở port `3100`, truyền origin qua biến môi trường và không tái sử dụng server có sẵn.
 
 ## Validation results
 
@@ -85,6 +95,7 @@
 - Milestone 11.11: favicon HTML chuyển từ `icon.svg` sang artwork `icon-maskable-512.png`; manifest bỏ SVG, giữ PNG 192/512 cho mục đích thường và khai báo maskable theo đúng kích thước thật 1254 × 1254. SVG cũ được xóa nên Workbox precache còn tám mục và không giữ asset icon lỗi thời. PWA E2E xác nhận favicon URL, manifest maskable metadata và cache không còn `/icons/icon.svg`. Full `pnpm check` xanh với 93 unit/integration tests và production builds; Playwright 3/3 xanh; `pnpm audit:prod` không có vulnerability đã biết. Không triển khai production.
 - UI refinement: sidebar thay dấu `LS` bằng `logo-nobackground.png`; mobile topbar cũng hiển thị cùng logo tại vị trí nhận diện `Lớp Sạch`, giữ tên lớp bên dưới.
 - PNG export refinement: ảnh lịch trực chuyển từ danh sách văn bản sang bảng tự động theo ngày và loại công việc, có header, đường kẻ, ô trống và tự xuống dòng tên học sinh.
+- Milestone 11.12: hoàn thành tuần được chặn ở cả API và UI cho tới ngày trực cuối cùng theo `Asia/Ho_Chi_Minh`, nhưng CTA lập tuần sau vẫn mở độc lập. Lịch sử nay chọn theo tổ, mặc định theo tên và chỉ sắp tải thấp/cao khi người dùng chọn; summary/metrics contracts mang `groupId` để không trộn học sinh khác tổ. Màn tạo tuần hiển thị shortcut tuần hiện tại/kế tiếp cùng khoảng ngày cụ thể. Màn kết quả dùng actual performer và ghi `Thay [người được phân công]` khi có thay thế. Browser smoke tại mobile 390 × 844 và desktop xác nhận không tràn ngang; full `pnpm check` xanh với 98 unit/integration tests và production builds; Playwright real-API 3/3 xanh tại 360 px; `pnpm audit:prod` không có vulnerability đã biết. Dữ liệu UAT được giữ nguyên và không triển khai production.
 
 ## Remaining work
 

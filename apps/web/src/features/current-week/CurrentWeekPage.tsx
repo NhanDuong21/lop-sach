@@ -16,18 +16,7 @@ import {
   type CachedCurrentWeek,
 } from '../../lib/offline-cache.js';
 import { useOnlineState } from '../../lib/online-state.js';
-import { formatDutyDate, formatWeekRange } from '../../lib/date-labels.js';
-
-function currentDateInVietnam(): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Ho_Chi_Minh',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(new Date());
-  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${map.year ?? ''}-${map.month ?? ''}-${map.day ?? ''}`;
-}
+import { currentDateInVietnam, formatDutyDate, formatWeekRange } from '../../lib/date-labels.js';
 
 function currentMonday(): string {
   return mondayOfWeek(parseDateOnly(currentDateInVietnam()));
@@ -252,6 +241,22 @@ export function CurrentWeekPage({
                   </Button>
                 </div>
               </div>
+            ) : week.status === 'COMPLETED' ? (
+              <div className="completed-week-panel">
+                <strong>Tuần {formatWeekRange(week.weekStart, weekEnd)} đã hoàn thành</strong>
+                <p>Lịch và người thực tế đã làm được lưu cố định trong lịch sử.</p>
+                <div className="button-row">
+                  <Link
+                    className="button button-primary"
+                    to={`/weeks/new?weekStart=${addDateOnlyDays(parseDateOnly(week.weekStart), 7)}`}
+                  >
+                    Lập lịch tuần sau
+                  </Link>
+                  <Link className="button button-secondary" to={`/weeks/${week.id}`}>
+                    Xem kết quả tuần
+                  </Link>
+                </div>
+              </div>
             ) : (
               <>
                 <section className="today-panel" aria-labelledby="today-title">
@@ -307,7 +312,7 @@ export function CurrentWeekPage({
           ) : null}
         </>
       )}
-      {week && week.status !== 'DRAFT' ? (
+      {week?.status === 'PUBLISHED' ? (
         <div className="button-row next-week-action">
           <Link
             className="button button-secondary"

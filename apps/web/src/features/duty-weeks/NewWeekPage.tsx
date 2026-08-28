@@ -1,4 +1,11 @@
-import { mondayOfWeek, parseDateOnly, type DutyGroupSelectionBasis } from '@lop-sach/contracts';
+import {
+  addDateOnlyDays,
+  dateOnlyWeekday,
+  mondayOfWeek,
+  parseDateOnly,
+  type DutyGroupSelectionBasis,
+  type SchoolDay,
+} from '@lop-sach/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarPlus } from 'lucide-react';
 import { useState } from 'react';
@@ -9,18 +16,16 @@ import { LoadingState } from '../../components/ui/LoadingState.js';
 import { Notice } from '../../components/ui/Notice.js';
 import { StatusBadge } from '../../components/ui/StatusBadge.js';
 import { ApiError } from '../../lib/api-client.js';
+import { currentDateInVietnam, formatWeekRange } from '../../lib/date-labels.js';
 import { getClassroom } from '../classroom/classroom.api.js';
 import { createDutyWeek, deleteDutyWeek, listDutyWeeks } from './duty-weeks.api.js';
 
-function todayInClassroomTimezone(): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Ho_Chi_Minh',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(new Date());
-  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${value.year ?? ''}-${value.month ?? ''}-${value.day ?? ''}`;
+function schoolWeekEnd(weekStart: string, schoolDays: readonly SchoolDay[]): string {
+  return (
+    Array.from({ length: 7 }, (_, index) => addDateOnlyDays(parseDateOnly(weekStart), index))
+      .filter((date) => schoolDays.includes(dateOnlyWeekday(date)))
+      .at(-1) ?? addDateOnlyDays(parseDateOnly(weekStart), 6)
+  );
 }
 
 export function NewWeekPage(): React.JSX.Element {
@@ -31,9 +36,9 @@ export function NewWeekPage(): React.JSX.Element {
   const [weekStart, setWeekStart] = useState(() => {
     const requestedWeekStart = searchParams.get('weekStart');
     try {
-      return mondayOfWeek(parseDateOnly(requestedWeekStart ?? todayInClassroomTimezone()));
+      return mondayOfWeek(parseDateOnly(requestedWeekStart ?? currentDateInVietnam()));
     } catch {
-      return mondayOfWeek(parseDateOnly(todayInClassroomTimezone()));
+      return mondayOfWeek(parseDateOnly(currentDateInVietnam()));
     }
   });
   const [selectedGroupId, setSelectedGroupId] = useState('');
@@ -65,6 +70,18 @@ export function NewWeekPage(): React.JSX.Element {
   const activeGroups = classroom.data.groups.filter((group) => group.active);
   const effectiveGroupId = selectedGroupId || activeGroups[0]?.id || '';
   const existing = existingWeek.data?.[0];
+  const currentWeekStart = mondayOfWeek(parseDateOnly(currentDateInVietnam()));
+  const nextWeekStart = addDateOnlyDays(currentWeekStart, 7);
+  const selectedWeekRange = formatWeekRange(
+    weekStart,
+    schoolWeekEnd(weekStart, classroom.data.schoolDays),
+  );
+  const existingStatusLabel =
+    existing?.status === 'DRAFT'
+      ? 'Bản nháp'
+      : existing?.status === 'PUBLISHED'
+        ? 'Đã công bố'
+        : 'Đã hoàn thành';
   return (
     <div className="page-stack">
       <header className="page-heading">
@@ -89,9 +106,31 @@ export function NewWeekPage(): React.JSX.Element {
         ) : null}
         {existingWeek.isError ? (
           <Notice tone="error">
-            Không thể kiểm tra tuần này đã được tạo chưa. Hãy tải lại trang trước khi tiếp tục.
+            Không thể kiểm tra lịch tuần {selectedWeekRange}. Hãy tải lại trang trước khi tiếp tục.
           </Notice>
         ) : null}
+        <div className="week-shortcuts" aria-label="Chọn nhanh tuần trực">
+          {[
+            { label: 'Tuần hiện tại', value: currentWeekStart },
+            { label: 'Tuần kế tiếp', value: nextWeekStart },
+          ].map((option) => (
+            <button
+              type="button"
+              className="week-shortcut"
+              aria-pressed={weekStart === option.value}
+              onClick={() => setWeekStart(option.value)}
+              key={option.value}
+            >
+              <strong>{option.label}</strong>
+              <span>
+                {formatWeekRange(
+                  option.value,
+                  schoolWeekEnd(option.value, classroom.data.schoolDays),
+                )}
+              </span>
+            </button>
+          ))}
+        </div>
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -171,13 +210,12 @@ export function NewWeekPage(): React.JSX.Element {
             <div className="existing-week-panel">
               <div>
                 <StatusBadge tone={existing.status === 'DRAFT' ? 'warning' : 'success'}>
-                  {existing.status === 'DRAFT'
-                    ? 'Bản nháp'
-                    : existing.status === 'PUBLISHED'
-                      ? 'Đã công bố'
-                      : 'Đã hoàn thành'}
+                  {existingStatusLabel}
                 </StatusBadge>
-                <strong>Tuần này đã được tạo cho {existing.groupSnapshot.name}.</strong>
+                <strong>Tuần {selectedWeekRange} đã có lịch.</strong>
+                <span>
+                  Tổ trực: {existing.groupSnapshot.name} · Trạng thái: {existingStatusLabel}
+                </span>
                 <span>Đổi ngày Thứ Hai ở trên nếu bạn muốn chuẩn bị một tuần khác.</span>
               </div>
               <div className="existing-week-actions">
@@ -210,7 +248,7 @@ export function NewWeekPage(): React.JSX.Element {
       <ConfirmDialog
         open={deleteOpen && existing?.status === 'DRAFT'}
         title="Xóa bản nháp?"
-        description="Các đánh dấu vắng mặt, công việc phát sinh và phân công chưa công bố của tuần này sẽ bị xóa vĩnh viễn. Sau đó bạn có thể tạo lại tuần."
+        description={`Các đánh dấu vắng mặt, công việc phát sinh và phân công chưa công bố của tuần ${selectedWeekRange} sẽ bị xóa vĩnh viễn. Sau đó bạn có thể tạo lại lịch cho khoảng ngày này.`}
         confirmLabel="Xóa bản nháp"
         pending={deleteDraft.isPending}
         pendingLabel="Đang xóa…"

@@ -113,10 +113,10 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
     .getByRole('dialog')
     .getByRole('button', { name: /mọi người làm đúng lịch/u })
     .click();
-  await expect(page.getByText('Đã hoàn thành')).toBeVisible();
+  await expect(page.getByText('Đã hoàn thành', { exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Lịch sử' }).last().click();
   await expect(page.getByRole('heading', { name: 'Lịch sử trực nhật' })).toBeVisible();
-  await page.getByRole('link', { name: /Tuần 24\/08 – 24\/08\/2026/u }).click();
+  await page.getByRole('link', { name: /24\/08 – 24\/08\/2026/u }).click();
   await expect(page.getByRole('heading', { name: 'Tuần 24/08 – 24/08/2026' })).toBeVisible();
   const textDownloadPromise = page.waitForEvent('download');
   await page.getByText('Tùy chọn khác').click();
@@ -134,7 +134,7 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   expect((await pngDownloadPromise).suggestedFilename()).toBe('lop-sach-10c8-2026-08-24.png');
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Tuần này' })).toBeVisible();
-  await expect(page.getByText('Đã hoàn thành')).toBeVisible();
+  await expect(page.getByText('Đã hoàn thành', { exact: true })).toBeVisible();
   const accessibility = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();

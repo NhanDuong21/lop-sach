@@ -18,7 +18,7 @@ import { ModalDialog } from '../../components/ui/ModalDialog.js';
 import { Notice } from '../../components/ui/Notice.js';
 import { StatusBadge } from '../../components/ui/StatusBadge.js';
 import { ApiError } from '../../lib/api-client.js';
-import { formatDutyDate, formatWeekRange } from '../../lib/date-labels.js';
+import { currentDateInVietnam, formatDutyDate, formatWeekRange } from '../../lib/date-labels.js';
 import { schoolDayLabels } from '../../lib/vietnamese-labels.js';
 import { getClassroom } from '../classroom/classroom.api.js';
 import { WeekSummary } from '../current-week/WeekSummary.js';
@@ -332,7 +332,13 @@ export function WeekEditorPage(): React.JSX.Element {
       .map((assignment) => assignment.slotId),
   );
   const complete = enabledSlotIds.every((slotId) => assignedSlotIds.has(slotId));
-  const dates = [...new Set(week.taskOccurrences.map((occurrence) => occurrence.date))].sort();
+  const dates = [
+    ...new Set(
+      week.taskOccurrences.filter((occurrence) => occurrence.enabled).map((item) => item.date),
+    ),
+  ].sort();
+  const lastDutyDate = dates.at(-1);
+  const completionAvailable = Boolean(lastDutyDate && currentDateInVietnam() >= lastDutyDate);
   const weekDates = Array.from({ length: 7 }, (_, index) =>
     addDateOnlyDays(parseDateOnly(week.weekStart), index),
   ).filter((date) => classroom.data.schoolDays.includes(dateOnlyWeekday(date)));
@@ -429,7 +435,12 @@ export function WeekEditorPage(): React.JSX.Element {
                   action.reset();
                   setCompleteOpen(true);
                 }}
-                disabled={action.isPending}
+                disabled={action.isPending || !completionAvailable}
+                title={
+                  completionAvailable || !lastDutyDate
+                    ? undefined
+                    : `Chỉ có thể hoàn thành từ ${formatDutyDate(lastDutyDate)}`
+                }
               >
                 <CalendarCheck size={17} aria-hidden="true" /> Hoàn thành tuần
               </Button>
@@ -444,12 +455,27 @@ export function WeekEditorPage(): React.JSX.Element {
             </Button>
           </Notice>
         ) : null}
+        {week.status === 'PUBLISHED' && lastDutyDate && !completionAvailable ? (
+          <Notice tone="info">
+            <strong>Chưa thể hoàn thành tuần</strong>
+            <p>
+              Tuần trực còn công việc vào {formatDutyDate(lastDutyDate)}. Bạn vẫn có thể lập lịch
+              tuần sau; khi tới ngày này, hãy ghi người làm thay rồi hoàn thành tuần.
+            </p>
+          </Notice>
+        ) : null}
         <section className="card published-schedule">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Lịch đã công bố</p>
-              <h2>Phân công cả tuần</h2>
-              <p>Bạn chỉ cần đọc hoặc chia sẻ; các thao tác chỉnh sửa đã được ẩn.</p>
+              <p className="eyebrow">
+                {week.status === 'COMPLETED' ? 'Kết quả tuần trực' : 'Lịch đã công bố'}
+              </p>
+              <h2>{week.status === 'COMPLETED' ? 'Người thực tế đã làm' : 'Phân công cả tuần'}</h2>
+              <p>
+                {week.status === 'COMPLETED'
+                  ? 'Kết quả đã được lưu cố định; trường hợp làm thay được ghi bên dưới.'
+                  : 'Bạn chỉ cần đọc hoặc chia sẻ; các thao tác chỉnh sửa đã được ẩn.'}
+              </p>
             </div>
           </div>
           <WeekSummary week={week} />
@@ -461,16 +487,14 @@ export function WeekEditorPage(): React.JSX.Element {
           onGenerate={generate}
           onPreflight={() => run(() => preflightDutyWeek(week.id, week.version))}
         />
-        {week.status === 'COMPLETED' ? (
-          <div className="button-row next-week-action">
-            <Link
-              className="button button-secondary"
-              to={`/weeks/new?weekStart=${addDateOnlyDays(parseDateOnly(week.weekStart), 7)}`}
-            >
-              Lập lịch tuần sau
-            </Link>
-          </div>
-        ) : null}
+        <div className="button-row next-week-action">
+          <Link
+            className={`button ${week.status === 'COMPLETED' ? 'button-primary' : 'button-secondary'}`}
+            to={`/weeks/new?weekStart=${addDateOnlyDays(parseDateOnly(week.weekStart), 7)}`}
+          >
+            Lập lịch tuần sau
+          </Link>
+        </div>
         <CompleteWeekDialog
           week={week}
           open={completeOpen}

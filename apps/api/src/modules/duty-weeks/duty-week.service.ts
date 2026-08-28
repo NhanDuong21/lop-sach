@@ -28,6 +28,7 @@ import {
 import mongoose, { type ClientSession, type HydratedDocument } from 'mongoose';
 import { createId } from '../../shared/ids.js';
 import { HttpProblem } from '../../shared/problem.js';
+import { currentDateInVietnam } from '../../shared/date-time.js';
 import { ClassroomModel, type ClassroomDocument } from '../classroom/classroom.model.js';
 import { StudentModel, type StudentDocument } from '../students/student.model.js';
 import { mapStudentRestrictions } from '../students/student-restrictions.js';
@@ -129,6 +130,41 @@ function assertPublished(week: DutyWeekHydrated): void {
       409,
       'INVALID_WEEK_TRANSITION',
       'Chỉ tuần đã phát hành mới được hoàn thành.',
+    );
+  }
+}
+
+function formatDutyDate(date: string): string {
+  const weekday = {
+    MONDAY: 'Thứ Hai',
+    TUESDAY: 'Thứ Ba',
+    WEDNESDAY: 'Thứ Tư',
+    THURSDAY: 'Thứ Năm',
+    FRIDAY: 'Thứ Sáu',
+    SATURDAY: 'Thứ Bảy',
+    SUNDAY: 'Chủ Nhật',
+  }[dateOnlyWeekday(DateOnlySchema.parse(date))];
+  return `${weekday}, ${date.slice(8, 10)}/${date.slice(5, 7)}/${date.slice(0, 4)}`;
+}
+
+function assertCompletionDateReached(week: DutyWeekHydrated): void {
+  const lastDutyDate = week.taskOccurrences
+    .filter((occurrence) => occurrence.enabled)
+    .map((occurrence) => occurrence.date)
+    .sort()
+    .at(-1);
+  if (!lastDutyDate) {
+    throw new HttpProblem(
+      409,
+      'INVALID_WEEK_TRANSITION',
+      'Tuần không có công việc trực nhật để hoàn thành.',
+    );
+  }
+  if (currentDateInVietnam() < lastDutyDate) {
+    throw new HttpProblem(
+      409,
+      'WEEK_COMPLETION_TOO_EARLY',
+      `Chưa thể hoàn thành tuần. Tuần trực còn công việc vào ${formatDutyDate(lastDutyDate)}.`,
     );
   }
 }
@@ -379,6 +415,7 @@ export async function listHistorySummary(ownerId: string): Promise<readonly Hist
       weekEnd: DateOnlySchema.parse(
         enabledDates.at(-1) ?? addDateOnlyDays(DateOnlySchema.parse(week.weekStart), 6),
       ),
+      groupId: week.groupSnapshot.id,
       groupName: week.groupSnapshot.name,
       status: 'COMPLETED' as const,
       publicationRevision: week.publicationRevision,
@@ -405,8 +442,11 @@ export async function historyMetrics(ownerId: string): Promise<readonly HistoryM
       week.studentSnapshots.map((student) => [student.id, student.displayName]),
     );
     for (const entry of week.completionLedger) {
-      const previous = metrics.get(entry.studentId);
-      metrics.set(entry.studentId, {
+      const metricKey = `${week.groupSnapshot.id}|${entry.studentId}`;
+      const previous = metrics.get(metricKey);
+      metrics.set(metricKey, {
+        groupId: week.groupSnapshot.id,
+        groupName: week.groupSnapshot.name,
         studentId: entry.studentId,
         studentDisplayName:
           names.get(entry.studentId) ?? previous?.studentDisplayName ?? 'Học sinh trong snapshot',
@@ -420,7 +460,7 @@ export async function historyMetrics(ownerId: string): Promise<readonly HistoryM
   }
   return [...metrics.values()].sort(
     (left, right) =>
-      right.actualPoints - left.actualPoints ||
+      left.groupName.localeCompare(right.groupName, 'vi') ||
       left.studentDisplayName.localeCompare(right.studentDisplayName, 'vi'),
   );
 }
@@ -1171,6 +1211,7 @@ export async function completeDutyWeek(
   const week = await findWeek(ownerId, weekId);
   assertPublished(week);
   assertVersion(week, expectedVersion);
+  assertCompletionDateReached(week);
   const actualBySlot = new Map<string, string>();
   for (const actual of actualPerformers) {
     if (actualBySlot.has(actual.slotId)) {

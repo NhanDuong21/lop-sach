@@ -11,7 +11,7 @@ import {
 } from '@lop-sach/contracts';
 import request from 'supertest';
 import { z } from 'zod';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DutyWeekModel } from '../modules/duty-weeks/duty-week.model.js';
 import { createTestOwner, testApp } from './test-app.js';
 
@@ -21,7 +21,15 @@ const StudentEnvelopeSchema = z.strictObject({ data: StudentSchema });
 const WeekEnvelopeSchema = z.strictObject({ data: DutyWeekSchema });
 const CompletionOptionsEnvelopeSchema = z.strictObject({ data: CompletionOptionsSchema });
 
-beforeEach(createTestOwner);
+const vietnamClock = vi.hoisted(() => ({ today: '2026-08-28' }));
+vi.mock('../shared/date-time.js', () => ({
+  currentDateInVietnam: () => vietnamClock.today,
+}));
+
+beforeEach(async () => {
+  vietnamClock.today = '2026-08-28';
+  await createTestOwner();
+});
 
 async function authenticatedAgent(): Promise<TestAgent> {
   const agent = request.agent(testApp());
@@ -33,7 +41,10 @@ async function authenticatedAgent(): Promise<TestAgent> {
   return agent;
 }
 
-async function classroomWithStudents(agent: TestAgent): Promise<{
+async function classroomWithStudents(
+  agent: TestAgent,
+  schoolDays: Classroom['schoolDays'] = ['MONDAY'],
+): Promise<{
   readonly classroom: Classroom;
   readonly students: readonly Student[];
 }> {
@@ -43,7 +54,7 @@ async function classroomWithStudents(agent: TestAgent): Promise<{
     .send({
       name: '10C8',
       schoolYear: '2026-2027',
-      schoolDays: ['MONDAY'],
+      schoolDays,
     })
     .expect(201);
   const classroom = ClassroomEnvelopeSchema.parse(classroomResponse.body as unknown).data;
@@ -144,6 +155,44 @@ describe('duty-week lifecycle', () => {
     expect(ProblemDetailsSchema.parse(publishedDelete.body as unknown).code).toBe(
       'INVALID_WEEK_TRANSITION',
     );
+  });
+
+  it('blocks completion before the last duty date and allows it on that date', async () => {
+    const agent = await authenticatedAgent();
+    const { classroom } = await classroomWithStudents(agent, ['SATURDAY']);
+    const draft = await createWeek(agent, classroom);
+    const generated = await generateWeek(agent, draft);
+    const published = WeekEnvelopeSchema.parse(
+      (
+        await agent
+          .post(`/api/v1/duty-weeks/${draft.id}/publish`)
+          .set('Origin', 'http://localhost:5173')
+          .send({ expectedVersion: generated.version })
+          .expect(200)
+      ).body as unknown,
+    ).data;
+
+    const blocked = await agent
+      .post(`/api/v1/duty-weeks/${draft.id}/complete`)
+      .set('Origin', 'http://localhost:5173')
+      .send({ expectedVersion: published.version, actualPerformers: [] })
+      .expect(409);
+    expect(ProblemDetailsSchema.parse(blocked.body as unknown)).toMatchObject({
+      code: 'WEEK_COMPLETION_TOO_EARLY',
+      detail: 'Chưa thể hoàn thành tuần. Tuần trực còn công việc vào Thứ Bảy, 29/08/2026.',
+    });
+
+    vietnamClock.today = '2026-08-29';
+    const completed = WeekEnvelopeSchema.parse(
+      (
+        await agent
+          .post(`/api/v1/duty-weeks/${draft.id}/complete`)
+          .set('Origin', 'http://localhost:5173')
+          .send({ expectedVersion: published.version, actualPerformers: [] })
+          .expect(200)
+      ).body as unknown,
+    ).data;
+    expect(completed.status).toBe('COMPLETED');
   });
 
   it('generates canonically, publishes once and completes an immutable ledger', async () => {

@@ -109,4 +109,28 @@ describe('CurrentWeekPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Xóa bản nháp' }));
     await waitFor(() => expect(deleteDutyWeek).toHaveBeenCalledWith('draft-week', draft.version));
   });
+
+  it('makes the next week the primary action after completion', async () => {
+    const completed = makeWeek('completed-week', '2026-08-24', 'COMPLETED');
+    vi.mocked(listDutyWeeks).mockImplementation((filters) =>
+      Promise.resolve(filters?.status === 'DRAFT' ? [] : [completed]),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <CurrentWeekPage classroomName="10C8" />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('Tuần 24/08 – 30/08/2026 đã hoàn thành')).toBeInTheDocument();
+    expect(screen.queryByText('Hôm nay')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Lập lịch tuần sau' })).toHaveClass('button-primary');
+    expect(screen.getByRole('link', { name: 'Xem kết quả tuần' })).toHaveAttribute(
+      'href',
+      '/weeks/completed-week',
+    );
+  });
 });

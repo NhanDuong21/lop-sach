@@ -252,6 +252,7 @@ export const HistorySummaryItemSchema = z.strictObject({
   id: z.string(),
   weekStart: DateOnlySchema,
   weekEnd: DateOnlySchema,
+  groupId: z.string(),
   groupName: z.string(),
   status: z.literal('COMPLETED'),
   publicationRevision: z.number().int().positive(),
@@ -261,6 +262,8 @@ export const HistorySummaryItemSchema = z.strictObject({
   usedAssignedPerformerFallback: z.boolean(),
 });
 export const HistoryMetricSchema = z.strictObject({
+  groupId: z.string(),
+  groupName: z.string(),
   studentId: z.string(),
   studentDisplayName: z.string(),
   actualPoints: z.number().nonnegative(),

@@ -16,18 +16,37 @@ function DaySummary({
   return (
     <div className="summary-task-list">
       {occurrences.map((occurrence) => {
-        const performers = occurrence.slots.map(
-          (slot) =>
-            week.assignments.find((assignment) => assignment.slotId === slot.id)
-              ?.actualStudentDisplayName ??
-            week.assignments.find((assignment) => assignment.slotId === slot.id)
-              ?.studentDisplayName ??
-            'Chưa phân công',
-        );
+        const performers = occurrence.slots.map((slot) => {
+          const assignment = week.assignments.find((item) => item.slotId === slot.id);
+          const actualName = assignment?.actualStudentDisplayName;
+          const assignedName = assignment?.studentDisplayName;
+          return {
+            slotId: slot.id,
+            displayName: actualName ?? assignedName ?? 'Chưa phân công',
+            replacedName:
+              week.status === 'COMPLETED' &&
+              assignment?.actualStudentId !== null &&
+              assignment?.actualStudentId !== assignment?.studentId
+                ? assignedName
+                : null,
+          };
+        });
+        const hasReplacement = performers.some((performer) => performer.replacedName);
         return (
           <div className="summary-task" key={occurrence.id}>
             <strong>{occurrence.taskName}</strong>
-            <span>{performers.join(', ')}</span>
+            {hasReplacement ? (
+              <div className="summary-performers">
+                {performers.map((performer) => (
+                  <span className="summary-performer" key={performer.slotId}>
+                    {performer.displayName}
+                    {performer.replacedName ? <small>Thay {performer.replacedName}</small> : null}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span>{performers.map((performer) => performer.displayName).join(', ')}</span>
+            )}
           </div>
         );
       })}
