@@ -17,6 +17,7 @@
 - [x] Lần chạy workflow production đầu tiên dừng ở gate lint trước deploy vì clean Linux checkout chưa có dist của hai workspace package. Root `prelint` nay build contracts và scheduler trước type-aware ESLint để local và CI không phụ thuộc artifact còn sót lại.
 - [x] Lần chạy kế tiếp vượt toàn bộ `pnpm check` rồi dừng trước E2E vì Playwright CLI thuộc web workspace, không thuộc root. CI và deploy workflow nay gọi CLI bằng filter web tường minh; README dùng cùng lệnh.
 - [x] Lần chạy thứ ba vượt validate/E2E và SSH pinning, nhưng inactive install dừng an toàn vì Corepack khởi chạy từ home riêng của deploy user mà app user không được phép đọc. Helper nay đổi working directory vào release trước khi chạy pnpm dưới app user; chưa có symlink active hoặc service hỏng nào được tạo.
+- [x] Lần chạy thứ tư cài production dependencies và áp dụng migration `0001-initial-indexes`, rồi lộ ra readiness check một lần quá sớm cùng first-deploy rollback nhận nhầm đường dẫn chưa tồn tại. Vòng restart đã dừng, symlink tự tham chiếu đã được gỡ; helper nay chỉ nhận symlink release có thật, poll readiness tối đa 30 giây và trả first deploy lỗi về trạng thái service dừng/không active.
 
 ## Refinement 11.12 — Lifecycle/history desktop freeze
 

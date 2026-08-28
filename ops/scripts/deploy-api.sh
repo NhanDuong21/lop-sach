@@ -28,7 +28,21 @@ if [[ -e $release_dir ]]; then
   exit 73
 fi
 
-previous_release=$(readlink -f "$current_link" 2>/dev/null || true)
+previous_release=
+if [[ -e $current_link && ! -L $current_link ]]; then
+  echo "Current release path exists but is not a symbolic link." >&2
+  exit 65
+fi
+if [[ -L $current_link ]]; then
+  previous_release=$(readlink -f "$current_link") || {
+    echo "Current release link cannot be resolved." >&2
+    exit 65
+  }
+  if [[ ! -d $previous_release || $previous_release != "$releases_root/"* ]]; then
+    echo "Current release link does not resolve inside the releases directory." >&2
+    exit 65
+  fi
+fi
 install -d -o lop-sach -g lop-sach "$release_dir"
 tar -xzf "$archive" -C "$release_dir"
 chown -R lop-sach:lop-sach "$release_dir"
@@ -55,12 +69,31 @@ ln -s "$release_dir" "$next_link"
 mv -Tf "$next_link" "$current_link"
 systemctl restart lop-sach-api.service
 
-if ! curl --fail --silent --show-error --max-time 15 http://127.0.0.1:3000/health/ready >/dev/null; then
+wait_for_readiness() {
+  local attempt
+  for attempt in {1..30}; do
+    if curl --fail --silent --max-time 5 http://127.0.0.1:3000/health/live >/dev/null &&
+      curl --fail --silent --max-time 5 http://127.0.0.1:3000/health/ready >/dev/null; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+if ! wait_for_readiness; then
   if [[ -n $previous_release && -d $previous_release ]]; then
     rollback_link=$app_root/.rollback-$release_id
     ln -s "$previous_release" "$rollback_link"
     mv -Tf "$rollback_link" "$current_link"
     systemctl restart lop-sach-api.service
+    if ! wait_for_readiness; then
+      echo "Readiness failed for both the new and restored releases." >&2
+      exit 1
+    fi
+  else
+    rm -f -- "$current_link"
+    systemctl stop lop-sach-api.service
   fi
   echo "Readiness failed; active code was restored when a previous release existed." >&2
   exit 1
