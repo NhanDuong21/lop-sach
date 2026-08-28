@@ -333,6 +333,13 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   await page.context().setOffline(false);
   await page.reload();
   await page.getByRole('button', { name: 'Đăng xuất' }).click();
+  const logoutDialog = page.getByRole('dialog', { name: 'Đăng xuất khỏi Lớp Sạch?' });
+  await expect(logoutDialog).toBeVisible();
+  await logoutDialog.getByRole('button', { name: 'Hủy' }).click();
+  await expect(logoutDialog).toBeHidden();
+  await expect(page.getByRole('heading', { name: 'Tuần này' })).toBeVisible();
+  await page.getByRole('button', { name: 'Đăng xuất' }).click();
+  await logoutDialog.getByRole('button', { name: 'Đăng xuất' }).click();
   await expect(page.getByRole('button', { name: 'Đăng nhập' })).toBeVisible();
   await page.context().setOffline(true);
   await page.goto('/', { waitUntil: 'domcontentloaded' });

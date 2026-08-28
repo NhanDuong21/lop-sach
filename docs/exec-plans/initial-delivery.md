@@ -28,6 +28,7 @@
 - [x] Tổng quan có class hero dùng metric thật từ classroom/student/task queries, mascot duy nhất `meoconcamchoi.png`, card thông tin, tổ compact, preview học sinh/công việc và shortcut riêng cho mobile.
 - [x] Học sinh dùng initial avatar, search/filter compact và row touch-friendly; Công việc dùng task cards cùng metadata chips lấy từ dữ liệu thật.
 - [x] Mỗi dòng học sinh hiển thị giới tính từ dữ liệu thật bằng nhãn `Nam`, `Nữ` hoặc `Chưa thiết lập`; không suy đoán từ tên.
+- [x] Đăng xuất từ sidebar hoặc mobile topbar đều mở hộp xác nhận; hủy giữ nguyên phiên và chỉ xác nhận mới xóa phiên/cache cục bộ.
 - [x] Browser smoke UAT tại 390 × 844 và 1440 × 900 xác nhận ba tab, search/filter/menu/edit flow; Playwright real-backend quét 360/375/390/414/430, 768 và 1024/1280/1366/1440/1600 px, không tràn ngang.
 - [x] Full `pnpm check` xanh với 101 tests, Playwright 3/3 và audit production không có vulnerability đã biết.
 

@@ -61,6 +61,10 @@ test.describe('@topology production chain', () => {
     expect(rejected.status()).toBe(403);
 
     await page.getByRole('button', { name: 'Đăng xuất' }).click();
+    await page
+      .getByRole('dialog', { name: 'Đăng xuất khỏi Lớp Sạch?' })
+      .getByRole('button', { name: 'Đăng xuất' })
+      .click();
     await expect(
       page.getByRole('heading', { name: 'Đăng nhập để phân công trực nhật' }),
     ).toBeVisible();
