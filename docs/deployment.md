@@ -1,6 +1,22 @@
 # Deployment
 
-Production topology là Browser → Vercel → HTTPS Nginx/VPS → Express loopback → MongoDB Atlas. Tại thời điểm Milestone 2.5, cấu hình và smoke harness trong repository đã có nhưng chưa có credentials hoặc host để chạy thật; gate production là `DEFERRED_EXTERNAL_CREDENTIALS`, không phải `VERIFIED`.
+Production topology là Browser → Vercel → HTTPS Nginx/VPS → Express loopback → MongoDB Atlas.
+
+## Production đã xác minh
+
+Mốc triển khai ngày 28/08/2026 dùng các tài nguyên sau:
+
+- Web canonical: `https://lopsach.site`; `https://www.lopsach.site` chuyển hướng về apex; Vercel project `lop-sach` lấy cấu hình từ repository root.
+- API public: `https://api.lopsach.site`; chỉ `/api/v1` và hai health endpoint được Nginx public. Kết nối thẳng cổng `3000` từ Internet bị chặn.
+- VPS: IPv4 `180.93.32.127`, hostname `linux8532`, Ubuntu 22.04 x86_64, 1 vCPU, 969 MiB RAM, 2 GiB swap. UFW chỉ mở 22/80/443.
+- Runtime: Node.js 24, một process `lop-sach-api.service` chạy bằng system user không đăng nhập, bind `127.0.0.1:3000`. Liveness/readiness nội bộ và HTTPS đều trả trạng thái xanh.
+- Atlas: project `Lớp Sạch` (`6a915b20ac97d40d2fc369a2`), cluster Free `lop-sach-prod`, MongoDB 8.0 tại AWS `ap-east-1`, database `lop_sach`. Network allowlist chỉ có VPS `/32`; database user chỉ có custom role read/write trên database ứng dụng.
+- Migration production: `0001-initial-indexes`, checksum `sha256:8ae95e4c987ea7afec13e8afda997cca05159224d90a25fe4bad9dbd834f2446`.
+- GitHub Environment `Production` có đúng năm secret theo tên `VPS_HOST`, `VPS_PORT`, `VPS_USER`, `VPS_DEPLOY_KEY`, `VPS_KNOWN_HOSTS`. Dedicated deploy user/key đã được chứng minh bằng các workflow `Deploy API` xanh.
+- Rollback drill thật đã chuyển release đang chạy sang release tương thích trước đó rồi tiến lại release mới; cả hai lần đều qua liveness/readiness và không chạy down migration.
+- Bootstrap key tạm của root đã bị gỡ đúng một entry khỏi `authorized_keys`; hai file key tạm cục bộ đã được xóa an toàn. Dedicated deploy key được giữ lại; emergency root access không bị tắt.
+
+Topology Playwright đã đi qua đúng production chain và xác minh HTTPS, login, session sau refresh, cookie host-only với các cờ bảo mật, Origin sai bị từ chối, logout revoke phiên và mọi auth response có `no-store`. Product smoke xác minh luồng lớp/tuần/lịch sử, việc phát sinh, lịch không thể xếp, chỉnh tay, thay người, khóa/tạo lại, text/PNG, backup validation, responsive và PWA offline read-only. Không ghi username, password, cookie, token hoặc URI có secret vào tài liệu này.
 
 ## Vercel từ repository root
 
@@ -143,7 +159,7 @@ Không chuyển gate thành `VERIFIED` nếu test bị skip, thiếu biến, ch�
 
 CI từ repository root chạy frozen install, repository text/executable-mode policy, format, lint, typecheck, unit/integration tests, production build, API runtime import, cài Chromium và ba local E2E. Playwright report được lưu bảy ngày khi E2E thất bại. Production dependency audit không được còn advisory mức high.
 
-Workflow `Deploy API` chỉ có `workflow_dispatch`, không tự deploy khi push. Tạo GitHub environments `staging` và `production`, bật required reviewers cho production và đặt các environment secrets:
+Workflow `Deploy API` chỉ có `workflow_dispatch`, không tự deploy khi push. Tạo GitHub environment `Production`, bật required reviewers khi quy trình phê duyệt yêu cầu và đặt các environment secrets:
 
 - `VPS_HOST`: hostname/IP của VPS.
 - `VPS_PORT`: cổng SSH, thường là `22`.

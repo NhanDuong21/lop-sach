@@ -51,6 +51,8 @@ pnpm audit:prod
 - Migration chỉ tiến về trước và phải chạy thành công trước khi đổi active release.
 - Workflow `Deploy API` chỉ chạy thủ công qua GitHub environment được bảo vệ.
 
+Production đã được xác minh ngày 28/08/2026 tại [https://lopsach.site](https://lopsach.site) và [https://api.lopsach.site](https://api.lopsach.site). Web chạy trên Vercel; API chạy bằng `lop-sach-api.service` trên VPS Ubuntu 22.04 `linux8532`, chỉ bind loopback sau Nginx; dữ liệu nằm trên Atlas cluster Free `lop-sach-prod` tại AWS Hong Kong. GitHub Environment `Production` giữ năm secret deploy theo tên được mô tả trong runbook, không có giá trị secret nào trong repository.
+
 Quy trình Vercel, VPS, Atlas Free pause/resume, backup kỳ nghỉ, rollback và topology smoke nằm trong [docs/deployment.md](docs/deployment.md). Trạng thái triển khai thực được ghi ở [living ExecPlan](docs/exec-plans/initial-delivery.md).
 
 ## Dữ liệu và quyền riêng tư

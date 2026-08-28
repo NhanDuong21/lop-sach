@@ -44,7 +44,7 @@ test.describe('@topology production chain', () => {
     expect(sessionCookie?.domain).toBe(new URL(webOrigin as string).hostname);
     expect(sessionCookie?.domain.startsWith('.')).toBe(false);
 
-    await expect(page.getByText(/^Chào /u)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Đăng xuất' })).toBeVisible();
     const meResponsePromise = page.waitForResponse((response) =>
       response.url().includes('/api/v1/auth/me'),
     );
@@ -52,7 +52,7 @@ test.describe('@topology production chain', () => {
     const meResponse = await meResponsePromise;
     expect(meResponse.status()).toBe(200);
     expect((await meResponse.headerValue('cache-control'))?.toLowerCase()).toContain('no-store');
-    await expect(page.getByText(/^Chào /u)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Đăng xuất' })).toBeVisible();
 
     const rejected = await request.post(new URL('/api/v1/auth/login', webOrigin).toString(), {
       headers: { Origin: 'https://incorrect-origin.invalid', 'Content-Type': 'application/json' },
