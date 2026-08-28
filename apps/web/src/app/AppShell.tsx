@@ -1,5 +1,5 @@
 import { LogOut } from 'lucide-react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { BottomNavigation } from '../components/layout/BottomNavigation.js';
 import { OfflineBanner } from '../components/layout/OfflineBanner.js';
 import { SidebarNavigation } from '../components/layout/SidebarNavigation.js';
@@ -14,6 +14,8 @@ export function AppShell({
   readonly displayName: string;
   readonly onLogout: () => void;
 }): React.JSX.Element {
+  const location = useLocation();
+  const currentWeekRoute = location.pathname === '/';
   return (
     <div className="app-layout">
       <OfflineBanner />
@@ -24,15 +26,17 @@ export function AppShell({
       />
       <div className="app-column">
         <header className="topbar">
-          <div>
-            <span className="mobile-brand">
-              <img
-                className="mobile-brand-logo"
-                src="/icons/logo-nobackground.png"
-                alt="Lớp Sạch"
-              />
-            </span>
-            <small>{classroomName}</small>
+          <div className="topbar-brand">
+            <img
+              className="mobile-brand-logo"
+              src="/icons/logo-nobackground.png"
+              alt=""
+              aria-hidden="true"
+            />
+            <div>
+              <strong>Lớp Sạch</strong>
+              <small>{classroomName}</small>
+            </div>
           </div>
           <Button
             variant="secondary"
@@ -44,7 +48,7 @@ export function AppShell({
             <span className="sr-only">Đăng xuất</span>
           </Button>
         </header>
-        <div className="page-container">
+        <div className={`page-container${currentWeekRoute ? ' current-week-container' : ''}`}>
           <Outlet />
         </div>
       </div>

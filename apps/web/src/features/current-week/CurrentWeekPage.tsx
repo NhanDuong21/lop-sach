@@ -1,6 +1,14 @@
 import { addDateOnlyDays, mondayOfWeek, parseDateOnly, type DutyWeek } from '@lop-sach/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarDays, CalendarRange, Plus, Share2 } from 'lucide-react';
+import {
+  CalendarDays,
+  CalendarPlus,
+  CalendarRange,
+  ChartNoAxesCombined,
+  Check,
+  Plus,
+  Share2,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/ui/Button.js';
@@ -142,8 +150,8 @@ export function CurrentWeekPage({
     week?.taskOccurrences.filter((occurrence) => occurrence.enabled && occurrence.date === today) ??
     [];
   return (
-    <div className="page-stack">
-      <header className="page-heading">
+    <div className="page-stack current-week-page">
+      <header className="page-heading current-week-heading">
         <p className="eyebrow">{classroomName}</p>
         <h1>Tuần này</h1>
         <p>Việc cần làm hôm nay và bước tiếp theo của tuần trực.</p>
@@ -205,105 +213,135 @@ export function CurrentWeekPage({
         </section>
       ) : (
         <>
-          <section className="card current-week-hero">
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">{formatWeekRange(week.weekStart, weekEnd)}</p>
-                <h2>Tổ trực: {week.groupSnapshot.name}</h2>
+          <section
+            className={`card current-week-hero current-week-hero-${week.status.toLowerCase()}`}
+            aria-labelledby="current-week-title"
+          >
+            <div className="current-week-hero-intro">
+              <p className="current-week-range">
+                <CalendarDays size={22} aria-hidden="true" />
+                <strong>{formatWeekRange(week.weekStart, weekEnd)}</strong>
+              </p>
+              <h2 id="current-week-title">Tổ trực: {week.groupSnapshot.name}</h2>
+              <div className="current-week-status-line">
                 {week.publicationRevision > 1 ? (
-                  <p>Lần cập nhật {week.publicationRevision}</p>
+                  <span>Lần cập nhật {week.publicationRevision}</span>
                 ) : null}
+                <span className="current-week-status-badge">
+                  <StatusBadge tone={week.status === 'DRAFT' ? 'warning' : 'success'}>
+                    {week.status === 'DRAFT'
+                      ? 'Bản nháp'
+                      : week.status === 'PUBLISHED'
+                        ? 'Đã công bố'
+                        : 'Đã hoàn thành'}
+                  </StatusBadge>
+                </span>
               </div>
-              <StatusBadge tone={week.status === 'DRAFT' ? 'warning' : 'success'}>
-                {week.status === 'DRAFT'
-                  ? 'Bản nháp'
-                  : week.status === 'PUBLISHED'
-                    ? 'Đã công bố'
-                    : 'Đã hoàn thành'}
-              </StatusBadge>
             </div>
-            {week.status === 'DRAFT' ? (
-              <div className="next-step-panel">
-                <strong>Tuần này chưa có lịch chính thức</strong>
-                <p>Tiếp tục chuẩn bị, tạo phân công và kiểm tra trước khi công bố.</p>
-                <div className="button-row">
-                  <Link className="button button-primary" to={`/weeks/${week.id}`}>
-                    Tiếp tục chuẩn bị tuần
-                  </Link>
-                  <Button
-                    variant="danger"
-                    onClick={() => {
-                      deleteDraft.reset();
-                      setDraftToDelete(week);
-                    }}
-                  >
-                    Xóa bản nháp
-                  </Button>
+            <div className="current-week-mascot" aria-hidden="true">
+              <p className="current-week-mascot-speech">
+                Giữ lớp sạch,
+                <br />
+                việc nhỏ nhưng ý nghĩa!
+              </p>
+              <img src="/images/meoconcamchoi.png" alt="" />
+            </div>
+            <div className="current-week-hero-body">
+              {week.status === 'DRAFT' ? (
+                <div className="next-step-panel">
+                  <strong>Tuần này chưa có lịch chính thức</strong>
+                  <p>Tiếp tục chuẩn bị, tạo phân công và kiểm tra trước khi công bố.</p>
+                  <div className="button-row current-week-hero-actions">
+                    <Link className="button button-primary" to={`/weeks/${week.id}`}>
+                      Tiếp tục chuẩn bị tuần
+                    </Link>
+                    <Button
+                      variant="danger"
+                      onClick={() => {
+                        deleteDraft.reset();
+                        setDraftToDelete(week);
+                      }}
+                    >
+                      Xóa bản nháp
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ) : week.status === 'COMPLETED' ? (
-              <div className="completed-week-panel">
-                <strong>Tuần {formatWeekRange(week.weekStart, weekEnd)} đã hoàn thành</strong>
-                <p>Lịch và người thực tế đã làm được lưu cố định trong lịch sử.</p>
-                <div className="button-row">
-                  <Link
-                    className="button button-primary"
-                    to={`/weeks/new?weekStart=${addDateOnlyDays(parseDateOnly(week.weekStart), 7)}`}
-                  >
-                    Lập lịch tuần sau
-                  </Link>
-                  <Link className="button button-secondary" to={`/weeks/${week.id}`}>
-                    Xem kết quả tuần
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <>
-                <section className="today-panel" aria-labelledby="today-title">
-                  <p className="eyebrow">Hôm nay</p>
-                  <h3 id="today-title">{formatDutyDate(today)}</h3>
-                  {todayOccurrences.length > 0 ? (
-                    <div className="today-task-list">
-                      {todayOccurrences.map((occurrence) => (
-                        <div className="today-task" key={occurrence.id}>
-                          <strong>{occurrence.taskName}</strong>
-                          <span>
-                            {occurrence.slots
-                              .map(
-                                (slot) =>
-                                  week.assignments.find(
-                                    (assignment) => assignment.slotId === slot.id,
-                                  )?.actualStudentDisplayName ??
-                                  week.assignments.find(
-                                    (assignment) => assignment.slotId === slot.id,
-                                  )?.studentDisplayName ??
-                                  'Chưa phân công',
-                              )
-                              .join(', ')}
-                          </span>
-                        </div>
-                      ))}
+              ) : week.status === 'COMPLETED' ? (
+                <>
+                  <div className="completed-week-panel">
+                    <span className="completed-week-icon" aria-hidden="true">
+                      <Check size={24} strokeWidth={2.5} />
+                    </span>
+                    <div>
+                      <strong>Tuần {formatWeekRange(week.weekStart, weekEnd)} đã hoàn thành</strong>
+                      <p>Lịch và người thực tế đã làm được lưu cố định trong lịch sử.</p>
                     </div>
-                  ) : (
-                    <p className="muted">Hôm nay lớp không có công việc trực nhật.</p>
-                  )}
-                </section>
-                <div className="button-row hero-actions">
-                  <Link className="button button-primary" to={`/weeks/${week.id}#share`}>
-                    <Share2 size={17} aria-hidden="true" /> Chia sẻ lịch
-                  </Link>
-                  <Link className="button button-secondary" to={`/weeks/${week.id}`}>
-                    <CalendarRange size={17} aria-hidden="true" /> Xem chi tiết tuần
-                  </Link>
-                </div>
-              </>
-            )}
+                  </div>
+                  <div className="button-row current-week-hero-actions">
+                    <Link
+                      className="button button-primary"
+                      to={`/weeks/new?weekStart=${addDateOnlyDays(parseDateOnly(week.weekStart), 7)}`}
+                    >
+                      <CalendarPlus size={19} aria-hidden="true" />
+                      Lập lịch tuần sau
+                    </Link>
+                    <Link className="button button-secondary" to={`/weeks/${week.id}`}>
+                      <ChartNoAxesCombined size={19} aria-hidden="true" />
+                      Xem kết quả tuần
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <section className="today-panel" aria-labelledby="today-title">
+                    <p className="eyebrow">Hôm nay</p>
+                    <h3 id="today-title">{formatDutyDate(today)}</h3>
+                    {todayOccurrences.length > 0 ? (
+                      <div className="today-task-list">
+                        {todayOccurrences.map((occurrence) => (
+                          <div className="today-task" key={occurrence.id}>
+                            <strong>{occurrence.taskName}</strong>
+                            <span>
+                              {occurrence.slots
+                                .map(
+                                  (slot) =>
+                                    week.assignments.find(
+                                      (assignment) => assignment.slotId === slot.id,
+                                    )?.actualStudentDisplayName ??
+                                    week.assignments.find(
+                                      (assignment) => assignment.slotId === slot.id,
+                                    )?.studentDisplayName ??
+                                    'Chưa phân công',
+                                )
+                                .join(', ')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="muted">Hôm nay lớp không có công việc trực nhật.</p>
+                    )}
+                  </section>
+                  <div className="button-row current-week-hero-actions hero-actions">
+                    <Link className="button button-primary" to={`/weeks/${week.id}#share`}>
+                      <Share2 size={17} aria-hidden="true" /> Chia sẻ lịch
+                    </Link>
+                    <Link className="button button-secondary" to={`/weeks/${week.id}`}>
+                      <CalendarRange size={17} aria-hidden="true" /> Xem chi tiết tuần
+                    </Link>
+                  </div>
+                </>
+              )}
+            </div>
           </section>
           {week.status !== 'DRAFT' ? (
-            <section className="card full-week-section">
+            <section className="full-week-section">
               <div className="section-heading">
                 <div>
-                  <p className="eyebrow">Lịch cả tuần</p>
+                  <p className="eyebrow full-week-eyebrow">
+                    <CalendarDays size={18} aria-hidden="true" />
+                    Lịch cả tuần
+                  </p>
                   <h2>Tất cả ngày trực</h2>
                 </div>
               </div>

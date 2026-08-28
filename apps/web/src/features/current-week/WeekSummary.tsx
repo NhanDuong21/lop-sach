@@ -1,4 +1,5 @@
 import type { DutyWeek } from '@lop-sach/contracts';
+import { CalendarDays, ChevronDown } from 'lucide-react';
 import { Notice } from '../../components/ui/Notice.js';
 import { formatDutyDate } from '../../lib/date-labels.js';
 import { uniqueWarningCodes, warningCountText, warningLabels } from '../../lib/week-warnings.js';
@@ -54,6 +55,25 @@ function DaySummary({
   );
 }
 
+function daySummaryMeta(date: string, week: DutyWeek): string {
+  const occurrences = week.taskOccurrences.filter(
+    (occurrence) => occurrence.enabled && occurrence.date === date,
+  );
+  const students = new Set<string>();
+  occurrences.forEach((occurrence) => {
+    occurrence.slots.forEach((slot) => {
+      const assignment = week.assignments.find((item) => item.slotId === slot.id);
+      const studentKey =
+        assignment?.actualStudentId ??
+        assignment?.studentId ??
+        assignment?.actualStudentDisplayName ??
+        assignment?.studentDisplayName;
+      if (studentKey) students.add(studentKey);
+    });
+  });
+  return `${String(occurrences.length)} nhiệm vụ · ${String(students.size)} bạn`;
+}
+
 export function WeekSummary({
   week,
   today,
@@ -80,7 +100,10 @@ export function WeekSummary({
         {dates.map((date) => (
           <section className={`summary-day${date === today ? ' is-today' : ''}`} key={date}>
             <div className="summary-day-heading">
-              <h3>{formatDutyDate(date)}</h3>
+              <div className="summary-day-title">
+                <CalendarDays size={19} aria-hidden="true" />
+                <h3>{formatDutyDate(date)}</h3>
+              </div>
               {date === today ? <span>Hôm nay</span> : null}
             </div>
             <DaySummary date={date} week={week} />
@@ -95,8 +118,15 @@ export function WeekSummary({
             key={date}
           >
             <summary>
-              <span>{formatDutyDate(date)}</span>
-              {date === today ? <strong>Hôm nay</strong> : <span>Xem</span>}
+              <CalendarDays className="mobile-summary-calendar" size={22} aria-hidden="true" />
+              <span className="mobile-summary-copy">
+                <strong>{formatDutyDate(date)}</strong>
+                <small>{daySummaryMeta(date, week)}</small>
+              </span>
+              <span className="mobile-summary-action">
+                {date === today ? 'Hôm nay' : 'Xem'}
+                <ChevronDown size={20} aria-hidden="true" />
+              </span>
             </summary>
             <DaySummary date={date} week={week} />
           </details>

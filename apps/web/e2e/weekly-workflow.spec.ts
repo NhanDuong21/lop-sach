@@ -135,6 +135,65 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Tuần này' })).toBeVisible();
   await expect(page.getByText('Đã hoàn thành', { exact: true })).toBeVisible();
+  await expect(page.locator('.topbar')).toBeVisible();
+  await expect(page.locator('.sidebar')).toBeHidden();
+  await expect(page.locator('.bottom-navigation')).toBeVisible();
+  await expect(page.locator('.mobile-week-list')).toBeVisible();
+  await expect(page.locator('.desktop-week-grid')).toBeHidden();
+  await expect(page.locator('.current-week-mascot img')).toHaveAttribute(
+    'src',
+    '/images/meoconcamchoi.png',
+  );
+  await expect(page.locator('.mobile-summary-copy')).toContainText(/\d+ nhiệm vụ · \d+ bạn/u);
+  const expectNoHorizontalOverflow = async (): Promise<void> => {
+    const viewportDimensions = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+    }));
+    expect(viewportDimensions.scrollWidth).toBeLessThanOrEqual(viewportDimensions.innerWidth);
+  };
+  await expectNoHorizontalOverflow();
+
+  for (const width of [375, 390, 414, 430]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(page.locator('.topbar')).toBeVisible();
+    await expect(page.locator('.bottom-navigation')).toBeVisible();
+    await expectNoHorizontalOverflow();
+  }
+
+  await page.setViewportSize({ width: 768, height: 900 });
+  await expect(page.locator('.topbar')).toBeVisible();
+  await expect(page.locator('.sidebar')).toBeHidden();
+  await expect(page.locator('.bottom-navigation')).toBeVisible();
+  await expectNoHorizontalOverflow();
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await expect(page.locator('.sidebar')).toBeVisible();
+  await expect(page.locator('.topbar')).toBeHidden();
+  await expect(page.locator('.bottom-navigation')).toBeHidden();
+  await expect(page.locator('.desktop-week-grid')).toBeVisible();
+  await expect(page.locator('.mobile-week-list')).toBeHidden();
+  expect(
+    await page
+      .locator('.app-layout')
+      .evaluate((element) => getComputedStyle(element).backgroundImage),
+  ).toBe('none');
+  await expectNoHorizontalOverflow();
+
+  for (const viewport of [
+    { width: 1280, height: 800 },
+    { width: 1366, height: 768 },
+    { width: 1440, height: 900 },
+    { width: 1600, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const wideContainer = await page.locator('.current-week-container').boundingBox();
+    expect(wideContainer).not.toBeNull();
+    expect(wideContainer?.width ?? 0).toBeLessThanOrEqual(1200);
+    await expectNoHorizontalOverflow();
+  }
+
+  await page.setViewportSize({ width: 360, height: 780 });
   const accessibility = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();

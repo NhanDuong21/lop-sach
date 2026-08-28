@@ -111,7 +111,85 @@ describe('CurrentWeekPage', () => {
   });
 
   it('makes the next week the primary action after completion', async () => {
-    const completed = makeWeek('completed-week', '2026-08-24', 'COMPLETED');
+    const completed: DutyWeek = {
+      ...makeWeek('completed-week', '2026-08-24', 'COMPLETED'),
+      taskOccurrences: [
+        {
+          id: 'occurrence-1',
+          date: parseDateOnly('2026-08-29'),
+          source: 'RECURRING',
+          taskTemplateId: 'task-1',
+          taskTemplateRevision: 0,
+          taskFingerprint: 'template:task-1',
+          taskName: 'Lau bảng',
+          workloadLevel: 1,
+          eligibilityRule: 'ANY',
+          requiredStudents: 1,
+          enabled: true,
+          order: 0,
+          slots: [{ id: 'slot-1', index: 0 }],
+        },
+        {
+          id: 'occurrence-2',
+          date: parseDateOnly('2026-08-29'),
+          source: 'RECURRING',
+          taskTemplateId: 'task-2',
+          taskTemplateRevision: 0,
+          taskFingerprint: 'template:task-2',
+          taskName: 'Quét lớp',
+          workloadLevel: 1,
+          eligibilityRule: 'ANY',
+          requiredStudents: 2,
+          enabled: true,
+          order: 1,
+          slots: [
+            { id: 'slot-2', index: 0 },
+            { id: 'slot-3', index: 1 },
+          ],
+        },
+      ],
+      assignments: [
+        {
+          slotId: 'slot-1',
+          occurrenceId: 'occurrence-1',
+          slotIndex: 0,
+          studentId: 'student-1',
+          studentDisplayName: 'Nguyễn An',
+          source: 'AUTO',
+          locked: true,
+          reasonCodes: [],
+          explanation: [],
+          actualStudentId: 'student-1',
+          actualStudentDisplayName: 'Nguyễn An',
+        },
+        {
+          slotId: 'slot-2',
+          occurrenceId: 'occurrence-2',
+          slotIndex: 0,
+          studentId: 'student-2',
+          studentDisplayName: 'Trần Bình',
+          source: 'AUTO',
+          locked: true,
+          reasonCodes: [],
+          explanation: [],
+          actualStudentId: 'student-2',
+          actualStudentDisplayName: 'Trần Bình',
+        },
+        {
+          slotId: 'slot-3',
+          occurrenceId: 'occurrence-2',
+          slotIndex: 1,
+          studentId: 'student-1',
+          studentDisplayName: 'Nguyễn An',
+          source: 'AUTO',
+          locked: true,
+          reasonCodes: [],
+          explanation: [],
+          actualStudentId: 'student-1',
+          actualStudentDisplayName: 'Nguyễn An',
+        },
+      ],
+    };
     vi.mocked(listDutyWeeks).mockImplementation((filters) =>
       Promise.resolve(filters?.status === 'DRAFT' ? [] : [completed]),
     );
@@ -125,8 +203,13 @@ describe('CurrentWeekPage', () => {
       </QueryClientProvider>,
     );
 
-    expect(await screen.findByText('Tuần 24/08 – 30/08/2026 đã hoàn thành')).toBeInTheDocument();
+    expect(await screen.findByText('Tuần 24/08 – 29/08/2026 đã hoàn thành')).toBeInTheDocument();
     expect(screen.queryByText('Hôm nay')).not.toBeInTheDocument();
+    expect(screen.getByText('2 nhiệm vụ · 2 bạn')).toBeInTheDocument();
+    expect(document.querySelector('.current-week-mascot img')).toHaveAttribute(
+      'src',
+      '/images/meoconcamchoi.png',
+    );
     expect(screen.getByRole('link', { name: 'Lập lịch tuần sau' })).toHaveClass('button-primary');
     expect(screen.getByRole('link', { name: 'Xem kết quả tuần' })).toHaveAttribute(
       'href',
