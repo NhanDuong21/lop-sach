@@ -16,6 +16,7 @@
 - [x] VPS bootstrap dùng deploy user/key riêng, UFW chỉ mở 22/80/443, app chạy bằng system user không đăng nhập và GitHub workflow chỉ gọi helper deploy root-owned đã cài sẵn.
 - [x] Lần chạy workflow production đầu tiên dừng ở gate lint trước deploy vì clean Linux checkout chưa có dist của hai workspace package. Root `prelint` nay build contracts và scheduler trước type-aware ESLint để local và CI không phụ thuộc artifact còn sót lại.
 - [x] Lần chạy kế tiếp vượt toàn bộ `pnpm check` rồi dừng trước E2E vì Playwright CLI thuộc web workspace, không thuộc root. CI và deploy workflow nay gọi CLI bằng filter web tường minh; README dùng cùng lệnh.
+- [x] Lần chạy thứ ba vượt validate/E2E và SSH pinning, nhưng inactive install dừng an toàn vì Corepack khởi chạy từ home riêng của deploy user mà app user không được phép đọc. Helper nay đổi working directory vào release trước khi chạy pnpm dưới app user; chưa có symlink active hoặc service hỏng nào được tạo.
 
 ## Refinement 11.12 — Lifecycle/history desktop freeze
 

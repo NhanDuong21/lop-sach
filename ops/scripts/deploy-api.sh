@@ -37,7 +37,10 @@ if [[ ! -f $release_dir/apps/api/dist/server.js || ! -f $release_dir/apps/api/di
   echo "Release artifact does not contain the prebuilt API and migration CLI." >&2
   exit 65
 fi
-sudo -u lop-sach corepack pnpm --dir "$release_dir" install --frozen-lockfile --prod
+(
+  cd "$release_dir"
+  sudo -u lop-sach corepack pnpm install --frozen-lockfile --prod
+)
 
 set -a
 # shellcheck disable=SC1090
