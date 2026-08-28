@@ -22,6 +22,14 @@
 - [x] Giữ nguyên route, quyền, vòng đời draft/published/completed, luồng ngoại tuyến và hành vi đăng xuất.
 - [x] Playwright real-backend xác nhận responsive tại 360/375/390/414/430, 768 và 1024/1280/1366/1440/1600 px, không tràn ngang; full `pnpm check`, E2E 3/3 và audit production đều xanh.
 
+## Refinement 11.14 — Classroom workspace visual refresh
+
+- [x] Ba tab Thông tin chung, Học sinh và Công việc dùng cùng hierarchy trắng/xanh/mint; giữ nguyên route, query, mutation, validation, modal và action menu hiện có.
+- [x] Tổng quan có class hero dùng metric thật từ classroom/student/task queries, mascot duy nhất `meoconcamchoi.png`, card thông tin, tổ compact, preview học sinh/công việc và shortcut riêng cho mobile.
+- [x] Học sinh dùng initial avatar, search/filter compact và row touch-friendly; Công việc dùng task cards cùng metadata chips lấy từ dữ liệu thật.
+- [x] Browser smoke UAT tại 390 × 844 và 1440 × 900 xác nhận ba tab, search/filter/menu/edit flow; Playwright real-backend quét 360/375/390/414/430, 768 và 1024/1280/1366/1440/1600 px, không tràn ngang.
+- [x] Full `pnpm check` xanh với 101 tests, Playwright 3/3 và audit production không có vulnerability đã biết.
+
 ## Milestones
 
 | Milestone                       | Trạng thái               | Commit                                                          | Validation                                                  |
@@ -48,6 +56,7 @@
 | 11.11. Unified application icon | Hoàn tất                 | `chore(pwa): use maskable artwork as favicon`                   | 93 tests + 3 E2E + audit production; PWA gate xanh          |
 | 11.12. Lifecycle/history freeze | Hoàn tất                 | Chưa commit                                                     | 98 tests + 3 E2E + audit production; Browser smoke xanh     |
 | 11.13. Current-week visual      | Hoàn tất                 | Chưa commit                                                     | 100 tests + 3 E2E + audit production; responsive E2E xanh   |
+| 11.14. Classroom workspace      | Hoàn tất                 | Chưa commit                                                     | 101 tests + 3 E2E + audit production; Browser smoke xanh    |
 | 12. Production deployment       | Bị chặn ngoài repo       | Chưa có                                                         | Chưa chạy                                                   |
 
 ## Quyết định
@@ -108,6 +117,7 @@
 - Login visual refinement: trang đăng nhập dùng nguyên asset `meoconbackground.png` phủ toàn viewport và mascot `meoconcamchoi.png` trong card trắng nổi mobile-first; logo, typography, divider lá, input icon/focus/error, CTA loading và reduced-motion được tinh chỉnh mà không đổi route, schema, auth callback hoặc API. Validation giữ nguyên giới hạn nhưng thông báo hiển thị đã được Việt hóa và liên kết bằng `aria-describedby`. Browser smoke xác nhận không tràn ngang tại 360/375/390/414/430 px, landscape 844 × 390 và desktop 1440 × 900; focus ring, nút ẩn-hiện mật khẩu, asset loading và card ở trạng thái lỗi đều đúng. Full `pnpm check` xanh với 100 tests repository và production build; Playwright real-API 3/3 xanh tại 360 px; `pnpm audit:prod` không có vulnerability đã biết. Không commit, push hoặc triển khai production.
 - Login desktop refinement: từ 960 px trang login chuyển sang asset ngang `meoconbackground-desktop.png`, giữ `cover` và căn card trắng 560 px về bên phải để lộ mèo, cửa sổ và bàn học bên trái. Header desktop đặt logo cạnh tên thương hiệu, tăng scale headline/spacing; mascot nằm đáy phải và màn cao tối đa 820 px dùng biến thể compact để không phát sinh cuộn thừa. Mobile/tablet đến 768 px tiếp tục dùng nguyên asset dọc và layout card cũ. Browser smoke xác nhận đúng asset, không tràn ngang/dọc tại 360/375/390/414/768/1024/1280/1440 px; full `pnpm check` xanh với 100 tests repository và production build; Playwright real-API 3/3 xanh tại 360 px; `pnpm audit:prod` không có vulnerability đã biết. Không commit, push hoặc triển khai production.
 - Current-week visual refinement: trang Tuần này dùng hero mint với ngày/tổ/trạng thái thật, mascot duy nhất từ `meoconcamchoi.png`, CTA giữ nguyên lifecycle và tóm tắt từng ngày tính số nhiệm vụ/người từ assignments thật. Desktop giữ sidebar và lưới ngày hai cột; từ 900 px trở xuống chuyển sang topbar, bottom navigation và hàng ngày mở rộng bằng native `details`. Playwright real-backend xác nhận trạng thái hoàn thành, offline cache, đăng xuất, đúng shell và không tràn ngang tại 360/375/390/414/430, 768 và 1024/1280/1366/1440/1600 px; full `pnpm check` xanh với 100 tests repository và production build; Playwright 3/3 xanh; `pnpm audit:prod` không có vulnerability đã biết. Không commit, push hoặc triển khai production.
+- Classroom workspace visual refinement: tab Thông tin chung có hero mint, bốn metric thật, mascot `meoconcamchoi.png`, card thông tin/tổ, preview học sinh/công việc desktop và shortcut mobile; hai tab còn lại dùng initial avatar, search/filter compact, task cards và metadata chips. Browser smoke trên dữ liệu UAT 10C8 thật tại 390 × 844 và 1440 × 900 xác nhận tab switching, search một tên, lọc Tổ 1/đã ngừng, menu và modal sửa học sinh/công việc; không ghi mutation. Playwright real-backend xác nhận cả ba tab, create/edit/deactivate dialog, logout và không tràn ngang tại 360/375/390/414/430, 768 và 1024/1280/1366/1440/1600 px. Full `pnpm check` xanh với 101 tests repository và production build; Playwright 3/3 xanh; `pnpm audit:prod` không có vulnerability đã biết. Không commit, push hoặc triển khai production.
 
 ## Remaining work
 

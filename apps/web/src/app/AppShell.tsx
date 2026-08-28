@@ -16,6 +16,7 @@ export function AppShell({
 }): React.JSX.Element {
   const location = useLocation();
   const currentWeekRoute = location.pathname === '/';
+  const classroomRoute = location.pathname === '/class' || location.pathname.startsWith('/class/');
   return (
     <div className="app-layout">
       <OfflineBanner />
@@ -48,7 +49,9 @@ export function AppShell({
             <span className="sr-only">Đăng xuất</span>
           </Button>
         </header>
-        <div className={`page-container${currentWeekRoute ? ' current-week-container' : ''}`}>
+        <div
+          className={`page-container${currentWeekRoute ? ' current-week-container' : ''}${classroomRoute ? ' classroom-container' : ''}`}
+        >
           <Outlet />
         </div>
       </div>

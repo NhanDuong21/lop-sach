@@ -1,10 +1,11 @@
 import type { Classroom } from '@lop-sach/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, Plus } from 'lucide-react';
+import { ArrowDown, ArrowUp, Plus, Users } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../../components/ui/Button.js';
 import { ActionMenu } from '../../components/ui/ActionMenu.js';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.js';
+import { InitialAvatar } from '../../components/ui/InitialAvatar.js';
 import { ModalDialog } from '../../components/ui/ModalDialog.js';
 import { Notice } from '../../components/ui/Notice.js';
 import { listStudents } from '../students/students.api.js';
@@ -38,11 +39,14 @@ export function GroupsPanel({ classroom }: { readonly classroom: Classroom }): R
   const move = (groupId: string, order: number): void =>
     mutation.mutate(() => patchGroup(groupId, { order, expectedVersion: classroom.version }));
   return (
-    <section className="panel-section" aria-labelledby="groups-title">
+    <section className="panel-section class-groups-panel" aria-labelledby="groups-title">
       <div className="section-heading">
-        <div>
-          <h2 id="groups-title">Các tổ trong lớp</h2>
-          <p>Tên tổ có thể đổi; lịch sử cũ vẫn giữ đúng tổ đã phân công.</p>
+        <div className="class-panel-heading-copy">
+          <Users size={23} aria-hidden="true" />
+          <div>
+            <h2 id="groups-title">Các tổ trong lớp</h2>
+            <p>Tên tổ có thể đổi; lịch sử cũ vẫn giữ đúng tổ đã phân công.</p>
+          </div>
         </div>
         <div className="button-row">
           <Button
@@ -82,10 +86,13 @@ export function GroupsPanel({ classroom }: { readonly classroom: Classroom }): R
             students.data?.filter((student) => student.active && student.groupId === group.id)
               .length ?? 0;
           return (
-            <div className="group-row" key={group.id}>
-              <div className="group-summary">
-                <strong>{group.name}</strong>
-                <span>{activeStudentCount} học sinh</span>
+            <article className="group-row" key={group.id}>
+              <div className="group-card-identity">
+                <InitialAvatar name={group.name} />
+                <div className="group-summary">
+                  <strong>{group.name}</strong>
+                  <span>{activeStudentCount} học sinh</span>
+                </div>
               </div>
               {!group.active ? <span className="status-badge">Ngừng sử dụng</span> : null}
               <div className="icon-actions">
@@ -150,7 +157,7 @@ export function GroupsPanel({ classroom }: { readonly classroom: Classroom }): R
                   </>
                 )}
               </div>
-            </div>
+            </article>
           );
         })}
       </div>

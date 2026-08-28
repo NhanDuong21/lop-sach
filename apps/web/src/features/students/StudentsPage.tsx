@@ -8,6 +8,7 @@ import { ActionMenu } from '../../components/ui/ActionMenu.js';
 import { Button } from '../../components/ui/Button.js';
 import { LoadingState } from '../../components/ui/LoadingState.js';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.js';
+import { InitialAvatar } from '../../components/ui/InitialAvatar.js';
 import { ModalDialog } from '../../components/ui/ModalDialog.js';
 import { Notice } from '../../components/ui/Notice.js';
 import { StatusBadge } from '../../components/ui/StatusBadge.js';
@@ -97,19 +98,19 @@ export function StudentsPage({
   const activeCount = students.data.filter((student) => student.active).length;
   const inactiveCount = students.data.length - activeCount;
   return (
-    <div className="page-stack">
+    <div className="page-stack class-module-page class-students-page">
       {compact ? null : (
         <>
           <ClassroomTabs />
-          <header className="page-heading">
+          <header className="page-heading class-tab-heading">
             <p className="eyebrow">Lớp học</p>
             <h1>Học sinh</h1>
             <p>Tìm và cập nhật nhanh những thông tin ảnh hưởng đến phân công.</p>
           </header>
         </>
       )}
-      <section className="card">
-        <div className="section-heading">
+      <section className="card class-list-card student-list-card">
+        <div className="section-heading class-list-heading">
           <div>
             <h2>Danh sách học sinh</h2>
             <p>
@@ -120,6 +121,7 @@ export function StudentsPage({
           <div className="button-row">
             <Button
               variant="secondary"
+              aria-label="Thêm một bạn"
               onClick={() => {
                 update.reset();
                 bulkCreate.reset();
@@ -127,9 +129,13 @@ export function StudentsPage({
               }}
             >
               <Plus size={17} />
-              Thêm một bạn
+              <span className="class-action-full">Thêm một bạn</span>
+              <span className="class-action-short" aria-hidden="true">
+                Thêm
+              </span>
             </Button>
             <Button
+              aria-label="Thêm nhanh nhiều bạn"
               onClick={() => {
                 update.reset();
                 bulkCreate.reset();
@@ -137,11 +143,14 @@ export function StudentsPage({
               }}
             >
               <ListPlus size={17} />
-              Thêm nhanh nhiều bạn
+              <span className="class-action-full">Thêm nhanh nhiều bạn</span>
+              <span className="class-action-short" aria-hidden="true">
+                Thêm nhanh
+              </span>
             </Button>
           </div>
         </div>
-        <div className="filter-bar">
+        <div className="filter-bar student-filter-bar">
           <label className="search-field" htmlFor="student-search">
             <span className="sr-only">Tìm theo tên học sinh</span>
             <Search size={18} aria-hidden="true" />
@@ -192,7 +201,7 @@ export function StudentsPage({
             Không thể lưu học sinh. Hãy kiểm tra phiên bản dữ liệu và thử lại.
           </Notice>
         ) : null}
-        <div className="entity-list">
+        <div className="entity-list student-entity-list">
           {filtered.length === 0 ? (
             <div className="empty-state">
               <UserRound size={28} aria-hidden="true" />
@@ -201,16 +210,19 @@ export function StudentsPage({
             </div>
           ) : (
             filtered.map((student) => (
-              <article className="entity-row" key={student.id}>
-                <div>
-                  <strong>{student.displayName}</strong>
-                  <p>
-                    {classroom.data.groups.find((group) => group.id === student.groupId)?.name ??
-                      'Tổ đã lưu'}
-                    {student.restrictions.length > 0
-                      ? ` · ${student.restrictions.length} hạn chế`
-                      : ''}
-                  </p>
+              <article className="entity-row student-row" key={student.id}>
+                <div className="student-row-identity">
+                  <InitialAvatar name={student.displayName} />
+                  <div>
+                    <strong>{student.displayName}</strong>
+                    <p>
+                      {classroom.data.groups.find((group) => group.id === student.groupId)?.name ??
+                        'Tổ đã lưu'}
+                      {student.restrictions.length > 0
+                        ? ` · ${student.restrictions.length} hạn chế`
+                        : ''}
+                    </p>
+                  </div>
                 </div>
                 {!student.active ? <StatusBadge>Đã ngừng tham gia</StatusBadge> : null}
                 <ActionMenu

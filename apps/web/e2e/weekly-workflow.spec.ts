@@ -4,6 +4,20 @@ import { readFile } from 'node:fs/promises';
 
 test('creates, publishes, completes and exports a weekly schedule at 360 px', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 780 });
+  const expectNoHorizontalOverflow = async (): Promise<void> => {
+    const viewportDimensions = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+    }));
+    expect(viewportDimensions.scrollWidth).toBeLessThanOrEqual(viewportDimensions.innerWidth);
+  };
+  const expectClassTabsFit = async (): Promise<void> => {
+    const tabDimensions = await page.locator('.classroom-tabs').evaluate((element) => ({
+      scrollWidth: element.scrollWidth,
+      clientWidth: element.clientWidth,
+    }));
+    expect(tabDimensions.scrollWidth).toBeLessThanOrEqual(tabDimensions.clientWidth);
+  };
   await page.goto('/login');
   await page.getByLabel('Tên đăng nhập').fill('owner');
   await page.getByLabel('Mật khẩu', { exact: true }).fill('mat-khau-thu-nghiem');
@@ -41,6 +55,20 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
 
   await page.reload();
   await page.goto('/class/students');
+  await expect(page.getByRole('heading', { name: 'Học sinh', exact: true })).toBeVisible();
+  await expect(page.locator('.student-row')).toHaveCount(4);
+  await expect(page.locator('.student-row .initial-avatar').first()).toBeVisible();
+  await expect(page.locator('.bottom-navigation a.active')).toContainText('Lớp học');
+  await expectClassTabsFit();
+  await expectNoHorizontalOverflow();
+  await page.getByLabel('Tìm theo tên học sinh').fill('An');
+  await expect(page.locator('.student-row')).toHaveCount(1);
+  await page.getByLabel('Tìm theo tên học sinh').clear();
+  await page.getByLabel('Lọc theo trạng thái').selectOption('INACTIVE');
+  await expect(
+    page.getByRole('heading', { name: 'Chưa có học sinh trong danh sách này' }),
+  ).toBeVisible();
+  await page.getByLabel('Lọc theo trạng thái').selectOption('ACTIVE');
   await page.getByRole('button', { name: 'Thêm một bạn' }).click();
   const studentDialog = page.getByRole('dialog', { name: 'Thêm một học sinh' });
   await expect(studentDialog).toBeVisible();
@@ -66,6 +94,14 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   await studentDeactivateDialog.getByRole('button', { name: 'Hủy' }).click();
 
   await page.goto('/class/tasks');
+  await expect(page.getByRole('heading', { name: 'Công việc trực nhật' })).toBeVisible();
+  await expect(page.locator('.task-template-card')).toHaveCount(3);
+  await expect(page.locator('.task-template-card .metadata-chips').first()).toBeVisible();
+  await expectClassTabsFit();
+  await expectNoHorizontalOverflow();
+  await page.getByRole('button', { name: 'Đã tạm ngừng (0)' }).click();
+  await expect(page.getByRole('heading', { name: 'Chưa có công việc' })).toBeVisible();
+  await page.getByRole('button', { name: 'Đang dùng (3)' }).click();
   await page.getByRole('button', { name: 'Thêm công việc' }).click();
   const taskDialog = page.getByRole('dialog', { name: 'Thêm công việc' });
   await expect(taskDialog).toBeVisible();
@@ -77,10 +113,53 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   await taskDeactivateDialog.getByRole('button', { name: 'Hủy' }).click();
 
   await page.goto('/class');
+  await expect(page.locator('.class-hub-hero')).toBeVisible();
+  await expect(page.locator('.class-hub-mascot img')).toHaveAttribute(
+    'src',
+    '/images/meoconcamchoi.png',
+  );
+  await expect(page.locator('.mobile-class-shortcuts')).toBeVisible();
+  await expect(page.locator('.class-student-preview')).toBeHidden();
+  await expectClassTabsFit();
+  await expectNoHorizontalOverflow();
+  await page.getByRole('button', { name: 'Chỉnh sửa' }).click();
+  await expect(page.getByLabel('Tên lớp')).toHaveValue('10C8');
+  await page.getByRole('button', { name: 'Hủy thay đổi' }).click();
   await page.getByRole('button', { name: 'Sửa', exact: true }).first().click();
   const groupDialog = page.getByRole('dialog', { name: 'Sửa Tổ 1' });
   await expect(groupDialog).toBeVisible();
   await groupDialog.getByRole('button', { name: 'Hủy' }).click();
+
+  for (const width of [375, 390, 414, 430]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(page.locator('.topbar')).toBeVisible();
+    await expect(page.locator('.bottom-navigation')).toBeVisible();
+    await expectClassTabsFit();
+    await expectNoHorizontalOverflow();
+  }
+  await page.setViewportSize({ width: 768, height: 900 });
+  await expect(page.locator('.sidebar')).toBeHidden();
+  await expect(page.locator('.class-hub-hero')).toBeVisible();
+  await expectClassTabsFit();
+  await expectNoHorizontalOverflow();
+  for (const viewport of [
+    { width: 1024, height: 768 },
+    { width: 1280, height: 800 },
+    { width: 1366, height: 768 },
+    { width: 1440, height: 900 },
+    { width: 1600, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await expect(page.locator('.sidebar')).toBeVisible();
+    await expect(page.locator('.topbar')).toBeHidden();
+    await expect(page.locator('.class-student-preview')).toBeVisible();
+    const classroomContainer = await page.locator('.classroom-container').boundingBox();
+    expect(classroomContainer).not.toBeNull();
+    expect(classroomContainer?.width ?? 0).toBeLessThanOrEqual(1280);
+    await expectClassTabsFit();
+    await expectNoHorizontalOverflow();
+  }
+  await page.setViewportSize({ width: 360, height: 780 });
 
   await page.goto('/weeks/new');
   await expect(page.getByRole('heading', { name: 'Chuẩn bị tuần trực' })).toBeVisible();
@@ -145,13 +224,6 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
     '/images/meoconcamchoi.png',
   );
   await expect(page.locator('.mobile-summary-copy')).toContainText(/\d+ nhiệm vụ · \d+ bạn/u);
-  const expectNoHorizontalOverflow = async (): Promise<void> => {
-    const viewportDimensions = await page.evaluate(() => ({
-      scrollWidth: document.documentElement.scrollWidth,
-      innerWidth: window.innerWidth,
-    }));
-    expect(viewportDimensions.scrollWidth).toBeLessThanOrEqual(viewportDimensions.innerWidth);
-  };
   await expectNoHorizontalOverflow();
 
   for (const width of [375, 390, 414, 430]) {

@@ -8,7 +8,7 @@ const items = [
 
 export function ClassroomTabs(): React.JSX.Element {
   return (
-    <nav className="section-tabs" aria-label="Các phần của lớp học">
+    <nav className="section-tabs classroom-tabs" aria-label="Các phần của lớp học">
       {items.map((item) => (
         <NavLink
           key={item.to}
