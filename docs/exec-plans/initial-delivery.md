@@ -20,6 +20,7 @@
 - [x] Lần chạy thứ tư cài production dependencies và áp dụng migration `0001-initial-indexes`, rồi lộ ra readiness check một lần quá sớm cùng first-deploy rollback nhận nhầm đường dẫn chưa tồn tại. Vòng restart đã dừng, symlink tự tham chiếu đã được gỡ; helper nay chỉ nhận symlink release có thật, poll readiness tối đa 30 giây và trả first deploy lỗi về trạng thái service dừng/không active.
 - [x] API release `74535157a6fbc26fb3f164dc38922185efe6c30c` đã deploy xanh qua workflow. Production smoke sau đó phát hiện Vercel generic function `[...path]` chỉ match một segment; route wildcard tường minh nay đưa mọi `/api/:path*` vào một fixed proxy function, giữ original path trong query nội bộ, và utility/test trong `api` được đổi prefix `_` để Vercel không xuất chúng thành functions.
 - [x] Workflow production hậu-deploy `33166537435` xanh trên release `882a767aeb41f15a034e8d13cfddf58ca4990430`, tạo hai release API tương thích. Rollback helper nay poll cả live/ready và tự phục hồi release đang chạy nếu rollback target không ready trước khi thực hiện drill thật.
+- [x] Owner production đã được bootstrap bằng hidden prompt. Login HTTPS, host-only secure cookie, refresh session và `no-store` đều xanh; smoke onboarding sau đó phát hiện Vercel tự thêm query `path` từ wildcard source vào upstream, làm strict query endpoint trả `422`. Proxy nay loại cả hai routing metadata `__lop_sach_path`/`path` trước khi forward và có regression test giữ application query thật.
 
 ## Refinement 11.12 — Lifecycle/history desktop freeze
 

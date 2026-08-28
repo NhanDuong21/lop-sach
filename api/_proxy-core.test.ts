@@ -20,9 +20,11 @@ describe('fixed upstream proxy', () => {
     expect(() => validateProxyPath('https://attacker.invalid/api/v1')).toThrow();
   });
   it('reconstructs a multi-segment path from the fixed Vercel rewrite', () => {
-    expect(resolveProxyPath('/api/proxy?__lop_sach_path=v1%2Fauth%2Fme&include=session')).toBe(
-      '/api/v1/auth/me?include=session',
-    );
+    expect(
+      resolveProxyPath(
+        '/api/proxy?__lop_sach_path=v1%2Fauth%2Fme&path=v1%2Fauth%2Fme&include=session',
+      ),
+    ).toBe('/api/v1/auth/me?include=session');
     expect(() =>
       resolveProxyPath('/api/proxy?__lop_sach_path=https%3A%2F%2Fattacker.invalid'),
     ).toThrow('PROXY_ROUTE_NOT_ALLOWED');

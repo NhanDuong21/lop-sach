@@ -69,6 +69,10 @@ export function resolveProxyPath(requestUrl: string | undefined): string {
   const rewrittenPath = parsed.searchParams.get('__lop_sach_path');
   if (!rewrittenPath) return validateProxyPath(`${parsed.pathname}${parsed.search}`);
   parsed.searchParams.delete('__lop_sach_path');
+  // Vercel also injects the source wildcard name (`:path*`) into the
+  // destination query. It is routing metadata, not an application query
+  // parameter, and strict API query contracts must never receive it.
+  parsed.searchParams.delete('path');
   const normalizedPath = rewrittenPath.replace(/^\/+/, '');
   return validateProxyPath(`/api/${normalizedPath}${parsed.search}`);
 }
