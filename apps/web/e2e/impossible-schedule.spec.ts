@@ -7,7 +7,7 @@ test('keeps an impossible schedule visible, unassigned and unpublished', async (
   await page.setViewportSize({ width: 360, height: 780 });
   await page.goto('/login');
   await page.getByLabel('Tên đăng nhập').fill('owner');
-  await page.getByLabel('Mật khẩu').fill('mat-khau-thu-nghiem');
+  await page.getByLabel('Mật khẩu', { exact: true }).fill('mat-khau-thu-nghiem');
   const loginResponsePromise = page.waitForResponse('**/api/v1/auth/login');
   await page.getByRole('button', { name: 'Đăng nhập' }).click();
   expect((await loginResponsePromise).status()).toBe(200);

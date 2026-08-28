@@ -27,7 +27,7 @@ test.describe('@topology production chain', () => {
       response.url().includes('/api/v1/auth/login'),
     );
     await page.getByLabel('Tên đăng nhập').fill(username as string);
-    await page.getByLabel('Mật khẩu').fill(password as string);
+    await page.getByLabel('Mật khẩu', { exact: true }).fill(password as string);
     await page.getByRole('button', { name: 'Đăng nhập' }).click();
     const loginResponse = await loginResponsePromise;
     expect(loginResponse.status()).toBe(200);

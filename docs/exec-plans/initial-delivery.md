@@ -96,6 +96,7 @@
 - UI refinement: sidebar thay dấu `LS` bằng `logo-nobackground.png`; mobile topbar cũng hiển thị cùng logo tại vị trí nhận diện `Lớp Sạch`, giữ tên lớp bên dưới.
 - PNG export refinement: ảnh lịch trực chuyển từ danh sách văn bản sang bảng tự động theo ngày và loại công việc, có header, đường kẻ, ô trống và tự xuống dòng tên học sinh.
 - Milestone 11.12: hoàn thành tuần được chặn ở cả API và UI cho tới ngày trực cuối cùng theo `Asia/Ho_Chi_Minh`, nhưng CTA lập tuần sau vẫn mở độc lập. Lịch sử nay chọn theo tổ, mặc định theo tên và chỉ sắp tải thấp/cao khi người dùng chọn; summary/metrics contracts mang `groupId` để không trộn học sinh khác tổ. Màn tạo tuần hiển thị shortcut tuần hiện tại/kế tiếp cùng khoảng ngày cụ thể. Màn kết quả dùng actual performer và ghi `Thay [người được phân công]` khi có thay thế. Browser smoke tại mobile 390 × 844 và desktop xác nhận không tràn ngang; full `pnpm check` xanh với 98 unit/integration tests và production builds; Playwright real-API 3/3 xanh tại 360 px; `pnpm audit:prod` không có vulnerability đã biết. Dữ liệu UAT được giữ nguyên và không triển khai production.
+- Login refinement: dấu `LS` được thay bằng `logo-nobackground.png`; ô tên đăng nhập và mật khẩu có placeholder tương ứng, còn mật khẩu có nút mắt với trạng thái/nhãn ẩn-hiện truy cập được. Browser smoke tại 390 × 844 xác nhận bố cục không tràn và nút đổi input giữa `password`/`text`; full `pnpm check` và Playwright real-API 3/3 đều xanh.
 
 ## Remaining work
 
