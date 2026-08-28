@@ -37,7 +37,7 @@ pnpm typecheck
 pnpm test
 pnpm build
 pnpm check
-pnpm exec playwright install chromium
+pnpm --filter @lop-sach/web exec playwright install chromium
 pnpm test:e2e
 pnpm audit:prod
 ```

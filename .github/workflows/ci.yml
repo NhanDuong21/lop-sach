@@ -21,7 +21,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm audit:prod
       - run: pnpm check
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm --filter @lop-sach/web exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - if: failure()
         uses: actions/upload-artifact@v4
