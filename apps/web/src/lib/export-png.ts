@@ -185,12 +185,20 @@ export async function dutyWeekPng(week: DutyWeek, classroomName: string): Promis
 
   context.fillStyle = COLORS.title;
   context.font = '800 46px system-ui, sans-serif';
-  context.fillText('LỊCH TRỰC NHẬT', WIDTH / 2, titleTop);
+  context.fillText(
+    week.status === 'DRAFT' ? 'BẢNG KIỂM TRA PHÂN CÔNG' : 'LỊCH TRỰC NHẬT',
+    WIDTH / 2,
+    titleTop,
+  );
   context.fillStyle = COLORS.text;
   context.font = '500 25px system-ui, sans-serif';
   const range = formatWeekRange(week.weekStart, endDate);
   const revision =
-    week.publicationRevision > 1 ? ` · Lần cập nhật ${String(week.publicationRevision)}` : '';
+    week.status === 'DRAFT'
+      ? ' · BẢN NHÁP'
+      : week.publicationRevision > 1
+        ? ` · Lần cập nhật ${String(week.publicationRevision)}`
+        : '';
   context.fillText(
     `LỚP ${classroomName}  •  Tuần ${range}  •  ${week.groupSnapshot.name}${revision}`,
     WIDTH / 2,

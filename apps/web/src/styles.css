@@ -1074,6 +1074,27 @@ legend,
   color: #647068;
   margin-top: 0.25rem;
 }
+.draft-table-export {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  border-color: #cfe2d4;
+  background: #f7fbf8;
+}
+.draft-table-export h2,
+.draft-table-export p {
+  margin: 0;
+}
+.draft-table-export > div > p:last-child {
+  max-width: 720px;
+  margin-top: 0.3rem;
+  color: #59675e;
+}
+.draft-table-export > .notice {
+  grid-column: 1 / -1;
+  margin: 0;
+}
 .warning-summary-list {
   margin: 0.55rem 0 0;
   padding-left: 1.2rem;
@@ -2490,6 +2511,13 @@ a:visited {
   .balance-summary {
     max-width: none;
     text-align: left;
+  }
+  .draft-table-export {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+  .draft-table-export .button {
+    width: 100%;
   }
 }
 

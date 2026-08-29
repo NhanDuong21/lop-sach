@@ -42,6 +42,7 @@ import {
   swapAssignments,
   writeAssignment,
 } from './duty-weeks.api.js';
+import { DraftWeekTableExport } from './DraftWeekTableExport.js';
 import { GenerationPanel } from './GenerationPanel.js';
 import { PublishDialog } from './PublishDialog.js';
 import { ReplacementDialog } from './ReplacementDialog.js';
@@ -669,12 +670,15 @@ export function WeekEditorPage(): React.JSX.Element {
         </section>
       ) : null}
       {draftStep === 2 ? (
-        <GenerationPanel
-          week={week}
-          pending={action.isPending}
-          onGenerate={generate}
-          onPreflight={() => run(() => preflightDutyWeek(week.id, week.version))}
-        />
+        <>
+          <DraftWeekTableExport week={week} classroomName={classroom.data.name} />
+          <GenerationPanel
+            week={week}
+            pending={action.isPending}
+            onGenerate={generate}
+            onPreflight={() => run(() => preflightDutyWeek(week.id, week.version))}
+          />
+        </>
       ) : null}
       <ModalDialog
         open={oneOffOpen}

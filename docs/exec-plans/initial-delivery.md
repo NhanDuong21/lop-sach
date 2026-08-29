@@ -35,6 +35,13 @@
 - [x] Trang Tuần này dùng một overview request cho lịch hiện tại và mọi draft, giữ nguyên lifecycle, offline read-only và business rules.
 - [x] Local gates xanh với 107 tests, Playwright 3/3 và audit sạch; CI/deploy production xanh, timing trước/sau được ghi trong ExecPlan riêng `startup-performance.md`.
 
+## Refinement 12.2 — Mobile draft table export
+
+- [x] Bước Kiểm tra phân công có action tải bảng PNG trước phần cân bằng và danh sách chỉnh sửa dài.
+- [x] Ảnh draft mang tiêu đề `BẢNG KIỂM TRA PHÂN CÔNG`, nhãn `BẢN NHÁP` và filename riêng `-ban-nhap.png`; export đã công bố giữ nguyên.
+- [x] Local gates xanh với 108 tests, Playwright 3/3 và audit sạch; E2E 360 px tải file draft thật rồi hoàn tất lifecycle/export chính thức.
+- [ ] Commit, deploy và Browser smoke production được ghi trong ExecPlan riêng `mobile-assignment-table-export.md`.
+
 ## Refinement 11.12 — Lifecycle/history desktop freeze
 
 - [x] Backend và UI chặn hoàn thành trước ngày trực cuối cùng theo `Asia/Ho_Chi_Minh`; việc chuẩn bị tuần kế tiếp vẫn độc lập.
@@ -89,6 +96,7 @@
 | 11.14. Classroom workspace      | Hoàn tất                 | Chưa commit                                                     | 101 tests + 3 E2E + audit production; Browser smoke xanh        |
 | 12. Production deployment       | Hoàn tất                 | `chore(deploy): finalize production deployment`                 | Production topology/product/deploy/rollback và final gates xanh |
 | 12.1. Startup performance       | Hoàn tất                 | `fix(performance): remove production startup waterfall`         | 107 tests + E2E 3/3 + CI/deploy/Browser production xanh         |
+| 12.2. Draft table export        | Đang xác minh production | Chưa commit                                                     | 108 tests + E2E 3/3 + draft/published PNG regression xanh       |
 
 ## Quyết định
 
@@ -154,7 +162,7 @@
 
 ## Remaining work
 
-Không còn hạng mục Refinement 12.1. Các lần vận hành tiếp tục dùng manual `Deploy API`, forward-only migration, readiness gate và rollback không down-migrate theo runbook.
+Refinement 12.2 còn commit, deploy và Browser smoke production. Các lần vận hành tiếp tục dùng manual `Deploy API`, forward-only migration, readiness gate và rollback không down-migrate theo runbook.
 
 ## Known issues
 

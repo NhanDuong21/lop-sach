@@ -191,6 +191,11 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   await oneOffDialog.getByRole('button', { name: 'Hủy' }).click();
   await page.getByRole('button', { name: 'Tiếp tục tạo phân công' }).click();
   await expect(page.getByText('Phân công đã đủ điều kiện để công bố.')).toBeVisible();
+  const draftPngDownloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Tải bảng PNG' }).click();
+  const draftPngDownload = await draftPngDownloadPromise;
+  expect(draftPngDownload.suggestedFilename()).toBe('lop-sach-10c8-2026-08-24-ban-nhap.png');
+  expect(await draftPngDownload.path()).not.toBeNull();
   await page.getByRole('button', { name: 'Tiếp tục công bố' }).click();
   await page.getByRole('button', { name: 'Công bố lịch' }).click();
   await expect(page.getByRole('heading', { name: 'Công bố lịch tuần?' })).toBeVisible();

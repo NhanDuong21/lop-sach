@@ -171,6 +171,8 @@ describe('WeekEditorPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/Dữ liệu lớp đã thay đổi/u)).toBeInTheDocument();
     expect(screen.getByText(/nhận thêm việc trong cùng ngày/u)).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Xem bản nháp dạng bảng' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tải bảng PNG' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /Chuẩn bị/u }));
     expect(screen.getByText(/mở khóa toàn bộ phân công/u)).toBeInTheDocument();
     expect(screen.getByLabelText('Tổ trực')).toBeDisabled();
