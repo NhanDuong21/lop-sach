@@ -33,8 +33,8 @@ Giảm thời gian từ lúc mở hoặc đăng nhập tới khi thấy giao di�
 - [x] Tách route bundle và preload route hiện tại song song với bootstrap.
 - [x] Bổ sung regression tests và cập nhật topology smoke.
 - [x] Chạy `pnpm check`, E2E, audit production và text policy.
-- [ ] Chạy diff check cuối sau khi chốt tài liệu production.
-- [ ] Commit, push, theo dõi deploy API/Vercel và đo lại production.
+- [x] Chạy diff check cuối sau khi chốt tài liệu production.
+- [x] Commit, push, theo dõi deploy API/Vercel và đo lại production.
 
 ## Quyết định
 
@@ -45,4 +45,14 @@ Giảm thời gian từ lúc mở hoặc đăng nhập tới khi thấy giao di�
 
 ## Kết quả
 
-Local validation đã xanh với 107 tests trong `pnpm check`, Playwright E2E 3/3 và `pnpm audit:prod` không có vulnerability đã biết. Main startup chunk giảm từ 520,624 byte (gzip 156,009 byte) xuống 384,430 byte (gzip 119,600 byte); route hiện tại là chunk riêng 10,900 byte (gzip 3,670 byte). Còn deploy và timing production.
+Local validation đã xanh với 107 tests trong `pnpm check`, Playwright E2E 3/3 và `pnpm audit:prod` không có vulnerability đã biết. Main startup chunk giảm từ 520,624 byte (gzip 156,009 byte) xuống 384,430 byte (gzip 119,600 byte); route hiện tại là chunk riêng 10,900 byte (gzip 3,670 byte).
+
+Implementation commit `992110f` đã lên `origin/main`. CI run `33238366519` và production deploy run `33238380208` đều xanh; API readiness trả `ready`. Production HTML trỏ đúng chunk mới `index-C5tMq8y2.js`, còn `X-Vercel-Id` đổi từ `hkg1::iad1` sang `hkg1::hkg1`.
+
+Năm request bootstrap không xác thực qua public proxy mất 270–479 ms, trung vị 277 ms, thay cho baseline 651–670 ms. Với phiên thật trong browser, ba reload hoàn chỉnh cho kết quả:
+
+- authenticated app shell xuất hiện khi bootstrap hoàn tất ở 308–533 ms, trung vị 348 ms, thay cho khoảng 2.038 giây;
+- nội dung tuần hoàn tất ở 902–1.152 ms, trung vị 958 ms, thay cho 2.788–3.282 giây;
+- waterfall chỉ có `/auth/bootstrap` rồi `/duty-weeks/overview`; không còn `/auth/me` → `/classroom` → hai list tuần nối tiếp;
+- bootstrap trả `200`, user + classroom và `Cache-Control: no-store`; viewport mobile 390 × 844 có `scrollWidth = innerWidth = 390`;
+- service worker cũ hiển thị đúng notice cập nhật, action `Cập nhật` kích hoạt bundle mới, và shell skeleton xuất hiện ngay trong lúc bootstrap đang chờ.

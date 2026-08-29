@@ -33,7 +33,7 @@
 - [x] Bootstrap phiên trả user + classroom trong một request; xác thực session dùng một MongoDB aggregate thay cho hai truy vấn nối tiếp và login hydrate thẳng query cache.
 - [x] Full-page auth loader được thay bằng app-shell skeleton ổn định; route hiện tại preload song song với bootstrap và các màn còn lại được code-split.
 - [x] Trang Tuần này dùng một overview request cho lịch hiện tại và mọi draft, giữ nguyên lifecycle, offline read-only và business rules.
-- [ ] Local gates đã xanh với 107 tests, Playwright 3/3 và audit sạch; deploy cùng timing production sau thay đổi được ghi trong ExecPlan riêng `startup-performance.md`.
+- [x] Local gates xanh với 107 tests, Playwright 3/3 và audit sạch; CI/deploy production xanh, timing trước/sau được ghi trong ExecPlan riêng `startup-performance.md`.
 
 ## Refinement 11.12 — Lifecycle/history desktop freeze
 
@@ -88,7 +88,7 @@
 | 11.13. Current-week visual      | Hoàn tất                 | Chưa commit                                                     | 100 tests + 3 E2E + audit production; responsive E2E xanh       |
 | 11.14. Classroom workspace      | Hoàn tất                 | Chưa commit                                                     | 101 tests + 3 E2E + audit production; Browser smoke xanh        |
 | 12. Production deployment       | Hoàn tất                 | `chore(deploy): finalize production deployment`                 | Production topology/product/deploy/rollback và final gates xanh |
-| 12.1. Startup performance       | Đang xác minh production | Chưa commit                                                     | Bootstrap/shell/code split/overview regression tests xanh       |
+| 12.1. Startup performance       | Hoàn tất                 | `fix(performance): remove production startup waterfall`         | 107 tests + E2E 3/3 + CI/deploy/Browser production xanh         |
 
 ## Quyết định
 
@@ -150,10 +150,11 @@
 - Login desktop refinement: từ 960 px trang login chuyển sang asset ngang `meoconbackground-desktop.png`, giữ `cover` và căn card trắng 560 px về bên phải để lộ mèo, cửa sổ và bàn học bên trái. Header desktop đặt logo cạnh tên thương hiệu, tăng scale headline/spacing; mascot nằm đáy phải và màn cao tối đa 820 px dùng biến thể compact để không phát sinh cuộn thừa. Mobile/tablet đến 768 px tiếp tục dùng nguyên asset dọc và layout card cũ. Browser smoke xác nhận đúng asset, không tràn ngang/dọc tại 360/375/390/414/768/1024/1280/1440 px; full `pnpm check` xanh với 100 tests repository và production build; Playwright real-API 3/3 xanh tại 360 px; `pnpm audit:prod` không có vulnerability đã biết. Không commit, push hoặc triển khai production.
 - Current-week visual refinement: trang Tuần này dùng hero mint với ngày/tổ/trạng thái thật, mascot duy nhất từ `meoconcamchoi.png`, CTA giữ nguyên lifecycle và tóm tắt từng ngày tính số nhiệm vụ/người từ assignments thật. Desktop giữ sidebar và lưới ngày hai cột; từ 900 px trở xuống chuyển sang topbar, bottom navigation và hàng ngày mở rộng bằng native `details`. Playwright real-backend xác nhận trạng thái hoàn thành, offline cache, đăng xuất, đúng shell và không tràn ngang tại 360/375/390/414/430, 768 và 1024/1280/1366/1440/1600 px; full `pnpm check` xanh với 100 tests repository và production build; Playwright 3/3 xanh; `pnpm audit:prod` không có vulnerability đã biết. Không commit, push hoặc triển khai production.
 - Classroom workspace visual refinement: tab Thông tin chung có hero mint, bốn metric thật, mascot `meoconcamchoi.png`, card thông tin/tổ, preview học sinh/công việc desktop và shortcut mobile; hai tab còn lại dùng initial avatar, search/filter compact, task cards và metadata chips. Danh sách học sinh hiển thị giới tính thật bằng `Nam`, `Nữ` hoặc `Chưa thiết lập`, không suy đoán từ tên. Browser smoke trên dữ liệu UAT 10C8 thật tại 390 × 844 và 1440 × 900 xác nhận tab switching, search một tên, lọc Tổ 1/đã ngừng, menu và modal sửa học sinh/công việc; không ghi mutation. Playwright real-backend xác nhận cả ba nhãn giới tính, create/edit/deactivate dialog, logout và không tràn ngang tại 360/375/390/414/430, 768 và 1024/1280/1366/1440/1600 px. Full `pnpm check` xanh với 101 tests repository và production build; Playwright 3/3 xanh; `pnpm audit:prod` không có vulnerability đã biết. Không commit, push hoặc triển khai production.
+- Production startup performance refinement: proxy Vercel chạy tại `hkg1` thay cho `iad1`; session lookup còn một aggregate, bootstrap gom user/classroom, login hydrate cache, app-shell skeleton thay full-page loader, current-week/drafts dùng một overview request và các route được code-split. Main startup chunk giảm từ 520,624 xuống 384,430 byte. Trên phiên production thật, authenticated shell đạt trung vị 348 ms và nội dung tuần 958 ms, so với baseline 2.038 giây và 2.788–3.282 giây; viewport 390 × 844 không tràn. Full `pnpm check` xanh với 107 tests, Playwright 3/3, audit sạch, CI `33238366519` và deploy `33238380208` xanh.
 
 ## Remaining work
 
-Refinement 12.1 còn quality gates, deploy và đo timing production. Các lần vận hành tiếp tục dùng manual `Deploy API`, forward-only migration, readiness gate và rollback không down-migrate theo runbook.
+Không còn hạng mục Refinement 12.1. Các lần vận hành tiếp tục dùng manual `Deploy API`, forward-only migration, readiness gate và rollback không down-migrate theo runbook.
 
 ## Known issues
 
