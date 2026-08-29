@@ -23,6 +23,8 @@ Cho phép giáo viên chỉ định một học sinh ngoài tổ trực vào đ�
 - [x] Hướng dẫn trường hợp muốn giữ nguyên phần việc của tổ trực phải tạo công việc phát sinh thật trước.
 - [x] Thêm scheduler, API integration, component và real-backend mobile E2E regression.
 - [x] Chạy full repository gates, toàn bộ Playwright và production dependency audit.
+- [x] Commit/push `7545b84`, chờ CI và Vercel production xanh, rồi deploy đúng full SHA qua workflow API production.
+- [x] Smoke HTTPS frontend, API live/ready, frontend proxy `401 + no-store`, redirect `www` và production bundle mà không sửa dữ liệu UAT.
 
 ## Tiến độ xác minh
 
@@ -32,6 +34,8 @@ Cho phép giáo viên chỉ định một học sinh ngoài tổ trực vào đ�
 - Weekly real-backend E2E tại 360 px: chọn học sinh Tổ 2 vào slot Tổ 1, regenerate, publish, complete và xác nhận ledger không cấp fairness credit.
 
 Full `pnpm check` xanh với 113 tests, production builds và API runtime import. Playwright real-backend 3/3 xanh, trong đó weekly workflow xác minh toàn bộ chỉ định ngoài tổ tại 360 px. `pnpm audit:prod` không có vulnerability đã biết và `git diff --check` sạch.
+
+Commit tính năng `7545b8424592ca001c09681309430fd6a0c84a4b` đã lên `main`. CI `33242401490`, Vercel production và workflow API `33242404967` đều xanh; helper trên VPS xác nhận kích hoạt đúng release full SHA. Smoke sau deploy trả frontend `200`, `/health/live` là `ok`, `/health/ready` là `ready`, `/api/v1/auth/me` qua frontend là `401` với `Cache-Control: no-store`, `www` chuyển về apex và asset production `index-CeRa0lu3.js` chứa nguồn `TEACHER_ASSIGNED`. Smoke không tạo, sửa hoặc xóa dữ liệu production.
 
 ## Quyết định
 
