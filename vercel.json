@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["hkg1"],
   "buildCommand": "pnpm --filter @lop-sach/web build",
   "outputDirectory": "apps/web/dist",
   "headers": [

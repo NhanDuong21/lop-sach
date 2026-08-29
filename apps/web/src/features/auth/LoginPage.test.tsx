@@ -109,13 +109,15 @@ describe('LoginPage', () => {
     expect(pendingButton).toHaveAttribute('aria-busy', 'true');
     expect(login).toHaveBeenCalledWith({ username: 'owner', password: 'valid-password' });
 
-    resolveLogin?.({
+    const loginResult = {
       id: 'owner-id',
       displayName: 'Owner',
       username: 'owner',
-      hasClassroom: true,
-      onboardingCompleted: true,
-    });
-    await waitFor(() => expect(onAuthenticated).toHaveBeenCalledOnce());
+      hasClassroom: false,
+      onboardingCompleted: false,
+      classroom: null,
+    };
+    resolveLogin?.(loginResult);
+    await waitFor(() => expect(onAuthenticated).toHaveBeenCalledWith(loginResult));
   });
 });

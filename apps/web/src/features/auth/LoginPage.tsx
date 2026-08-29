@@ -1,12 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { LoginRequestSchema, type LoginRequest } from '@lop-sach/contracts';
+import { LoginRequestSchema, type AuthLoginResult, type LoginRequest } from '@lop-sach/contracts';
 import { Eye, EyeOff, Leaf, LoaderCircle, LockKeyhole, LogIn, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { login } from './auth.api.js';
 
 export interface LoginPageProps {
-  readonly onAuthenticated: () => void;
+  readonly onAuthenticated: (result: AuthLoginResult) => void;
 }
 export function LoginPage({ onAuthenticated }: LoginPageProps): React.JSX.Element {
   const [showPassword, setShowPassword] = useState(false);
@@ -21,8 +21,7 @@ export function LoginPage({ onAuthenticated }: LoginPageProps): React.JSX.Elemen
   });
   const submit = handleSubmit(async (values) => {
     try {
-      await login(values);
-      onAuthenticated();
+      onAuthenticated(await login(values));
     } catch {
       setError('root', { message: 'Không thể đăng nhập. Kiểm tra tên đăng nhập và mật khẩu.' });
     }

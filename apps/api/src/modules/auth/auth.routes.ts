@@ -1,7 +1,17 @@
 import { Router } from 'express';
-import { ChangePasswordRequestSchema, LoginRequestSchema } from '@lop-sach/contracts';
+import {
+  AuthBootstrapSchema,
+  AuthLoginResultSchema,
+  ChangePasswordRequestSchema,
+  LoginRequestSchema,
+  type AuthBootstrap,
+} from '@lop-sach/contracts';
 import type { AppConfig } from '../../config/env.js';
-import { authenticate, authenticatedUser } from '../../middleware/authenticate.js';
+import {
+  authenticate,
+  authenticatedUser,
+  type AuthenticatedUser,
+} from '../../middleware/authenticate.js';
 import { loginRateLimit } from '../../middleware/rate-limits.js';
 import { HttpProblem } from '../../shared/problem.js';
 import {
@@ -14,18 +24,18 @@ import {
 } from './auth.service.js';
 import { sessionCookiePolicy } from './cookie-policy.js';
 import { UserModel } from './user.model.js';
-import { ClassroomModel } from '../classroom/classroom.model.js';
+import { getOptionalClassroom } from '../classroom/classroom.service.js';
 
-async function classroomStatus(
-  userId: string,
-): Promise<{ readonly hasClassroom: boolean; readonly onboardingCompleted: boolean }> {
-  const classroom = await ClassroomModel.findOne({ ownerId: userId })
-    .select({ 'onboarding.completedAt': 1 })
-    .lean();
-  return {
-    hasClassroom: Boolean(classroom),
-    onboardingCompleted: Boolean(classroom?.onboarding?.completedAt),
-  };
+async function authBootstrap(user: AuthenticatedUser): Promise<AuthBootstrap> {
+  const classroom = await getOptionalClassroom(user.id);
+  return AuthBootstrapSchema.parse({
+    user: {
+      ...user,
+      hasClassroom: Boolean(classroom),
+      onboardingCompleted: Boolean(classroom?.onboarding.completedAt),
+    },
+    classroom,
+  });
 }
 
 export function createAuthRouter(
@@ -53,21 +63,31 @@ export function createAuthRouter(
           );
         }
         const session = await createSession(String(user._id));
-        const status = await classroomStatus(String(user._id));
+        const bootstrap = await authBootstrap({
+          id: String(user._id),
+          displayName: user.displayName,
+          username: user.username,
+        });
         response.cookie(cookie.name, session.token, cookie.options);
         response.status(200).json({
-          data: {
-            id: String(user._id),
-            displayName: user.displayName,
-            username: user.username,
-            ...status,
-          },
+          data: AuthLoginResultSchema.parse({
+            ...bootstrap.user,
+            classroom: bootstrap.classroom,
+          }),
         });
       } catch (error) {
         next(error);
       }
     },
   );
+
+  router.get('/bootstrap', requireAuth, async (_request, response, next) => {
+    try {
+      response.json({ data: await authBootstrap(authenticatedUser(response)) });
+    } catch (error) {
+      next(error);
+    }
+  });
 
   router.post('/logout', requireAuth, async (_request, response, next) => {
     try {
@@ -81,8 +101,7 @@ export function createAuthRouter(
 
   router.get('/me', requireAuth, async (_request, response, next) => {
     try {
-      const user = authenticatedUser(response);
-      response.json({ data: { ...user, ...(await classroomStatus(user.id)) } });
+      response.json({ data: (await authBootstrap(authenticatedUser(response))).user });
     } catch (error) {
       next(error);
     }

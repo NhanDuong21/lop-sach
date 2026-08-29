@@ -6,6 +6,7 @@ import {
   weekDates,
   type DutyGroupSelectionBasis,
   type DutyWeek,
+  type DutyWeekOverview,
   type HistoryMetric,
   type HistorySummaryItem,
   type TaskEligibilityRule,
@@ -371,6 +372,34 @@ export async function listDutyWeeks(
       return mapDutyWeek(hydrated, await generationContextIsStale(hydrated));
     }),
   );
+}
+
+export async function getDutyWeekOverview(
+  ownerId: string,
+  weekStart: string,
+): Promise<DutyWeekOverview> {
+  const classroom = await ownerClassroom(ownerId);
+  const [currentWeekDocument, draftWeekDocuments] = await Promise.all([
+    DutyWeekModel.findOne({ classroomId: classroom._id, weekStart }).sort({ _id: -1 }),
+    DutyWeekModel.find({ classroomId: classroom._id, status: 'DRAFT' }).sort({
+      weekStart: -1,
+      _id: -1,
+    }),
+  ]);
+  const mappedWeeks = new Map<string, Promise<DutyWeek>>();
+  const mapOnce = (week: DutyWeekHydrated): Promise<DutyWeek> => {
+    const id = String(week._id);
+    const existing = mappedWeeks.get(id);
+    if (existing) return existing;
+    const mapped = generationContextIsStale(week).then((stale) => mapDutyWeek(week, stale));
+    mappedWeeks.set(id, mapped);
+    return mapped;
+  };
+  const [currentWeek, draftWeeks] = await Promise.all([
+    currentWeekDocument ? mapOnce(currentWeekDocument as DutyWeekHydrated) : Promise.resolve(null),
+    Promise.all(draftWeekDocuments.map((week) => mapOnce(week as DutyWeekHydrated))),
+  ]);
+  return { currentWeek, draftWeeks };
 }
 
 export async function getDutyWeek(ownerId: string, weekId: string): Promise<DutyWeek> {

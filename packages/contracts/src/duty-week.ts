@@ -172,6 +172,10 @@ export const DutyWeekSchema = z.strictObject({
   changeLog: z.array(ChangeLogEntrySchema).max(200),
   changeLogSummary: ChangeLogSummarySchema,
 });
+export const DutyWeekOverviewSchema = z.strictObject({
+  currentWeek: DutyWeekSchema.nullable(),
+  draftWeeks: z.array(DutyWeekSchema),
+});
 
 const MondaySchema = DateOnlySchema.refine((value) => mondayOfWeek(value) === value, {
   message: 'Ngày bắt đầu tuần phải là Thứ Hai.',
@@ -275,6 +279,7 @@ export const HistoryMetricSchema = z.strictObject({
 export type AssignmentSource = z.infer<typeof AssignmentSourceSchema>;
 export type DutyGroupSelectionBasis = z.infer<typeof DutyGroupSelectionBasisSchema>;
 export type DutyWeek = z.infer<typeof DutyWeekSchema>;
+export type DutyWeekOverview = z.infer<typeof DutyWeekOverviewSchema>;
 export type DutyWeekStatus = z.infer<typeof DutyWeekStatusSchema>;
 export type FairnessResult = z.infer<typeof FairnessResultSchema>;
 export type StudentFairnessBaseline = z.infer<typeof StudentFairnessBaselineSchema>;

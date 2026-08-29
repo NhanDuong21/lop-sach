@@ -16,7 +16,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog.js';
 import { LoadingState } from '../../components/ui/LoadingState.js';
 import { Notice } from '../../components/ui/Notice.js';
 import { StatusBadge } from '../../components/ui/StatusBadge.js';
-import { deleteDutyWeek, listDutyWeeks } from '../duty-weeks/duty-weeks.api.js';
+import { deleteDutyWeek, getDutyWeekOverview } from '../duty-weeks/duty-weeks.api.js';
 import { WeekSummary } from './WeekSummary.js';
 import {
   cacheCurrentWeek,
@@ -62,14 +62,9 @@ export function CurrentWeekPage({
       active = false;
     };
   }, [weekStart]);
-  const weeks = useQuery({
-    queryKey: ['duty-weeks', 'current', weekStart],
-    queryFn: () => listDutyWeeks({ from: weekStart, to: weekStart }),
-    enabled: online,
-  });
-  const draftWeeks = useQuery({
-    queryKey: ['duty-weeks', 'drafts'],
-    queryFn: () => listDutyWeeks({ status: 'DRAFT' }),
+  const overview = useQuery({
+    queryKey: ['duty-weeks', 'overview', weekStart],
+    queryFn: () => getDutyWeekOverview(weekStart),
     enabled: online,
   });
   const deleteDraft = useMutation({
@@ -79,7 +74,7 @@ export function CurrentWeekPage({
       await queryClient.invalidateQueries({ queryKey: ['duty-weeks'] });
     },
   });
-  const onlineWeek = weeks.data?.[0];
+  const onlineWeek = overview.data?.currentWeek ?? undefined;
   useEffect(() => {
     if (!onlineWeek || onlineWeek.status === 'DRAFT') return;
     void cacheCurrentWeek(onlineWeek, classroomName).then(() =>
@@ -138,11 +133,10 @@ export function CurrentWeekPage({
       </div>
     );
   }
-  if (weeks.isPending || draftWeeks.isPending)
-    return <LoadingState label="Đang tải lịch tuần này" />;
-  if (weeks.isError) return <Notice tone="error">Không tải được lịch tuần này.</Notice>;
+  if (overview.isPending) return <LoadingState label="Đang tải lịch tuần này" />;
+  if (overview.isError) return <Notice tone="error">Không tải được lịch tuần này.</Notice>;
   const week = onlineWeek;
-  const resumableDrafts = [...(draftWeeks.data ?? [])]
+  const resumableDrafts = [...(overview.data.draftWeeks ?? [])]
     .filter((draft) => draft.id !== week?.id)
     .sort((left, right) => left.weekStart.localeCompare(right.weekStart));
   const weekEnd = week ? dutyWeekEnd(week) : undefined;
@@ -156,9 +150,6 @@ export function CurrentWeekPage({
         <h1>Tuần này</h1>
         <p>Việc cần làm hôm nay và bước tiếp theo của tuần trực.</p>
       </header>
-      {draftWeeks.isError ? (
-        <Notice tone="warning">Chưa tải được các tuần đang chuẩn bị. Hãy thử tải lại trang.</Notice>
-      ) : null}
       {resumableDrafts.length > 0 ? (
         <section className="card draft-resume-section" aria-labelledby="draft-weeks-title">
           <div className="section-heading">

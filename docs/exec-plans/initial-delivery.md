@@ -27,6 +27,14 @@
 - [x] Backup export production trả JSON domain-data không có trường nhạy cảm; cùng payload qua server validation trả digest, UI báo tệp hợp lệ và restore vẫn bị khóa nên smoke không thay dữ liệu.
 - [x] Final local gates xanh: `pnpm check` với 101 repository tests, Playwright E2E 3/3, production dependency audit, repository text policy và `git diff --check`.
 
+## Refinement 12.1 — Production startup performance
+
+- [x] Vercel proxy function được ghim tại `hkg1`, loại đường vòng function `iad1` giữa trình duyệt Việt Nam và API/VPS.
+- [x] Bootstrap phiên trả user + classroom trong một request; xác thực session dùng một MongoDB aggregate thay cho hai truy vấn nối tiếp và login hydrate thẳng query cache.
+- [x] Full-page auth loader được thay bằng app-shell skeleton ổn định; route hiện tại preload song song với bootstrap và các màn còn lại được code-split.
+- [x] Trang Tuần này dùng một overview request cho lịch hiện tại và mọi draft, giữ nguyên lifecycle, offline read-only và business rules.
+- [ ] Local gates đã xanh với 107 tests, Playwright 3/3 và audit sạch; deploy cùng timing production sau thay đổi được ghi trong ExecPlan riêng `startup-performance.md`.
+
 ## Refinement 11.12 — Lifecycle/history desktop freeze
 
 - [x] Backend và UI chặn hoàn thành trước ngày trực cuối cùng theo `Asia/Ho_Chi_Minh`; việc chuẩn bị tuần kế tiếp vẫn độc lập.
@@ -80,6 +88,7 @@
 | 11.13. Current-week visual      | Hoàn tất                 | Chưa commit                                                     | 100 tests + 3 E2E + audit production; responsive E2E xanh       |
 | 11.14. Classroom workspace      | Hoàn tất                 | Chưa commit                                                     | 101 tests + 3 E2E + audit production; Browser smoke xanh        |
 | 12. Production deployment       | Hoàn tất                 | `chore(deploy): finalize production deployment`                 | Production topology/product/deploy/rollback và final gates xanh |
+| 12.1. Startup performance       | Đang xác minh production | Chưa commit                                                     | Bootstrap/shell/code split/overview regression tests xanh       |
 
 ## Quyết định
 
@@ -144,7 +153,7 @@
 
 ## Remaining work
 
-Không còn hạng mục Milestone 12. Các lần vận hành sau tiếp tục dùng manual `Deploy API`, forward-only migration, readiness gate và rollback không down-migrate theo runbook.
+Refinement 12.1 còn quality gates, deploy và đo timing production. Các lần vận hành tiếp tục dùng manual `Deploy API`, forward-only migration, readiness gate và rollback không down-migrate theo runbook.
 
 ## Known issues
 

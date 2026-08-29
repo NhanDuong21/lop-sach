@@ -24,6 +24,7 @@ import {
   deleteDutyWeek,
   deleteTaskOccurrence,
   generateDutyWeek,
+  getDutyWeekOverview,
   getDutyWeek,
   getDutyWeekGenerationContext,
   getReplacementSuggestions,
@@ -47,6 +48,7 @@ const DutyWeekListQuerySchema = z.strictObject({
   from: DateOnlySchema.optional(),
   to: DateOnlySchema.optional(),
 });
+const DutyWeekOverviewQuerySchema = z.strictObject({ weekStart: DateOnlySchema });
 
 export function createDutyWeekRouter(): Router {
   const router = Router();
@@ -69,6 +71,16 @@ export function createDutyWeekRouter(): Router {
           authenticatedUser(response).id,
           DutyWeekCreateSchema.parse(request.body),
         ),
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+  router.get('/overview', async (request, response, next) => {
+    try {
+      const input = DutyWeekOverviewQuerySchema.parse(request.query);
+      response.json({
+        data: await getDutyWeekOverview(authenticatedUser(response).id, input.weekStart),
       });
     } catch (error) {
       next(error);

@@ -7,6 +7,7 @@ Production topology là Browser → Vercel → HTTPS Nginx/VPS → Express loopb
 Mốc triển khai ngày 28/08/2026 dùng các tài nguyên sau:
 
 - Web canonical: `https://lopsach.site`; `https://www.lopsach.site` chuyển hướng về apex; Vercel project `lop-sach` lấy cấu hình từ repository root.
+- Vercel proxy function chạy tại primary region `hkg1`, cùng vùng với Atlas `ap-east-1` và gần VPS tại Việt Nam; static assets vẫn được phân phối qua CDN toàn cầu.
 - API public: `https://api.lopsach.site`; chỉ `/api/v1` và hai health endpoint được Nginx public. Kết nối thẳng cổng `3000` từ Internet bị chặn.
 - VPS: IPv4 `180.93.32.127`, hostname `linux8532`, Ubuntu 22.04 x86_64, 1 vCPU, 969 MiB RAM, 2 GiB swap. UFW chỉ mở 22/80/443.
 - Runtime: Node.js 24, một process `lop-sach-api.service` chạy bằng system user không đăng nhập, bind `127.0.0.1:3000`. Liveness/readiness nội bộ và HTTPS đều trả trạng thái xanh.
@@ -26,12 +27,15 @@ Import Git repository với Root Directory để trống, nghĩa là repository 
 - Output directory: `apps/web/dist`
 - Install command: để Vercel nhận `pnpm-lock.yaml` và `packageManager` ở root.
 - Framework preset: Vite hoặc Other; `vercel.json` ở root là nguồn cấu hình checked-in.
+- Primary function region: `hkg1` từ trường `regions` trong `vercel.json`; không để proxy động quay về region mặc định xa upstream.
 - Production server variables: `LOP_SACH_API_ORIGIN` và `LOP_SACH_PROXY_SECRET`.
 - Xác nhận Vercel function runtime dùng `NODE_ENV=production`; proxy dùng giá trị này để bắt buộc HTTPS upstream. Đây là platform runtime value, không phải secret.
 - Không tạo biến `VITE_*` cho upstream hoặc proxy secret.
 - Preview không được trỏ production API mặc định.
 
 `LOP_SACH_API_ORIGIN` production phải là một HTTPS origin không có path, query, credential hoặc fragment. Root function chỉ forward `/api/v1`, không nhận target URL từ request, giữ cookie/query/method/request ID, bỏ hop-by-hop headers và ép `Cache-Control: no-store`.
+
+Startup đã xác thực dùng `GET /api/v1/auth/bootstrap` để nhận user và classroom trong một response. `/auth/me` vẫn được giữ tương thích cho client cũ và smoke; client mới dùng classroom từ bootstrap/login, rồi tải current-week cùng các draft qua một `GET /api/v1/duty-weeks/overview`.
 
 ## Atlas và forward-only migrations
 

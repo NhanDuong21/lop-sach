@@ -2,6 +2,7 @@ import type {
   CompletionOptions,
   DutyGroupSelectionBasis,
   DutyWeek,
+  DutyWeekOverview,
   TaskEligibilityRule,
   WorkloadLevel,
 } from '@lop-sach/contracts';
@@ -28,6 +29,12 @@ export async function listDutyWeeks(
   if (filters.to) query.set('to', filters.to);
   const suffix = query.size > 0 ? `?${query.toString()}` : '';
   return (await apiRequest<{ data: DutyWeek[] }>(`/duty-weeks${suffix}`)).data;
+}
+
+export async function getDutyWeekOverview(weekStart: string): Promise<DutyWeekOverview> {
+  const query = new URLSearchParams({ weekStart });
+  return (await apiRequest<{ data: DutyWeekOverview }>(`/duty-weeks/overview?${query.toString()}`))
+    .data;
 }
 
 export async function getDutyWeek(weekId: string): Promise<DutyWeek> {

@@ -45,13 +45,15 @@ test.describe('@topology production chain', () => {
     expect(sessionCookie?.domain.startsWith('.')).toBe(false);
 
     await expect(page.getByRole('button', { name: 'Đăng xuất' })).toBeVisible();
-    const meResponsePromise = page.waitForResponse((response) =>
-      response.url().includes('/api/v1/auth/me'),
+    const bootstrapResponsePromise = page.waitForResponse((response) =>
+      response.url().includes('/api/v1/auth/bootstrap'),
     );
     await page.reload();
-    const meResponse = await meResponsePromise;
-    expect(meResponse.status()).toBe(200);
-    expect((await meResponse.headerValue('cache-control'))?.toLowerCase()).toContain('no-store');
+    const bootstrapResponse = await bootstrapResponsePromise;
+    expect(bootstrapResponse.status()).toBe(200);
+    expect((await bootstrapResponse.headerValue('cache-control'))?.toLowerCase()).toContain(
+      'no-store',
+    );
     await expect(page.getByRole('button', { name: 'Đăng xuất' })).toBeVisible();
 
     const rejected = await request.post(new URL('/api/v1/auth/login', webOrigin).toString(), {

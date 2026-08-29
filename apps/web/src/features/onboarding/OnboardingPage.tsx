@@ -113,7 +113,7 @@ export function OnboardingPage(): React.JSX.Element {
     mutationFn: createClassroom,
     onSuccess: (data) => {
       queryClient.setQueryData(['classroom'], data);
-      void queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+      void queryClient.invalidateQueries({ queryKey: ['auth', 'bootstrap'] });
     },
   });
   const update = useMutation({
@@ -141,7 +141,7 @@ export function OnboardingPage(): React.JSX.Element {
     onSuccess: async (data, variables) => {
       queryClient.setQueryData(['classroom'], data);
       if (variables.complete) {
-        await queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+        await queryClient.invalidateQueries({ queryKey: ['auth', 'bootstrap'] });
         void navigate('/');
       }
     },

@@ -3,6 +3,7 @@ import {
   ClassroomSchema,
   CompletionOptionsSchema,
   DutyWeekSchema,
+  DutyWeekOverviewSchema,
   ProblemDetailsSchema,
   StudentSchema,
   type Classroom,
@@ -19,6 +20,7 @@ type TestAgent = ReturnType<typeof request.agent>;
 const ClassroomEnvelopeSchema = z.strictObject({ data: ClassroomSchema });
 const StudentEnvelopeSchema = z.strictObject({ data: StudentSchema });
 const WeekEnvelopeSchema = z.strictObject({ data: DutyWeekSchema });
+const WeekOverviewEnvelopeSchema = z.strictObject({ data: DutyWeekOverviewSchema });
 const CompletionOptionsEnvelopeSchema = z.strictObject({ data: CompletionOptionsSchema });
 
 const vietnamClock = vi.hoisted(() => ({ today: '2026-08-28' }));
@@ -119,6 +121,34 @@ async function generateWeek(agent: TestAgent, week: DutyWeek): Promise<DutyWeek>
 }
 
 describe('duty-week lifecycle', () => {
+  it('returns the current week and all resumable drafts in one overview request', async () => {
+    const agent = await authenticatedAgent();
+    const { classroom } = await classroomWithStudents(agent);
+    const draft = await createWeek(agent, classroom);
+
+    const overview = WeekOverviewEnvelopeSchema.parse(
+      (
+        await agent
+          .get('/api/v1/duty-weeks/overview')
+          .query({ weekStart: '2026-08-24' })
+          .expect(200)
+      ).body as unknown,
+    ).data;
+    expect(overview.currentWeek?.id).toBe(draft.id);
+    expect(overview.draftWeeks.map((week) => week.id)).toEqual([draft.id]);
+
+    const futureOverview = WeekOverviewEnvelopeSchema.parse(
+      (
+        await agent
+          .get('/api/v1/duty-weeks/overview')
+          .query({ weekStart: '2026-09-07' })
+          .expect(200)
+      ).body as unknown,
+    ).data;
+    expect(futureOverview.currentWeek).toBeNull();
+    expect(futureOverview.draftWeeks.map((week) => week.id)).toEqual([draft.id]);
+  });
+
   it('deletes a version-matched draft, frees its week and protects published schedules', async () => {
     const agent = await authenticatedAgent();
     const { classroom } = await classroomWithStudents(agent);

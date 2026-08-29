@@ -686,12 +686,141 @@ legend,
   background: #287a4b;
   animation: pulse 1.1s ease-in-out infinite alternate;
 }
+/* Stable application chrome shown while the authenticated bootstrap request is pending. */
+.startup-layout {
+  min-height: 100vh;
+  background: #fafcfb;
+}
+.startup-sidebar {
+  pointer-events: none;
+}
+.startup-sidebar nav {
+  display: grid;
+  gap: 0.45rem;
+}
+.startup-nav {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 14px;
+  color: #66736b;
+  font-weight: 650;
+}
+.startup-nav.active {
+  background: #eaf5ed;
+  color: #4a7158;
+}
+.startup-nav-icon {
+  width: 19px;
+  height: 19px;
+  flex: none;
+  border: 2px solid #b8c9be;
+  border-radius: 6px;
+}
+.startup-account {
+  min-height: 72px;
+}
+.startup-line {
+  display: block;
+  border-radius: 999px;
+  background: #e1e9e3;
+  animation: startup-pulse 900ms ease-in-out infinite alternate;
+}
+.startup-line-class {
+  width: 68px;
+  height: 10px;
+  margin-top: 0.35rem;
+}
+.startup-line-account {
+  width: 112px;
+  height: 12px;
+  margin-top: 0.35rem;
+}
+.startup-content {
+  display: grid;
+  gap: 1.55rem;
+}
+.startup-heading {
+  display: grid;
+  gap: 0.65rem;
+  padding-top: 0.4rem;
+}
+.startup-line-eyebrow {
+  width: 96px;
+  height: 13px;
+  background: #d2e5d7;
+}
+.startup-line-title {
+  width: min(58%, 360px);
+  height: 48px;
+}
+.startup-line-subtitle {
+  width: min(78%, 520px);
+  height: 15px;
+}
+.startup-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.startup-card {
+  min-height: 150px;
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  padding: 1.35rem;
+  border: 1px solid #e0e8e2;
+  border-radius: 20px;
+  background: #fff;
+}
+.startup-card-wide {
+  min-height: 210px;
+  grid-column: 1 / -1;
+}
+.startup-line-card-title {
+  width: 42%;
+  height: 22px;
+}
+.startup-line-card-body {
+  width: 88%;
+  height: 13px;
+}
+.startup-line-card-short {
+  width: 64%;
+}
+@keyframes startup-pulse {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
 @keyframes pulse {
   from {
     opacity: 0.35;
   }
   to {
     opacity: 1;
+  }
+}
+@media (max-width: 900px) {
+  .startup-card-grid {
+    grid-template-columns: 1fr;
+  }
+  .startup-card-wide {
+    min-height: 180px;
+  }
+  .startup-line-title {
+    width: min(72%, 310px);
+    height: 40px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .startup-line {
+    animation: none;
   }
 }
 .offline-banner {

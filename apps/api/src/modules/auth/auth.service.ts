@@ -1,7 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import argon2 from 'argon2';
 import { SessionModel } from './session.model.js';
-import { UserModel } from './user.model.js';
 
 const SESSION_LIFETIME_MS = 7 * 24 * 60 * 60 * 1_000;
 
@@ -51,14 +50,25 @@ export async function authenticateToken(token: string): Promise<{
   readonly username: string;
   readonly displayName: string;
 } | null> {
-  const session = await SessionModel.findOne({
-    tokenHash: hashSessionToken(token),
-    expiresAt: { $gt: new Date() },
-  }).lean();
-  if (!session) return null;
-  const user = await UserModel.findById(session.userId).lean();
-  if (!user) return null;
-  return { id: String(user._id), username: user.username, displayName: user.displayName };
+  const [authenticated] = await SessionModel.aggregate<{
+    readonly id: string;
+    readonly username: string;
+    readonly displayName: string;
+  }>([
+    { $match: { tokenHash: hashSessionToken(token), expiresAt: { $gt: new Date() } } },
+    { $limit: 1 },
+    { $lookup: { from: 'users', localField: 'userId', foreignField: '_id', as: 'user' } },
+    { $unwind: '$user' },
+    {
+      $project: {
+        _id: 0,
+        id: { $toString: '$user._id' },
+        username: '$user.username',
+        displayName: '$user.displayName',
+      },
+    },
+  ]);
+  return authenticated ?? null;
 }
 
 export async function revokeSession(token: string): Promise<void> {

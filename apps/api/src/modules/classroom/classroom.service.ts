@@ -107,6 +107,11 @@ export async function getClassroom(ownerId: string): Promise<Classroom> {
   return mapClassroom(await findOwnerClassroom(ownerId));
 }
 
+export async function getOptionalClassroom(ownerId: string): Promise<Classroom | null> {
+  const classroom = await ClassroomModel.findOne({ ownerId: ownerObjectId(ownerId) });
+  return classroom ? mapClassroom(classroom as ClassroomHydrated) : null;
+}
+
 export async function createClassroom(
   ownerId: string,
   input: ClassroomCreateInput,

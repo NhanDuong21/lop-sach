@@ -4,9 +4,10 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type * as DateLabelsModule from '../../lib/date-labels.js';
 import { cacheCurrentWeek, readCachedCurrentWeek } from '../../lib/offline-cache.js';
 import { useOnlineState } from '../../lib/online-state.js';
-import { deleteDutyWeek, listDutyWeeks } from '../duty-weeks/duty-weeks.api.js';
+import { deleteDutyWeek, getDutyWeekOverview } from '../duty-weeks/duty-weeks.api.js';
 import { CurrentWeekPage } from './CurrentWeekPage.js';
 
 vi.mock('../../lib/offline-cache.js', () => ({
@@ -14,9 +15,13 @@ vi.mock('../../lib/offline-cache.js', () => ({
   readCachedCurrentWeek: vi.fn(),
 }));
 vi.mock('../../lib/online-state.js', () => ({ useOnlineState: vi.fn() }));
+vi.mock('../../lib/date-labels.js', async () => {
+  const actual = await vi.importActual<typeof DateLabelsModule>('../../lib/date-labels.js');
+  return { ...actual, currentDateInVietnam: () => '2026-08-30' };
+});
 vi.mock('../duty-weeks/duty-weeks.api.js', () => ({
   deleteDutyWeek: vi.fn(),
-  listDutyWeeks: vi.fn(),
+  getDutyWeekOverview: vi.fn(),
 }));
 
 function makeWeek(id: string, weekStart: string, status: DutyWeek['status']): DutyWeek {
@@ -76,9 +81,10 @@ describe('CurrentWeekPage', () => {
       selectedGroupId: 'group-2',
       groupSnapshot: { id: 'group-2', name: 'Tổ 2' },
     };
-    vi.mocked(listDutyWeeks).mockImplementation((filters) =>
-      Promise.resolve(filters?.status === 'DRAFT' ? [draft] : [published]),
-    );
+    vi.mocked(getDutyWeekOverview).mockResolvedValue({
+      currentWeek: published,
+      draftWeeks: [draft],
+    });
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
     render(
@@ -190,9 +196,10 @@ describe('CurrentWeekPage', () => {
         },
       ],
     };
-    vi.mocked(listDutyWeeks).mockImplementation((filters) =>
-      Promise.resolve(filters?.status === 'DRAFT' ? [] : [completed]),
-    );
+    vi.mocked(getDutyWeekOverview).mockResolvedValue({
+      currentWeek: completed,
+      draftWeeks: [],
+    });
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
     render(
