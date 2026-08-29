@@ -217,6 +217,17 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   await teacherAssignmentSelect.selectOption(outsideStudent.data.id);
   await expect(page.getByText('Giáo viên chỉ định · Không tính điểm cân bằng')).toBeVisible();
   await expect(assignmentSelects).toHaveCount(assignmentCount);
+  const editedAssignmentRow = teacherAssignmentSelect.locator(
+    'xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " assignment-row ")][1]',
+  );
+  await editedAssignmentRow.locator('.action-menu summary').click();
+  const assignmentMenuPanel = editedAssignmentRow.locator('.action-menu-panel');
+  await expect(assignmentMenuPanel.getByRole('button', { name: 'Đổi với bạn khác' })).toBeVisible();
+  const assignmentMenuBox = await assignmentMenuPanel.boundingBox();
+  expect(assignmentMenuBox).not.toBeNull();
+  expect(assignmentMenuBox?.x ?? -1).toBeGreaterThanOrEqual(0);
+  expect((assignmentMenuBox?.x ?? 0) + (assignmentMenuBox?.width ?? 361)).toBeLessThanOrEqual(360);
+  await editedAssignmentRow.locator('.action-menu summary').click();
   await page.getByRole('button', { name: 'Tạo phương án khác' }).click();
   await expect(page.getByText('Phân công đã đủ điều kiện để công bố.')).toBeVisible();
   await expect(page.getByText('Giáo viên chỉ định · Không tính điểm cân bằng')).toBeVisible();

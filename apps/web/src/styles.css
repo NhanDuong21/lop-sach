@@ -1551,6 +1551,7 @@ legend,
   }
   .assignment-actions {
     width: 100%;
+    justify-content: flex-end;
   }
   .swap-bar {
     bottom: 76px;
