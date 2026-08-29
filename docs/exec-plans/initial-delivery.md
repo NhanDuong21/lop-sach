@@ -40,7 +40,7 @@
 - [x] Bước Kiểm tra phân công có action tải bảng PNG trước phần cân bằng và danh sách chỉnh sửa dài.
 - [x] Ảnh draft mang tiêu đề `BẢNG KIỂM TRA PHÂN CÔNG`, nhãn `BẢN NHÁP` và filename riêng `-ban-nhap.png`; export đã công bố giữ nguyên.
 - [x] Local gates xanh với 108 tests, Playwright 3/3 và audit sạch; E2E 360 px tải file draft thật rồi hoàn tất lifecycle/export chính thức.
-- [ ] Commit, deploy và Browser smoke production được ghi trong ExecPlan riêng `mobile-assignment-table-export.md`.
+- [x] Commit, Vercel/PWA production và CI xanh được ghi trong ExecPlan riêng `mobile-assignment-table-export.md`; smoke không tạo draft production mới.
 
 ## Refinement 11.12 — Lifecycle/history desktop freeze
 
@@ -96,7 +96,7 @@
 | 11.14. Classroom workspace      | Hoàn tất                 | Chưa commit                                                     | 101 tests + 3 E2E + audit production; Browser smoke xanh        |
 | 12. Production deployment       | Hoàn tất                 | `chore(deploy): finalize production deployment`                 | Production topology/product/deploy/rollback và final gates xanh |
 | 12.1. Startup performance       | Hoàn tất                 | `fix(performance): remove production startup waterfall`         | 107 tests + E2E 3/3 + CI/deploy/Browser production xanh         |
-| 12.2. Draft table export        | Đang xác minh production | Chưa commit                                                     | 108 tests + E2E 3/3 + draft/published PNG regression xanh       |
+| 12.2. Draft table export        | Hoàn tất                 | `feat(web): export draft assignments as PNG table`              | 108 tests + E2E 3/3 + CI/Vercel/PWA production xanh             |
 
 ## Quyết định
 
@@ -159,10 +159,11 @@
 - Current-week visual refinement: trang Tuần này dùng hero mint với ngày/tổ/trạng thái thật, mascot duy nhất từ `meoconcamchoi.png`, CTA giữ nguyên lifecycle và tóm tắt từng ngày tính số nhiệm vụ/người từ assignments thật. Desktop giữ sidebar và lưới ngày hai cột; từ 900 px trở xuống chuyển sang topbar, bottom navigation và hàng ngày mở rộng bằng native `details`. Playwright real-backend xác nhận trạng thái hoàn thành, offline cache, đăng xuất, đúng shell và không tràn ngang tại 360/375/390/414/430, 768 và 1024/1280/1366/1440/1600 px; full `pnpm check` xanh với 100 tests repository và production build; Playwright 3/3 xanh; `pnpm audit:prod` không có vulnerability đã biết. Không commit, push hoặc triển khai production.
 - Classroom workspace visual refinement: tab Thông tin chung có hero mint, bốn metric thật, mascot `meoconcamchoi.png`, card thông tin/tổ, preview học sinh/công việc desktop và shortcut mobile; hai tab còn lại dùng initial avatar, search/filter compact, task cards và metadata chips. Danh sách học sinh hiển thị giới tính thật bằng `Nam`, `Nữ` hoặc `Chưa thiết lập`, không suy đoán từ tên. Browser smoke trên dữ liệu UAT 10C8 thật tại 390 × 844 và 1440 × 900 xác nhận tab switching, search một tên, lọc Tổ 1/đã ngừng, menu và modal sửa học sinh/công việc; không ghi mutation. Playwright real-backend xác nhận cả ba nhãn giới tính, create/edit/deactivate dialog, logout và không tràn ngang tại 360/375/390/414/430, 768 và 1024/1280/1366/1440/1600 px. Full `pnpm check` xanh với 101 tests repository và production build; Playwright 3/3 xanh; `pnpm audit:prod` không có vulnerability đã biết. Không commit, push hoặc triển khai production.
 - Production startup performance refinement: proxy Vercel chạy tại `hkg1` thay cho `iad1`; session lookup còn một aggregate, bootstrap gom user/classroom, login hydrate cache, app-shell skeleton thay full-page loader, current-week/drafts dùng một overview request và các route được code-split. Main startup chunk giảm từ 520,624 xuống 384,430 byte. Trên phiên production thật, authenticated shell đạt trung vị 348 ms và nội dung tuần 958 ms, so với baseline 2.038 giây và 2.788–3.282 giây; viewport 390 × 844 không tràn. Full `pnpm check` xanh với 107 tests, Playwright 3/3, audit sạch, CI `33238366519` và deploy `33238380208` xanh.
+- Mobile draft table export refinement: bước Kiểm tra phân công có card tải bảng trước phần cân bằng và danh sách chỉnh sửa; PNG ghi rõ `BẢNG KIỂM TRA PHÂN CÔNG · BẢN NHÁP` cùng filename `-ban-nhap.png`, còn export chính thức không đổi. Full `pnpm check` xanh với 108 tests; E2E real-backend 360 px tải file draft thật rồi tiếp tục publish/complete/export, Playwright 3/3 và audit sạch. Commit `054dcae`, CI `33239565970`, Vercel asset và PWA update production đều xanh; không tạo draft production chỉ để smoke.
 
 ## Remaining work
 
-Refinement 12.2 còn commit, deploy và Browser smoke production. Các lần vận hành tiếp tục dùng manual `Deploy API`, forward-only migration, readiness gate và rollback không down-migrate theo runbook.
+Không còn hạng mục Refinement 12.2. Các lần vận hành tiếp tục dùng manual `Deploy API`, forward-only migration, readiness gate và rollback không down-migrate theo runbook.
 
 ## Known issues
 
