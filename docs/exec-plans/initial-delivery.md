@@ -42,6 +42,14 @@
 - [x] Local gates xanh với 108 tests, Playwright 3/3 và audit sạch; E2E 360 px tải file draft thật rồi hoàn tất lifecycle/export chính thức.
 - [x] Commit, Vercel/PWA production và CI xanh được ghi trong ExecPlan riêng `mobile-assignment-table-export.md`; smoke không tạo draft production mới.
 
+## Refinement 12.3 — Teacher-assigned duty outside the selected group
+
+- [x] Giáo viên có thể chọn học sinh ngoài tổ vào một vị trí công việc hiện có; tổng headcount và số slot không tự tăng.
+- [x] Scheduler engine `1.1.0` giữ teacher assignment qua regenerate nhưng candidate pool tự động vẫn chỉ thuộc tổ trực; mọi hard constraint khác tiếp tục bắt buộc.
+- [x] Assignment/actual-performer history vẫn ghi nhận người được chỉ định, còn fairness hiện tại, completion ledger và baseline cho tuần sau không cấp điểm cho lượt này.
+- [x] UI phân nhóm rõ học sinh tổ trực và `Giáo viên chỉ định từ tổ khác`, ghi `Không tính điểm cân bằng` và hướng dẫn dùng công việc phát sinh khi cần thêm khối lượng thật.
+- [x] Full `pnpm check` xanh với 113 tests; Playwright 3/3, weekly real-backend E2E 360 px, audit production và diff check đều xanh. Chi tiết nằm trong `teacher-assigned-duty.md`.
+
 ## Refinement 11.12 — Lifecycle/history desktop freeze
 
 - [x] Backend và UI chặn hoàn thành trước ngày trực cuối cùng theo `Asia/Ho_Chi_Minh`; việc chuẩn bị tuần kế tiếp vẫn độc lập.
@@ -97,6 +105,7 @@
 | 12. Production deployment       | Hoàn tất                 | `chore(deploy): finalize production deployment`                 | Production topology/product/deploy/rollback và final gates xanh |
 | 12.1. Startup performance       | Hoàn tất                 | `fix(performance): remove production startup waterfall`         | 107 tests + E2E 3/3 + CI/deploy/Browser production xanh         |
 | 12.2. Draft table export        | Hoàn tất                 | `feat(web): export draft assignments as PNG table`              | 108 tests + E2E 3/3 + CI/Vercel/PWA production xanh             |
+| 12.3. Teacher-assigned duty     | Hoàn tất phần repository | Chưa commit                                                     | 113 tests + E2E 3/3 + audit production xanh                     |
 
 ## Quyết định
 
@@ -106,6 +115,7 @@
 - Database indexes dùng forward-only migrations.
 - Availability có một nguồn: absence theo tuần hoặc ba loại restriction bền vững.
 - Fairness baseline giữ tối đa tám eligible completed weeks.
+- Học sinh ngoài tổ chỉ được vào lịch qua nguồn `TEACHER_ASSIGNED`; nguồn này chiếm slot thật, giữ hard constraints và không cấp fairness credit.
 
 ## Discoveries
 
@@ -160,10 +170,11 @@
 - Classroom workspace visual refinement: tab Thông tin chung có hero mint, bốn metric thật, mascot `meoconcamchoi.png`, card thông tin/tổ, preview học sinh/công việc desktop và shortcut mobile; hai tab còn lại dùng initial avatar, search/filter compact, task cards và metadata chips. Danh sách học sinh hiển thị giới tính thật bằng `Nam`, `Nữ` hoặc `Chưa thiết lập`, không suy đoán từ tên. Browser smoke trên dữ liệu UAT 10C8 thật tại 390 × 844 và 1440 × 900 xác nhận tab switching, search một tên, lọc Tổ 1/đã ngừng, menu và modal sửa học sinh/công việc; không ghi mutation. Playwright real-backend xác nhận cả ba nhãn giới tính, create/edit/deactivate dialog, logout và không tràn ngang tại 360/375/390/414/430, 768 và 1024/1280/1366/1440/1600 px. Full `pnpm check` xanh với 101 tests repository và production build; Playwright 3/3 xanh; `pnpm audit:prod` không có vulnerability đã biết. Không commit, push hoặc triển khai production.
 - Production startup performance refinement: proxy Vercel chạy tại `hkg1` thay cho `iad1`; session lookup còn một aggregate, bootstrap gom user/classroom, login hydrate cache, app-shell skeleton thay full-page loader, current-week/drafts dùng một overview request và các route được code-split. Main startup chunk giảm từ 520,624 xuống 384,430 byte. Trên phiên production thật, authenticated shell đạt trung vị 348 ms và nội dung tuần 958 ms, so với baseline 2.038 giây và 2.788–3.282 giây; viewport 390 × 844 không tràn. Full `pnpm check` xanh với 107 tests, Playwright 3/3, audit sạch, CI `33238366519` và deploy `33238380208` xanh.
 - Mobile draft table export refinement: bước Kiểm tra phân công có card tải bảng trước phần cân bằng và danh sách chỉnh sửa; PNG ghi rõ `BẢNG KIỂM TRA PHÂN CÔNG · BẢN NHÁP` cùng filename `-ban-nhap.png`, còn export chính thức không đổi. Full `pnpm check` xanh với 108 tests; E2E real-backend 360 px tải file draft thật rồi tiếp tục publish/complete/export, Playwright 3/3 và audit sạch. Commit `054dcae`, CI `33239565970`, Vercel asset và PWA update production đều xanh; không tạo draft production chỉ để smoke.
+- Teacher-assigned duty refinement: assignment source `TEACHER_ASSIGNED` cho phép giáo viên ghim học sinh ngoài tổ vào đúng một slot thật và sống qua regenerate; auto scheduler không mở rộng candidate pool, còn vắng mặt, participation, restrictions và eligibility giới tính tiếp tục là hard constraints. Completion vẫn lưu actual performer nhưng loại lượt chỉ định khỏi fairness workload, opportunity, actual points và recent history; người thuộc tổ trực làm thay vẫn được tính bình thường. UI mobile phân nhóm lựa chọn theo tổ, ghi rõ không tính điểm cân bằng và hướng dẫn thêm công việc phát sinh nếu không muốn giảm phần việc của tổ trực. Full `pnpm check` xanh với 113 tests, Playwright real-backend 3/3 tại 360 px và audit production sạch. Chưa commit, push hoặc triển khai production.
 
 ## Remaining work
 
-Không còn hạng mục Refinement 12.2. Các lần vận hành tiếp tục dùng manual `Deploy API`, forward-only migration, readiness gate và rollback không down-migrate theo runbook.
+Không còn hạng mục Refinement 12.3 ở phần repository. Các lần vận hành tiếp tục dùng manual `Deploy API`, forward-only migration, readiness gate và rollback không down-migrate theo runbook.
 
 ## Known issues
 

@@ -40,9 +40,20 @@ export async function buildGenerationContext(
   session?: ClientSession,
 ): Promise<BuiltGenerationContext> {
   const classroomQuery = ClassroomModel.findById(week.classroomId);
+  const teacherAssignedStudentIds = week.assignments.flatMap((assignment) =>
+    assignment.source === 'TEACHER_ASSIGNED' && assignment.studentId !== null
+      ? [assignment.studentId]
+      : [],
+  );
+  const studentScope =
+    teacherAssignedStudentIds.length > 0
+      ? {
+          $or: [{ groupId: week.selectedGroupId }, { _id: { $in: teacherAssignedStudentIds } }],
+        }
+      : { groupId: week.selectedGroupId };
   const studentsQuery = StudentModel.find({
     classroomId: week.classroomId,
-    groupId: week.selectedGroupId,
+    ...studentScope,
   }).sort({ _id: 1 });
   const relevantTaskIds = [
     ...new Set(
@@ -70,7 +81,9 @@ export async function buildGenerationContext(
     (candidate) => candidate.id === week.selectedGroupId && candidate.active,
   );
   if (!group) throw new HttpProblem(409, 'GENERATION_CONTEXT_STALE', 'Tổ trực không còn tồn tại.');
-  const studentIds = students.map((student) => String(student._id));
+  const studentIds = students
+    .filter((student) => student.groupId === week.selectedGroupId)
+    .map((student) => String(student._id));
   const fairnessBaseline = await buildFairnessBaseline(
     week.classroomId,
     week.weekStart,
@@ -132,7 +145,12 @@ export async function buildGenerationContext(
           {
             slotId: assignment.slotId,
             studentId: assignment.studentId,
-            source: assignment.source === 'AUTO' ? ('AUTO' as const) : ('MANUAL' as const),
+            source:
+              assignment.source === 'AUTO'
+                ? ('AUTO' as const)
+                : assignment.source === 'TEACHER_ASSIGNED'
+                  ? ('TEACHER_ASSIGNED' as const)
+                  : ('MANUAL' as const),
             locked: assignment.locked,
           },
         ];

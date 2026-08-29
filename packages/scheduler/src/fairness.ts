@@ -90,6 +90,9 @@ export function calculateFairnessResult(
   unassignedSlotIds: readonly string[],
   warnings: readonly SchedulerWarning[],
 ): FairnessResult {
+  const fairnessAssignments = assignments.filter(
+    (assignment) => assignment.source !== 'TEACHER_ASSIGNED',
+  );
   const eligibleStudentIds = context.input.students
     .filter((student) => student.active && student.groupId === context.input.selectedGroupId)
     .map((student) => student.id)
@@ -102,7 +105,7 @@ export function calculateFairnessResult(
   const currentPoints = new Map(eligibleStudentIds.map((studentId) => [studentId, 0]));
   const assignmentDates = new Map<string, string[]>();
   const assignmentTasks = new Map<string, string[]>();
-  for (const assignment of assignments) {
+  for (const assignment of fairnessAssignments) {
     const occurrence = slots.get(assignment.slotId);
     if (!occurrence) continue;
     currentPoints.set(
@@ -145,10 +148,13 @@ export function calculateFairnessResult(
     .reduce((total, occurrence) => total + occurrence.slots.length, 0);
   const imbalanceRatio = average > 0 ? Math.min(1, (maximum - minimum) / Math.max(1, average)) : 0;
   const unassignedRatio = enabledSlotCount > 0 ? unassignedSlotIds.length / enabledSlotCount : 0;
-  const repeatedRatio = assignments.length > 0 ? repeatedTaskCount / assignments.length : 0;
-  const sameDayRatio = assignments.length > 0 ? sameDayOverloadCount / assignments.length : 0;
+  const repeatedRatio =
+    fairnessAssignments.length > 0 ? repeatedTaskCount / fairnessAssignments.length : 0;
+  const sameDayRatio =
+    fairnessAssignments.length > 0 ? sameDayOverloadCount / fairnessAssignments.length : 0;
   const relaxationCount = warnings.filter((warning) => warning.code !== 'UNASSIGNED_SLOT').length;
-  const relaxationRatio = assignments.length > 0 ? relaxationCount / assignments.length : 0;
+  const relaxationRatio =
+    fairnessAssignments.length > 0 ? relaxationCount / fairnessAssignments.length : 0;
   const deduction =
     45 * Math.min(1, imbalanceRatio) +
     25 * Math.min(1, unassignedRatio) +

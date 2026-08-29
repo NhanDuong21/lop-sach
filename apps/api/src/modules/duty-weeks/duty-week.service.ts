@@ -184,29 +184,44 @@ function selectedGroup(
   return { id: String(group.id), name: String(group.name) };
 }
 
-async function studentSnapshots(
-  classroomId: mongoose.Types.ObjectId,
-  groupId: string,
+function studentSnapshot(
+  student: StudentHydrated,
   groupName: string,
+): DutyWeek['studentSnapshots'][number] {
+  return {
+    id: String(student._id),
+    displayName: student.displayName,
+    groupId: student.groupId,
+    groupName,
+    active: student.active,
+    gender: student.gender,
+    participationStart: DateOnlySchema.nullable().parse(student.participationStart),
+    participationEnd: DateOnlySchema.nullable().parse(student.participationEnd),
+    restrictions: mapStudentRestrictions(student.restrictions),
+    revision: student.version,
+  };
+}
+
+async function studentSnapshots(
+  classroom: ClassroomHydrated,
+  groupId: string,
+  additionalStudentIds: readonly string[] = [],
   session?: ClientSession,
 ): Promise<DutyWeek['studentSnapshots']> {
-  const query = StudentModel.find({ classroomId, groupId }).sort({ displayName: 1, _id: 1 });
+  const scope =
+    additionalStudentIds.length > 0
+      ? { $or: [{ groupId }, { _id: { $in: additionalStudentIds } }] }
+      : { groupId };
+  const query = StudentModel.find({ classroomId: classroom._id, ...scope }).sort({
+    displayName: 1,
+    _id: 1,
+  });
   if (session) query.session(session);
-  const students = await query;
-  return students.map((rawStudent) => {
-    const student = rawStudent as StudentHydrated;
-    return {
-      id: String(student._id),
-      displayName: student.displayName,
-      groupId: student.groupId,
-      groupName,
-      active: student.active,
-      gender: student.gender,
-      participationStart: DateOnlySchema.nullable().parse(student.participationStart),
-      participationEnd: DateOnlySchema.nullable().parse(student.participationEnd),
-      restrictions: mapStudentRestrictions(student.restrictions),
-      revision: student.version,
-    };
+  const students = (await query) as StudentHydrated[];
+  return students.map((student) => {
+    const group = classroom.groups.find((candidate) => candidate.id === student.groupId);
+    if (!group) throw new Error('Student references an unknown classroom group.');
+    return studentSnapshot(student, group.name);
   });
 }
 
@@ -296,7 +311,12 @@ function schedulerAssignments(week: DutyWeekHydrated): readonly GeneratedAssignm
             slotId: assignment.slotId,
             occurrenceId: assignment.occurrenceId,
             studentId: assignment.studentId,
-            source: assignment.source === 'AUTO' ? ('AUTO' as const) : ('MANUAL' as const),
+            source:
+              assignment.source === 'AUTO'
+                ? ('AUTO' as const)
+                : assignment.source === 'TEACHER_ASSIGNED'
+                  ? ('TEACHER_ASSIGNED' as const)
+                  : ('MANUAL' as const),
             locked: assignment.locked,
             reasonCodes: assignment.reasonCodes,
           },
@@ -500,7 +520,7 @@ export async function createDutyWeek(ownerId: string, input: CreateWeekInput): P
     throw new HttpProblem(409, 'WEEK_ALREADY_EXISTS', 'Tuần trực này đã tồn tại.');
   }
   const group = selectedGroup(classroom, input.selectedGroupId);
-  const snapshots = await studentSnapshots(classroom._id, group.id, group.name);
+  const snapshots = await studentSnapshots(classroom, group.id);
   const occurrences = await recurringOccurrences(classroom._id, input.weekStart);
   const now = new Date().toISOString();
   const [created] = await DutyWeekModel.create(
@@ -562,7 +582,7 @@ export async function patchDutyWeek(
     }
     const classroom = await ownerClassroom(ownerId);
     const group = selectedGroup(classroom, input.selectedGroupId);
-    const snapshots = await studentSnapshots(classroom._id, group.id, group.name);
+    const snapshots = await studentSnapshots(classroom, group.id);
     const allowedStudentIds = new Set(snapshots.map((student) => student.id));
     week.selectedGroupId = group.id;
     week.groupSnapshot = group;
@@ -742,12 +762,18 @@ export async function deleteTaskOccurrence(
 async function refreshStudentSnapshots(week: DutyWeekHydrated): Promise<void> {
   const classroom = await ClassroomModel.findById(week.classroomId);
   if (!classroom) throw new HttpProblem(404, 'RESOURCE_NOT_FOUND', 'Không tìm thấy lớp học.');
-  const group = selectedGroup(classroom as ClassroomHydrated, week.selectedGroupId);
+  const hydratedClassroom = classroom as ClassroomHydrated;
+  const group = selectedGroup(hydratedClassroom, week.selectedGroupId);
+  const teacherAssignedStudentIds = week.assignments.flatMap((assignment) =>
+    assignment.source === 'TEACHER_ASSIGNED' && assignment.studentId !== null
+      ? [assignment.studentId]
+      : [],
+  );
   week.groupSnapshot = group;
   week.studentSnapshots = await studentSnapshots(
-    week.classroomId,
+    hydratedClassroom,
     week.selectedGroupId,
-    group.name,
+    teacherAssignedStudentIds,
   );
 }
 
@@ -866,19 +892,47 @@ export async function writeAssignment(
   if (studentId === null) {
     week.assignments = week.assignments.filter((assignment) => assignment.slotId !== slotId);
   } else {
-    const snapshot = week.studentSnapshots.find((student) => student.id === studentId);
-    if (!snapshot)
-      throw new HttpProblem(422, 'HARD_CONSTRAINT_VIOLATION', 'Học sinh không thuộc tổ trực.');
+    let snapshot = week.studentSnapshots.find((student) => student.id === studentId);
+    if (!snapshot) {
+      if (!Types.ObjectId.isValid(studentId)) {
+        throw new HttpProblem(422, 'HARD_CONSTRAINT_VIOLATION', 'Học sinh không hợp lệ.');
+      }
+      const [classroom, rawStudent] = await Promise.all([
+        ClassroomModel.findById(week.classroomId),
+        StudentModel.findOne({ _id: studentId, classroomId: week.classroomId }),
+      ]);
+      const student = rawStudent as StudentHydrated | null;
+      const group = classroom?.groups.find(
+        (candidate) => candidate.id === student?.groupId && candidate.active,
+      );
+      if (!student || !student.active || !group) {
+        throw new HttpProblem(
+          422,
+          'HARD_CONSTRAINT_VIOLATION',
+          'Học sinh được chỉ định phải đang tham gia một tổ đang hoạt động.',
+        );
+      }
+      snapshot = studentSnapshot(student, group.name);
+      week.studentSnapshots = [...week.studentSnapshots, snapshot].sort(
+        (left, right) =>
+          left.displayName.localeCompare(right.displayName, 'vi-VN') ||
+          left.id.localeCompare(right.id),
+      );
+    }
+    const teacherAssigned = snapshot.groupId !== week.selectedGroupId;
+    const reasonCodes = teacherAssigned
+      ? ['TEACHER_ASSIGNED', 'ELIGIBILITY_SATISFIED']
+      : ['ELIGIBILITY_SATISFIED'];
     const replacement: DutyAssignment = {
       slotId,
       occurrenceId: occurrence.id,
       slotIndex: slot.index,
       studentId,
       studentDisplayName: snapshot.displayName,
-      source: 'MANUAL',
+      source: teacherAssigned ? 'TEACHER_ASSIGNED' : 'MANUAL',
       locked: false,
-      reasonCodes: ['ELIGIBILITY_SATISFIED'],
-      explanation: [...explainReasonCodes(['ELIGIBILITY_SATISFIED'])],
+      reasonCodes,
+      explanation: [...explainReasonCodes(reasonCodes)],
       actualStudentId: null,
       actualStudentDisplayName: null,
     };
@@ -1000,14 +1054,22 @@ export async function swapAssignments(
     );
   }
   const firstStudent = { id: first.studentId, name: first.studentDisplayName };
+  const firstSource = first.source;
+  const secondSource = second.source;
   first.studentId = second.studentId;
   first.studentDisplayName = second.studentDisplayName;
   second.studentId = firstStudent.id;
   second.studentDisplayName = firstStudent.name;
-  first.source = 'SWAP';
-  second.source = 'SWAP';
-  first.reasonCodes = ['ELIGIBILITY_SATISFIED'];
-  second.reasonCodes = ['ELIGIBILITY_SATISFIED'];
+  first.source = secondSource === 'TEACHER_ASSIGNED' ? 'TEACHER_ASSIGNED' : 'SWAP';
+  second.source = firstSource === 'TEACHER_ASSIGNED' ? 'TEACHER_ASSIGNED' : 'SWAP';
+  first.reasonCodes =
+    first.source === 'TEACHER_ASSIGNED'
+      ? ['TEACHER_ASSIGNED', 'ELIGIBILITY_SATISFIED']
+      : ['ELIGIBILITY_SATISFIED'];
+  second.reasonCodes =
+    second.source === 'TEACHER_ASSIGNED'
+      ? ['TEACHER_ASSIGNED', 'ELIGIBILITY_SATISFIED']
+      : ['ELIGIBILITY_SATISFIED'];
   first.explanation = [...explainReasonCodes(first.reasonCodes)];
   second.explanation = [...explainReasonCodes(second.reasonCodes)];
   await assertCurrentAssignmentsValid(week);
@@ -1149,18 +1211,23 @@ function completionLedger(
   fallbackStudentIds: ReadonlySet<string>,
 ): DutyWeek['completionLedger'] {
   const mutable = new Map<string, MutableCompletionLedgerEntry>(
-    week.studentSnapshots.map((student) => [
-      student.id,
-      {
-        studentId: student.id,
-        actualPoints: 0,
-        opportunityPoints: 0,
-        taskCounts: new Map<string, { count: number; lastPerformedDate: DutyOccurrence['date'] }>(),
-        dutyDates: new Set<DutyOccurrence['date']>(),
-        heavyDutyDates: new Set<DutyOccurrence['date']>(),
-        pairings: new Map<string, number>(),
-      } satisfies MutableCompletionLedgerEntry,
-    ]),
+    week.studentSnapshots
+      .filter((student) => student.groupId === week.selectedGroupId)
+      .map((student) => [
+        student.id,
+        {
+          studentId: student.id,
+          actualPoints: 0,
+          opportunityPoints: 0,
+          taskCounts: new Map<
+            string,
+            { count: number; lastPerformedDate: DutyOccurrence['date'] }
+          >(),
+          dutyDates: new Set<DutyOccurrence['date']>(),
+          heavyDutyDates: new Set<DutyOccurrence['date']>(),
+          pairings: new Map<string, number>(),
+        } satisfies MutableCompletionLedgerEntry,
+      ]),
   );
   for (const occurrence of week.taskOccurrences.filter((item) => item.enabled)) {
     const eligible = week.studentSnapshots.filter((student) =>
@@ -1179,20 +1246,32 @@ function completionLedger(
         week.absences,
       ),
     );
+    const fairnessSlotCount = occurrence.slots.filter((slot) => {
+      const assignment = week.assignments.find((item) => item.slotId === slot.id);
+      return assignment?.source !== 'TEACHER_ASSIGNED';
+    }).length;
     const opportunityShare =
-      eligible.length > 0
-        ? (occurrence.workloadLevel * occurrence.slots.length) / eligible.length
-        : 0;
+      eligible.length > 0 ? (occurrence.workloadLevel * fairnessSlotCount) / eligible.length : 0;
     for (const student of eligible) {
       const entry = mutable.get(student.id);
       if (entry) entry.opportunityPoints += opportunityShare;
     }
-    const actualStudentIds = week.assignments
-      .filter((assignment) => assignment.occurrenceId === occurrence.id)
-      .flatMap((assignment) =>
-        assignment.actualStudentId === null ? [] : [assignment.actualStudentId],
-      );
-    for (const studentId of actualStudentIds) {
+    const actualAssignments = week.assignments.filter(
+      (assignment) =>
+        assignment.occurrenceId === occurrence.id && assignment.actualStudentId !== null,
+    );
+    const actualStudentIds = actualAssignments.flatMap((assignment) =>
+      assignment.actualStudentId === null ? [] : [assignment.actualStudentId],
+    );
+    for (const assignment of actualAssignments) {
+      const studentId = assignment.actualStudentId;
+      if (studentId === null) continue;
+      if (
+        assignment.source === 'TEACHER_ASSIGNED' &&
+        assignment.actualStudentId === assignment.studentId
+      ) {
+        continue;
+      }
       const entry = mutable.get(studentId);
       if (!entry) continue;
       entry.actualPoints += occurrence.workloadLevel;
@@ -1267,11 +1346,17 @@ export async function completeDutyWeek(
     if (!actualBySlot.has(assignment.slotId)) fallbackStudentIds.add(actualStudentId);
     const student = snapshotById.get(actualStudentId);
     const occurrence = week.taskOccurrences.find((item) => item.id === assignment.occurrenceId);
-    if (!student || !occurrence || student.groupId !== week.selectedGroupId) {
+    const originalTeacherAssignedPerformer =
+      assignment.source === 'TEACHER_ASSIGNED' && actualStudentId === assignment.studentId;
+    if (
+      !student ||
+      !occurrence ||
+      (student.groupId !== week.selectedGroupId && !originalTeacherAssignedPerformer)
+    ) {
       throw new HttpProblem(
         422,
         'HARD_CONSTRAINT_VIOLATION',
-        'Người thực hiện thực tế phải thuộc tổ trực đã chụp.',
+        'Người thực hiện thực tế phải thuộc tổ trực hoặc là học sinh được giáo viên chỉ định.',
       );
     }
     if (
@@ -1288,6 +1373,7 @@ export async function completeDutyWeek(
         schedulerOccurrence(occurrence),
         week.selectedGroupId,
         week.absences,
+        originalTeacherAssignedPerformer,
       )
     ) {
       throw new HttpProblem(

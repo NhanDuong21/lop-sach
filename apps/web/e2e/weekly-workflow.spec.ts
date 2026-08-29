@@ -37,7 +37,9 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
     data: { groups: { id: string }[] };
   };
   const groupId = classroom.data.groups[0]?.id;
+  const outsideGroupId = classroom.data.groups[1]?.id;
   expect(groupId).toBeTruthy();
+  expect(outsideGroupId).toBeTruthy();
   for (const student of [
     { displayName: 'An', gender: 'MALE' },
     { displayName: 'Bình', gender: 'FEMALE' },
@@ -50,6 +52,18 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
     });
     expect(response.status()).toBe(201);
   }
+  const outsideStudentResponse = await page.request.post('/api/v1/students', {
+    headers: { Origin: origin },
+    data: {
+      displayName: 'Phúc chỉ định',
+      gender: 'MALE',
+      groupId: outsideGroupId,
+      active: true,
+      restrictions: [],
+    },
+  });
+  expect(outsideStudentResponse.status()).toBe(201);
+  const outsideStudent = (await outsideStudentResponse.json()) as { data: { id: string } };
   const currentClassroom = await page.request.get('/api/v1/classroom');
   const current = (await currentClassroom.json()) as { data: { version: number } };
   const completedOnboarding = await page.request.patch('/api/v1/classroom', {
@@ -61,7 +75,7 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   await page.reload();
   await page.goto('/class/students');
   await expect(page.getByRole('heading', { name: 'Học sinh', exact: true })).toBeVisible();
-  await expect(page.locator('.student-row')).toHaveCount(4);
+  await expect(page.locator('.student-row')).toHaveCount(5);
   await expect(page.locator('.student-row .initial-avatar').first()).toBeVisible();
   await expect(page.locator('.student-row').filter({ hasText: 'An' })).toContainText('Tổ 1 · Nam');
   await expect(page.locator('.student-row').filter({ hasText: 'Bình' })).toContainText('Tổ 1 · Nữ');
@@ -191,6 +205,21 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
   await oneOffDialog.getByRole('button', { name: 'Hủy' }).click();
   await page.getByRole('button', { name: 'Tiếp tục tạo phân công' }).click();
   await expect(page.getByText('Phân công đã đủ điều kiện để công bố.')).toBeVisible();
+  const weekId = page.url().match(/\/weeks\/([^/?#]+)/u)?.[1];
+  expect(weekId).toBeTruthy();
+  await page.getByRole('button', { name: 'Chỉnh ngày này' }).click();
+  const assignmentSelects = page.getByLabel(/Người thứ/u);
+  const assignmentCount = await assignmentSelects.count();
+  const teacherAssignmentSelect = assignmentSelects.first();
+  await expect(
+    teacherAssignmentSelect.getByRole('option', { name: 'Phúc chỉ định — Tổ 2' }),
+  ).toBeAttached();
+  await teacherAssignmentSelect.selectOption(outsideStudent.data.id);
+  await expect(page.getByText('Giáo viên chỉ định · Không tính điểm cân bằng')).toBeVisible();
+  await expect(assignmentSelects).toHaveCount(assignmentCount);
+  await page.getByRole('button', { name: 'Tạo phương án khác' }).click();
+  await expect(page.getByText('Phân công đã đủ điều kiện để công bố.')).toBeVisible();
+  await expect(page.getByText('Giáo viên chỉ định · Không tính điểm cân bằng')).toBeVisible();
   const draftPngDownloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Tải bảng PNG' }).click();
   const draftPngDownload = await draftPngDownloadPromise;
@@ -208,6 +237,24 @@ test('creates, publishes, completes and exports a weekly schedule at 360 px', as
     .getByRole('button', { name: /mọi người làm đúng lịch/u })
     .click();
   await expect(page.getByText('Đã hoàn thành', { exact: true })).toBeVisible();
+  const completedWeekResponse = await page.request.get(`/api/v1/duty-weeks/${weekId ?? ''}`);
+  expect(completedWeekResponse.status()).toBe(200);
+  const completedWeek = (await completedWeekResponse.json()) as {
+    data: {
+      assignments: { source: string; studentId: string; actualStudentId: string }[];
+      completionLedger: { studentId: string }[];
+    };
+  };
+  expect(completedWeek.data.assignments).toContainEqual(
+    expect.objectContaining({
+      source: 'TEACHER_ASSIGNED',
+      studentId: outsideStudent.data.id,
+      actualStudentId: outsideStudent.data.id,
+    }),
+  );
+  expect(
+    completedWeek.data.completionLedger.some((entry) => entry.studentId === outsideStudent.data.id),
+  ).toBe(false);
   await page.getByRole('link', { name: 'Lịch sử' }).last().click();
   await expect(page.getByRole('heading', { name: 'Lịch sử trực nhật' })).toBeVisible();
   await page.getByRole('link', { name: /24\/08 – 24\/08\/2026/u }).click();

@@ -41,7 +41,7 @@ export interface SchedulerAbsence {
 export interface ExistingAssignment {
   readonly slotId: string;
   readonly studentId: string;
-  readonly source: 'AUTO' | 'MANUAL';
+  readonly source: 'AUTO' | 'MANUAL' | 'TEACHER_ASSIGNED';
   readonly locked: boolean;
 }
 export interface StudentHistoricalBaseline {
@@ -91,7 +91,7 @@ export interface GeneratedAssignment {
   readonly slotId: string;
   readonly occurrenceId: string;
   readonly studentId: string;
-  readonly source: 'AUTO' | 'MANUAL';
+  readonly source: 'AUTO' | 'MANUAL' | 'TEACHER_ASSIGNED';
   readonly locked: boolean;
   readonly reasonCodes: readonly string[];
 }

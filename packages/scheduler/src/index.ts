@@ -1,4 +1,4 @@
-export const SCHEDULER_ENGINE_VERSION = '1.0.0';
+export const SCHEDULER_ENGINE_VERSION = '1.1.0';
 
 export * from './canonical-hash.js';
 export * from './eligibility.js';

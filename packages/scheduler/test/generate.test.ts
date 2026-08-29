@@ -21,6 +21,104 @@ describe('deterministic generation', () => {
     );
   });
 
+  it('pins a teacher-assigned student from another group without granting fairness points', () => {
+    const occurrence = createOccurrence({
+      id: 'sweep',
+      date: '2026-08-24',
+      requiredStudents: 2,
+    });
+    const context = {
+      ...createContext(),
+      input: {
+        ...createContext().input,
+        students: [
+          createStudent({ id: 'minh', groupId: 'group-1' }),
+          createStudent({ id: 'huy', groupId: 'group-1' }),
+          createStudent({ id: 'an', groupId: 'group-2' }),
+        ],
+        occurrences: [occurrence],
+        absences: [],
+        existingAssignments: [
+          {
+            slotId: 'sweep-slot-1',
+            studentId: 'an',
+            source: 'TEACHER_ASSIGNED' as const,
+            locked: false,
+          },
+        ],
+        historicalBaseline: [],
+      },
+    };
+
+    const result = generateSchedule(context);
+
+    expect(result.assignments).toHaveLength(2);
+    expect(result.assignments).toContainEqual(
+      expect.objectContaining({
+        slotId: 'sweep-slot-1',
+        studentId: 'an',
+        source: 'TEACHER_ASSIGNED',
+      }),
+    );
+    expect(result.fairness.workloadByStudent.map((student) => student.studentId).sort()).toEqual([
+      'huy',
+      'minh',
+    ]);
+    expect(validateAssignments(context, result.assignments)).toEqual([]);
+  });
+
+  it('does not let an ordinary manual assignment bypass the selected group', () => {
+    const occurrence = createOccurrence({ id: 'sweep', date: '2026-08-24' });
+    const context = {
+      ...createContext(),
+      input: {
+        ...createContext().input,
+        students: [createStudent({ id: 'an', groupId: 'group-2' })],
+        occurrences: [occurrence],
+        absences: [],
+        existingAssignments: [
+          {
+            slotId: 'sweep-slot-1',
+            studentId: 'an',
+            source: 'MANUAL' as const,
+            locked: false,
+          },
+        ],
+        historicalBaseline: [],
+      },
+    };
+
+    expect(() => generateSchedule(context)).toThrow('INVALID_LOCKED_ASSIGNMENT:sweep-slot-1');
+  });
+
+  it('keeps task eligibility hard for a teacher-assigned student', () => {
+    const occurrence = createOccurrence({
+      id: 'heavy',
+      date: '2026-08-24',
+      eligibilityRule: 'MALE_ONLY',
+    });
+    const context = {
+      ...createContext(),
+      input: {
+        ...createContext().input,
+        students: [createStudent({ id: 'an', groupId: 'group-2', gender: 'FEMALE' })],
+        occurrences: [occurrence],
+        absences: [],
+        existingAssignments: [
+          {
+            slotId: 'heavy-slot-1',
+            studentId: 'an',
+            source: 'TEACHER_ASSIGNED' as const,
+            locked: false,
+          },
+        ],
+        historicalBaseline: [],
+      },
+    };
+
+    expect(() => generateSchedule(context)).toThrow('INVALID_LOCKED_ASSIGNMENT:heavy-slot-1');
+  });
+
   it('never duplicates a student inside one occurrence', () => {
     const context = createContext();
     const result = generateSchedule(context);

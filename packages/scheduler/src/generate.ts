@@ -23,7 +23,7 @@ interface SlotWithOccurrence {
 }
 
 function fixedAssignment(existing: ExistingAssignment): boolean {
-  return existing.locked || existing.source === 'MANUAL';
+  return existing.locked || existing.source !== 'AUTO';
 }
 
 export function generateSchedule(rawContext: SchedulerContext): SchedulerOutput {
@@ -57,6 +57,7 @@ export function generateSchedule(rawContext: SchedulerContext): SchedulerOutput 
         item.occurrence,
         context.input.selectedGroupId,
         context.input.absences,
+        existing.source === 'TEACHER_ASSIGNED',
       ) ||
       occurrenceStudents.has(student.id)
     ) {
@@ -76,7 +77,10 @@ export function generateSchedule(rawContext: SchedulerContext): SchedulerOutput 
       studentId: student.id,
       source: existing.source,
       locked: existing.locked,
-      reasonCodes: ['FIXED_ASSIGNMENT'],
+      reasonCodes:
+        existing.source === 'TEACHER_ASSIGNED'
+          ? ['TEACHER_ASSIGNED', 'FIXED_ASSIGNMENT']
+          : ['FIXED_ASSIGNMENT'],
     });
   }
 

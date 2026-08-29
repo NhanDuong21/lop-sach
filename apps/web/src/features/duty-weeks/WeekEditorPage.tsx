@@ -22,6 +22,7 @@ import { currentDateInVietnam, formatDutyDate, formatWeekRange } from '../../lib
 import { schoolDayLabels } from '../../lib/vietnamese-labels.js';
 import { getClassroom } from '../classroom/classroom.api.js';
 import { WeekSummary } from '../current-week/WeekSummary.js';
+import { listStudents } from '../students/students.api.js';
 import { DayCard } from './DayCard.js';
 import {
   completeDutyWeek,
@@ -271,6 +272,11 @@ export function WeekEditorPage(): React.JSX.Element {
     enabled: Boolean(weekId),
   });
   const classroom = useQuery({ queryKey: ['classroom'], queryFn: getClassroom });
+  const students = useQuery({
+    queryKey: ['students'],
+    queryFn: listStudents,
+    enabled: weekQuery.data?.status === 'DRAFT',
+  });
   const action = useMutation({
     mutationFn: (operation: WeekOperation) => operation(),
     onSuccess: (week) => {
@@ -319,10 +325,24 @@ export function WeekEditorPage(): React.JSX.Element {
     () => new Map(week?.studentSnapshots.map((student) => [student.id, student.displayName]) ?? []),
     [week],
   );
-  if (weekQuery.isPending || classroom.isPending)
+  const needsAssignmentStudents = week?.status === 'DRAFT';
+  if (weekQuery.isPending || classroom.isPending || (needsAssignmentStudents && students.isPending))
     return <LoadingState label="Đang tải tuần trực" />;
-  if (!week || !classroom.data)
+  if (!week || !classroom.data || (needsAssignmentStudents && !students.data))
     return <Notice tone="error">Không tìm thấy tuần trực hoặc dữ liệu lớp.</Notice>;
+  const assignmentStudents = (students.data ?? []).map((student) => ({
+    id: student.id,
+    displayName: student.displayName,
+    groupId: student.groupId,
+    groupName:
+      classroom.data.groups.find((group) => group.id === student.groupId)?.name ?? 'Tổ khác',
+    active:
+      student.active &&
+      Boolean(classroom.data.groups.find((group) => group.id === student.groupId)?.active),
+  }));
+  const dutyGroupStudents = week.studentSnapshots.filter(
+    (student) => student.groupId === week.selectedGroupId,
+  );
   const hasLocks = week.assignments.some((assignment) => assignment.locked);
   const enabledSlotIds = week.taskOccurrences
     .filter((occurrence) => occurrence.enabled)
@@ -618,10 +638,10 @@ export function WeekEditorPage(): React.JSX.Element {
               ))}
           </select>
           <div className="absence-table" role="group" aria-label="Vắng mặt theo ngày">
-            {week.studentSnapshots.length === 0 ? (
+            {dutyGroupStudents.length === 0 ? (
               <Notice tone="warning">Tổ này chưa có học sinh.</Notice>
             ) : (
-              week.studentSnapshots.map((student) => (
+              dutyGroupStudents.map((student) => (
                 <div className="absence-row" key={student.id}>
                   <strong>{student.displayName}</strong>
                   <div>
@@ -658,10 +678,18 @@ export function WeekEditorPage(): React.JSX.Element {
               <Plus size={17} aria-hidden="true" /> Thêm việc phát sinh
             </Button>
           </div>
+          <Notice tone="info">
+            <strong>Có học sinh được giáo viên chỉ định?</strong>
+            <p>
+              Hãy tạo phân công, rồi ở bước Kiểm tra phân công chọn bạn ngoài tổ vào một vị trí có
+              sẵn. Nếu không muốn giảm phần việc của tổ trực, hãy thêm một công việc phát sinh
+              trước.
+            </p>
+          </Notice>
           <div className="wizard-actions sticky-mobile-actions">
             <span className="muted">Vắng mặt sẽ được lưu cùng lúc khi tạo phân công.</span>
             <Button
-              disabled={action.isPending || week.studentSnapshots.length === 0}
+              disabled={action.isPending || dutyGroupStudents.length === 0}
               onClick={prepareAndGenerate}
             >
               Tiếp tục tạo phân công
@@ -790,6 +818,7 @@ export function WeekEditorPage(): React.JSX.Element {
                 week={week}
                 disabled={action.isPending}
                 selectedSwapSlots={selectedSwapSlots}
+                assignmentStudents={assignmentStudents}
                 onAssign={(slotId, studentId) =>
                   run(() => writeAssignment(week.id, slotId, studentId, week.version))
                 }

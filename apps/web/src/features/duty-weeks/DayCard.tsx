@@ -6,6 +6,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge.js';
 import { formatDutyDate } from '../../lib/date-labels.js';
 import { workloadLabels } from '../../lib/vietnamese-labels.js';
 import { AssignmentEditor } from './AssignmentEditor.js';
+import type { AssignmentStudentOption } from './AssignmentEditor.js';
 
 export function DayCard({
   date,
@@ -13,6 +14,7 @@ export function DayCard({
   week,
   disabled,
   selectedSwapSlots,
+  assignmentStudents,
   onAssign,
   onLock,
   onReplacement,
@@ -25,6 +27,7 @@ export function DayCard({
   readonly week: DutyWeek;
   readonly disabled: boolean;
   readonly selectedSwapSlots: readonly string[];
+  readonly assignmentStudents: readonly AssignmentStudentOption[];
   readonly onAssign: (slotId: string, studentId: string | null) => void;
   readonly onLock: (slotId: string, locked: boolean) => void;
   readonly onReplacement: (slotId: string) => void;
@@ -82,6 +85,12 @@ export function DayCard({
         </div>
       ) : (
         <div className="occurrence-list">
+          {assignmentStudents.some((student) => student.groupId !== week.selectedGroupId) ? (
+            <p className="muted">
+              Chọn học sinh ngoài tổ để giáo viên chỉ định vào một vị trí có sẵn. Lượt này không
+              tính điểm cân bằng và không làm tăng số người của công việc.
+            </p>
+          ) : null}
           {occurrences.map((occurrence) => (
             <article
               className={`occurrence${occurrence.enabled ? '' : ' occurrence-disabled'}`}
@@ -125,7 +134,8 @@ export function DayCard({
                       slotId={slot.id}
                       slotIndex={slot.index}
                       assignment={week.assignments.find((item) => item.slotId === slot.id)}
-                      students={week.studentSnapshots}
+                      students={assignmentStudents}
+                      selectedGroupId={week.selectedGroupId}
                       disabled={disabled || week.status !== 'DRAFT'}
                       swapSelected={selectedSwapSlots.includes(slot.id)}
                       onAssign={(studentId) => onAssign(slot.id, studentId)}

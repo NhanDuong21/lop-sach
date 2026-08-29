@@ -42,7 +42,7 @@ export function createOccurrence(
 
 export function createContext(): SchedulerContext {
   return {
-    schedulerEngineVersion: '1.0.0',
+    schedulerEngineVersion: '1.1.0',
     generationRevision: 4,
     dataRevisions: {
       classroomRevision: 3,

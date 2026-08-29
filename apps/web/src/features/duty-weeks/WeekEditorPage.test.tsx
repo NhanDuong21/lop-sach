@@ -1,4 +1,4 @@
-import { parseDateOnly, type Classroom, type DutyWeek } from '@lop-sach/contracts';
+import { parseDateOnly, type Classroom, type DutyWeek, type Student } from '@lop-sach/contracts';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -6,16 +6,19 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as dateLabels from '../../lib/date-labels.js';
 import { getClassroom } from '../classroom/classroom.api.js';
+import { listStudents } from '../students/students.api.js';
 import {
   completeDutyWeek,
   deleteDutyWeek,
   deleteOccurrence,
   getCompletionOptions,
   getDutyWeek,
+  writeAssignment,
 } from './duty-weeks.api.js';
 import { WeekEditorPage } from './WeekEditorPage.js';
 
 vi.mock('../classroom/classroom.api.js', () => ({ getClassroom: vi.fn() }));
+vi.mock('../students/students.api.js', () => ({ listStudents: vi.fn() }));
 vi.mock('../../lib/date-labels.js', async (importOriginal) => ({
   ...(await importOriginal<typeof dateLabels>()),
   currentDateInVietnam: () => '2026-08-28',
@@ -137,10 +140,38 @@ const week: DutyWeek = {
   },
 };
 
+const students: readonly Student[] = [
+  {
+    id: 'student-1',
+    classroomId: classroom.id,
+    displayName: 'Nguyễn An',
+    groupId: 'group-1',
+    active: true,
+    gender: 'UNSPECIFIED',
+    participationStart: null,
+    participationEnd: null,
+    restrictions: [],
+    version: 0,
+  },
+  {
+    id: 'student-2',
+    classroomId: classroom.id,
+    displayName: 'Trần Bình',
+    groupId: 'group-2',
+    active: true,
+    gender: 'UNSPECIFIED',
+    participationStart: null,
+    participationEnd: null,
+    restrictions: [],
+    version: 0,
+  },
+];
+
 beforeEach(() => {
   cleanup();
   vi.clearAllMocks();
   vi.mocked(getClassroom).mockResolvedValue(classroom);
+  vi.mocked(listStudents).mockResolvedValue(students);
   vi.mocked(getDutyWeek).mockResolvedValue(week);
   vi.mocked(getCompletionOptions).mockResolvedValue([
     {
@@ -180,6 +211,48 @@ describe('WeekEditorPage', () => {
     expect(screen.queryByLabelText(/Chủ Nhật/u)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Công bố/u })).toBeDisabled();
     expect(screen.queryByText(/time overlap/iu)).not.toBeInTheDocument();
+  });
+
+  it('labels an outside-group choice as a teacher assignment without extra task capacity', async () => {
+    const editableWeek = {
+      ...week,
+      assignments: [{ ...week.assignments[0]!, locked: false }],
+    } satisfies DutyWeek;
+    const designatedWeek = {
+      ...editableWeek,
+      assignments: [
+        {
+          ...editableWeek.assignments[0]!,
+          studentId: 'student-2',
+          studentDisplayName: 'Trần Bình',
+          source: 'TEACHER_ASSIGNED' as const,
+        },
+      ],
+    } satisfies DutyWeek;
+    vi.mocked(getDutyWeek).mockResolvedValue(editableWeek);
+    vi.mocked(writeAssignment).mockResolvedValue(designatedWeek);
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/weeks/week-1']}>
+          <Routes>
+            <Route path="/weeks/:weekId" element={<WeekEditorPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Chỉnh ngày này' }));
+    const select = screen.getByLabelText('Người thứ 1');
+    expect(within(select).getByRole('group', { name: 'Tổ trực' })).toBeInTheDocument();
+    expect(within(select).getByRole('option', { name: 'Trần Bình — Tổ 2' })).toBeInTheDocument();
+    await userEvent.selectOptions(select, 'student-2');
+
+    expect(writeAssignment).toHaveBeenCalledWith('week-1', 'slot-1', 'student-2', week.version);
+    expect(
+      await screen.findByText('Giáo viên chỉ định · Không tính điểm cân bằng'),
+    ).toBeInTheDocument();
+    expect(designatedWeek.assignments).toHaveLength(editableWeek.assignments.length);
   });
 
   it('offers copy and export actions as soon as a week is published', async () => {

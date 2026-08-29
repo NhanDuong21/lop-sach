@@ -3,13 +3,21 @@ import { useState } from 'react';
 import { ActionMenu } from '../../components/ui/ActionMenu.js';
 
 type Assignment = DutyWeek['assignments'][number];
-type StudentSnapshot = DutyWeek['studentSnapshots'][number];
+
+export interface AssignmentStudentOption {
+  readonly id: string;
+  readonly displayName: string;
+  readonly groupId: string;
+  readonly groupName: string;
+  readonly active: boolean;
+}
 
 export function AssignmentEditor({
   slotId,
   slotIndex,
   assignment,
   students,
+  selectedGroupId,
   disabled,
   swapSelected,
   onAssign,
@@ -20,7 +28,8 @@ export function AssignmentEditor({
   readonly slotId: string;
   readonly slotIndex: number;
   readonly assignment?: Assignment | undefined;
-  readonly students: readonly StudentSnapshot[];
+  readonly students: readonly AssignmentStudentOption[];
+  readonly selectedGroupId: string;
   readonly disabled: boolean;
   readonly swapSelected: boolean;
   readonly onAssign: (studentId: string | null) => void;
@@ -29,6 +38,12 @@ export function AssignmentEditor({
   readonly onToggleSwap: () => void;
 }): React.JSX.Element {
   const [explanationOpen, setExplanationOpen] = useState(false);
+  const selectedGroupStudents = students.filter(
+    (student) => student.active && student.groupId === selectedGroupId,
+  );
+  const teacherAssignedStudents = students.filter(
+    (student) => student.active && student.groupId !== selectedGroupId,
+  );
   return (
     <div className={`assignment-row${swapSelected ? ' assignment-selected' : ''}`}>
       <div className="assignment-field">
@@ -40,24 +55,35 @@ export function AssignmentEditor({
           onChange={(event) => onAssign(event.target.value || null)}
         >
           <option value="">Chưa phân công</option>
-          {students
-            .filter((student) => student.active)
-            .map((student) => (
+          <optgroup label="Tổ trực">
+            {selectedGroupStudents.map((student) => (
               <option value={student.id} key={student.id}>
                 {student.displayName}
               </option>
             ))}
+          </optgroup>
+          {teacherAssignedStudents.length > 0 ? (
+            <optgroup label="Giáo viên chỉ định từ tổ khác">
+              {teacherAssignedStudents.map((student) => (
+                <option value={student.id} key={student.id}>
+                  {student.displayName} — {student.groupName}
+                </option>
+              ))}
+            </optgroup>
+          ) : null}
         </select>
         {assignment ? (
           <div className="assignment-meta">
             <small>
               {assignment.source === 'AUTO'
                 ? 'Tự động'
-                : assignment.source === 'REPLACEMENT'
-                  ? 'Thay thế'
-                  : assignment.source === 'SWAP'
-                    ? 'Hoán đổi'
-                    : 'Thủ công'}
+                : assignment.source === 'TEACHER_ASSIGNED'
+                  ? 'Giáo viên chỉ định · Không tính điểm cân bằng'
+                  : assignment.source === 'REPLACEMENT'
+                    ? 'Thay thế'
+                    : assignment.source === 'SWAP'
+                      ? 'Hoán đổi'
+                      : 'Thủ công'}
               {assignment.locked ? ' · Đã khóa' : ''}
             </small>
             {explanationOpen ? (

@@ -29,7 +29,13 @@ export function validateAssignments(
     }
     if (
       !student ||
-      !isStudentEligible(student, occurrence, context.input.selectedGroupId, context.input.absences)
+      !isStudentEligible(
+        student,
+        occurrence,
+        context.input.selectedGroupId,
+        context.input.absences,
+        assignment.source === 'TEACHER_ASSIGNED',
+      )
     ) {
       violations.push({
         code: 'INELIGIBLE_ASSIGNMENT',

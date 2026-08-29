@@ -67,9 +67,9 @@ describe('canonical scheduler integrity hash', () => {
       expect(error).toMatchObject({
         code: 'SCHEDULER_VERSION_OUTDATED',
         action: 'RELOAD_REQUIRED',
-        serverSchedulerEngineVersion: '1.0.0',
+        serverSchedulerEngineVersion: '1.1.0',
       });
     }
-    expect(() => assertSchedulerVersion('1.0.0')).not.toThrow();
+    expect(() => assertSchedulerVersion('1.1.0')).not.toThrow();
   });
 });

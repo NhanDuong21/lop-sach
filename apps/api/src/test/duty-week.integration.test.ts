@@ -250,7 +250,7 @@ describe('duty-week lifecycle', () => {
     expect(ProblemDetailsSchema.parse(outdated.body as unknown)).toMatchObject({
       code: 'SCHEDULER_VERSION_OUTDATED',
       action: 'RELOAD_REQUIRED',
-      serverSchedulerEngineVersion: '1.0.0',
+      serverSchedulerEngineVersion: '1.1.0',
     });
 
     const generated = await generateWeek(agent, draft);
@@ -470,6 +470,94 @@ describe('duty-week lifecycle', () => {
       .set('Origin', 'http://localhost:5173')
       .send({ expectedVersion: preflighted.version })
       .expect(200);
+  });
+
+  it('keeps an outside teacher assignment fixed without granting future fairness credit', async () => {
+    const agent = await authenticatedAgent();
+    const { classroom } = await classroomWithStudents(agent);
+    const outsideGroup = classroom.groups[1];
+    if (!outsideGroup) throw new Error('Expected a second classroom group.');
+    const outsider = StudentEnvelopeSchema.parse(
+      (
+        await agent
+          .post('/api/v1/students')
+          .set('Origin', 'http://localhost:5173')
+          .send({
+            displayName: 'An ngoài tổ',
+            groupId: outsideGroup.id,
+            active: true,
+            gender: 'UNSPECIFIED',
+            restrictions: [],
+          })
+          .expect(201)
+      ).body as unknown,
+    ).data;
+    const draft = await createWeek(agent, classroom);
+    const generated = await generateWeek(agent, draft);
+    const originalAssignmentCount = generated.assignments.length;
+    const target = generated.assignments.find((assignment) => {
+      const occurrence = generated.taskOccurrences.find(
+        (item) => item.id === assignment.occurrenceId,
+      );
+      return occurrence?.eligibilityRule === 'ANY';
+    });
+    if (!target) throw new Error('Expected an unrestricted assignment slot.');
+
+    const designated = WeekEnvelopeSchema.parse(
+      (
+        await agent
+          .put(`/api/v1/duty-weeks/${draft.id}/slots/${target.slotId}/assignment`)
+          .set('Origin', 'http://localhost:5173')
+          .send({ expectedVersion: generated.version, studentId: outsider.id })
+          .expect(200)
+      ).body as unknown,
+    ).data;
+    expect(designated.assignments).toHaveLength(originalAssignmentCount);
+    expect(designated.assignments.find((item) => item.slotId === target.slotId)).toMatchObject({
+      studentId: outsider.id,
+      source: 'TEACHER_ASSIGNED',
+    });
+    expect(designated.studentSnapshots).toContainEqual(
+      expect.objectContaining({
+        id: outsider.id,
+        groupId: outsideGroup.id,
+        groupName: outsideGroup.name,
+      }),
+    );
+
+    const regenerated = await generateWeek(agent, designated);
+    expect(regenerated.assignments).toHaveLength(originalAssignmentCount);
+    expect(regenerated.assignments.find((item) => item.slotId === target.slotId)).toMatchObject({
+      studentId: outsider.id,
+      source: 'TEACHER_ASSIGNED',
+    });
+    expect(
+      regenerated.fairness?.workloadByStudent.some((student) => student.studentId === outsider.id),
+    ).toBe(false);
+
+    const published = WeekEnvelopeSchema.parse(
+      (
+        await agent
+          .post(`/api/v1/duty-weeks/${draft.id}/publish`)
+          .set('Origin', 'http://localhost:5173')
+          .send({ expectedVersion: regenerated.version })
+          .expect(200)
+      ).body as unknown,
+    ).data;
+    const completed = WeekEnvelopeSchema.parse(
+      (
+        await agent
+          .post(`/api/v1/duty-weeks/${draft.id}/complete`)
+          .set('Origin', 'http://localhost:5173')
+          .send({ expectedVersion: published.version, actualPerformers: [] })
+          .expect(200)
+      ).body as unknown,
+    ).data;
+    expect(completed.assignments.find((item) => item.slotId === target.slotId)).toMatchObject({
+      actualStudentId: outsider.id,
+      source: 'TEACHER_ASSIGNED',
+    });
+    expect(completed.completionLedger.some((entry) => entry.studentId === outsider.id)).toBe(false);
   });
 
   it('enforces unique weeks and optimistic concurrency for simultaneous edits', async () => {

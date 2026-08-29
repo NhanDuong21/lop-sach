@@ -11,7 +11,13 @@ export const DutyGroupSelectionBasisSchema = z.enum([
   'TEACHER_ASSIGNED',
   'OTHER',
 ]);
-export const AssignmentSourceSchema = z.enum(['AUTO', 'MANUAL', 'REPLACEMENT', 'SWAP']);
+export const AssignmentSourceSchema = z.enum([
+  'AUTO',
+  'MANUAL',
+  'TEACHER_ASSIGNED',
+  'REPLACEMENT',
+  'SWAP',
+]);
 export const GenerationValidationSourceSchema = z.enum(['BACKEND_GENERATED', 'MANUAL_PREFLIGHT']);
 export const DutyWeekAbsenceSchema = z.strictObject({
   studentId: z.string(),

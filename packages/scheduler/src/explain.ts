@@ -4,6 +4,8 @@ const EXPLANATIONS: Readonly<Record<string, string>> = {
   NO_SAME_DAY_ASSIGNMENT: 'Học sinh chưa có phân công khác trong ngày này.',
   TASK_NOT_RECENT: 'Học sinh chưa làm công việc này trong lịch sử gần đây được xét.',
   FIXED_ASSIGNMENT: 'Phân công thủ công hoặc đã khóa được giữ nguyên.',
+  TEACHER_ASSIGNED:
+    'Học sinh được giáo viên chỉ định vào vị trí này và lượt làm không tính điểm cân bằng.',
   LOCAL_IMPROVEMENT: 'Hoán đổi này giảm tổng mức phạt mà vẫn giữ mọi điều kiện bắt buộc.',
 };
 

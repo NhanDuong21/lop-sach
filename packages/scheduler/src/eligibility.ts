@@ -5,8 +5,10 @@ export function isStudentEligible(
   occurrence: SchedulerOccurrence,
   selectedGroupId: string,
   absences: readonly SchedulerAbsence[],
+  allowOutsideSelectedGroup = false,
 ): boolean {
-  if (!student.active || student.groupId !== selectedGroupId) return false;
+  if (!student.active || (!allowOutsideSelectedGroup && student.groupId !== selectedGroupId))
+    return false;
   if (student.participationStart !== null && occurrence.date < student.participationStart)
     return false;
   if (student.participationEnd !== null && occurrence.date > student.participationEnd) return false;
