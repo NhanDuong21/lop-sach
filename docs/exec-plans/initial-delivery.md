@@ -51,6 +51,16 @@
 - [x] Full `pnpm check` xanh với 113 tests; Playwright 3/3, weekly real-backend E2E 360 px, audit production và diff check đều xanh. Chi tiết nằm trong `teacher-assigned-duty.md`.
 - [x] Commit `7545b84`, CI `33242401490`, Vercel production và deploy API `33242404967` xanh; HTTPS/live/ready/proxy no-store/redirect và production bundle smoke đều xanh mà không sửa dữ liệu UAT.
 
+## Refinement 12.4 — Public PWA install landing
+
+- [x] Public route `/install` không dùng app shell hoặc auth bootstrap, nhưng giữ manifest khởi động ứng dụng tại `/`.
+- [x] Chromium dùng deferred `beforeinstallprompt` một lần; iPhone/iPad, browser tích hợp và fallback khác dùng hướng dẫn truy cập được; standalone tự thay route về app entry.
+- [x] QR thật và native share/copy cùng mã hóa canonical install URL trên origin hiện tại, giữ query parameters và không lưu trạng thái cài đặt lâu dài.
+- [x] Desktop có phone preview và QR trong first fold; mobile/tablet bỏ hai khối nặng, dùng hero/hướng dẫn/footer riêng và safe-area handling.
+- [x] Landing assets chỉ được đọc từ `public/landing` và bị loại khỏi app-shell precache để service worker không tải nền nhiều megabyte.
+- [x] Full `pnpm check` xanh với 121 tests; Playwright 4/4, browser matrix 10 viewport, audit production và diff check đều xanh. Chi tiết nằm trong `pwa-install-landing.md`.
+- [x] Commit `e49362d`, CI `33244560566` và Vercel production xanh; PWA update, desktop/mobile `/install`, canonical QR, API live/ready và proxy no-store đều được smoke mà không sửa dữ liệu UAT.
+
 ## Refinement 11.12 — Lifecycle/history desktop freeze
 
 - [x] Backend và UI chặn hoàn thành trước ngày trực cuối cùng theo `Asia/Ho_Chi_Minh`; việc chuẩn bị tuần kế tiếp vẫn độc lập.
@@ -78,35 +88,36 @@
 
 ## Milestones
 
-| Milestone                       | Trạng thái               | Commit                                                          | Validation                                                      |
-| ------------------------------- | ------------------------ | --------------------------------------------------------------- | --------------------------------------------------------------- |
-| 0. Repository foundation        | Hoàn tất                 | `chore(repo): establish repository foundation`                  | `pnpm check` xanh                                               |
-| 1. Contracts/date-only          | Hoàn tất                 | `feat(contracts): define shared duty scheduling contracts`      | 5 tests xanh; typecheck/lint xanh                               |
-| 2. Auth/migrations/login shell  | Hoàn tất                 | `feat(auth): add secure sessions and deployment-ready login`    | 20 tests xanh; full `pnpm check` xanh                           |
-| 2.5. Deployment topology spike  | Hoàn tất phần repository | `chore(deploy): add verifiable production topology`             | Repo gates xanh; production `DEFERRED_EXTERNAL_CREDENTIALS`     |
-| 3. Master-data API              | Hoàn tất                 | `feat(classroom): add revisioned classroom master data`         | 25 tests xanh; full `pnpm check` xanh                           |
-| 4. Master-data UI               | Hoàn tất                 | `feat(web): complete onboarding and classroom management`       | 28 tests + API runtime import; full `pnpm check` xanh           |
-| 5. Scheduler core/hash          | Hoàn tất                 | `feat(scheduler): add canonical deterministic generation`       | 17 scheduler tests; full `pnpm check` xanh                      |
-| 6. Fairness/replacements        | Hoàn tất                 | `feat(scheduler): add bounded fairness and explainable ranking` | 25 scheduler tests; full `pnpm check` xanh                      |
-| 7. Duty-week lifecycle          | Hoàn tất                 | `feat(duty-weeks): add stale-safe weekly lifecycle`             | 11 duty-week API/size tests; full `pnpm check` xanh             |
-| 8. Weekly UI                    | Hoàn tất                 | `feat(web): add canonical duty-week workflow`                   | 5 web tests + local real-API E2E; full `pnpm check` xanh        |
-| 9. History/export/backup        | Hoàn tất                 | `feat(history): add stable history exports and backup`          | 74 tests + export/history E2E; full `pnpm check` xanh           |
-| 10. PWA/offline                 | Hoàn tất                 | `feat(pwa): add read-only offline experience`                   | 76 tests + 2 PWA/offline E2E; full `pnpm check` xanh            |
-| 11. Quality/docs                | Hoàn tất                 | `test(release): complete production quality gates`              | 76 tests + 3 E2E + audit production; full gates xanh            |
-| 11.5. Local UAT refinement      | Hoàn tất                 | `fix(uat): harden local operator workflow`                      | 80 tests + 3 E2E + local operator simulation xanh               |
-| 11.6. First-use UX refinement   | Hoàn tất                 | `feat(uat): simplify first-use operator workflow`               | 85 tests + 3 E2E + audit production; full gates xanh            |
-| 11.7. Responsive modal UX       | Hoàn tất                 | `fix(web): open list actions in responsive dialogs`             | 87 tests + 3 E2E + audit production; Browser smoke xanh         |
-| 11.8. Weekly-assistant UI/UX    | Hoàn tất                 | `feat(web): refocus UI around weekly duty workflow`             | 89 tests + 3 E2E + audit production; Browser smoke xanh         |
-| 11.9. Draft recovery            | Hoàn tất                 | `fix(web): make saved drafts resumable`                         | 91 tests + 3 E2E + audit production; Browser smoke xanh         |
-| 11.10. Draft deletion           | Hoàn tất                 | `feat(duty-weeks): allow safe draft deletion`                   | 93 tests + 3 E2E + audit production; Browser smoke xanh         |
-| 11.11. Unified application icon | Hoàn tất                 | `chore(pwa): use maskable artwork as favicon`                   | 93 tests + 3 E2E + audit production; PWA gate xanh              |
-| 11.12. Lifecycle/history freeze | Hoàn tất                 | Chưa commit                                                     | 98 tests + 3 E2E + audit production; Browser smoke xanh         |
-| 11.13. Current-week visual      | Hoàn tất                 | Chưa commit                                                     | 100 tests + 3 E2E + audit production; responsive E2E xanh       |
-| 11.14. Classroom workspace      | Hoàn tất                 | Chưa commit                                                     | 101 tests + 3 E2E + audit production; Browser smoke xanh        |
-| 12. Production deployment       | Hoàn tất                 | `chore(deploy): finalize production deployment`                 | Production topology/product/deploy/rollback và final gates xanh |
-| 12.1. Startup performance       | Hoàn tất                 | `fix(performance): remove production startup waterfall`         | 107 tests + E2E 3/3 + CI/deploy/Browser production xanh         |
-| 12.2. Draft table export        | Hoàn tất                 | `feat(web): export draft assignments as PNG table`              | 108 tests + E2E 3/3 + CI/Vercel/PWA production xanh             |
-| 12.3. Teacher-assigned duty     | Hoàn tất                 | `feat(duty-weeks): support teacher-assigned students`           | 113 tests + E2E 3/3 + CI/Vercel/deploy production xanh          |
+| Milestone                        | Trạng thái               | Commit                                                          | Validation                                                      |
+| -------------------------------- | ------------------------ | --------------------------------------------------------------- | --------------------------------------------------------------- |
+| 0. Repository foundation         | Hoàn tất                 | `chore(repo): establish repository foundation`                  | `pnpm check` xanh                                               |
+| 1. Contracts/date-only           | Hoàn tất                 | `feat(contracts): define shared duty scheduling contracts`      | 5 tests xanh; typecheck/lint xanh                               |
+| 2. Auth/migrations/login shell   | Hoàn tất                 | `feat(auth): add secure sessions and deployment-ready login`    | 20 tests xanh; full `pnpm check` xanh                           |
+| 2.5. Deployment topology spike   | Hoàn tất phần repository | `chore(deploy): add verifiable production topology`             | Repo gates xanh; production `DEFERRED_EXTERNAL_CREDENTIALS`     |
+| 3. Master-data API               | Hoàn tất                 | `feat(classroom): add revisioned classroom master data`         | 25 tests xanh; full `pnpm check` xanh                           |
+| 4. Master-data UI                | Hoàn tất                 | `feat(web): complete onboarding and classroom management`       | 28 tests + API runtime import; full `pnpm check` xanh           |
+| 5. Scheduler core/hash           | Hoàn tất                 | `feat(scheduler): add canonical deterministic generation`       | 17 scheduler tests; full `pnpm check` xanh                      |
+| 6. Fairness/replacements         | Hoàn tất                 | `feat(scheduler): add bounded fairness and explainable ranking` | 25 scheduler tests; full `pnpm check` xanh                      |
+| 7. Duty-week lifecycle           | Hoàn tất                 | `feat(duty-weeks): add stale-safe weekly lifecycle`             | 11 duty-week API/size tests; full `pnpm check` xanh             |
+| 8. Weekly UI                     | Hoàn tất                 | `feat(web): add canonical duty-week workflow`                   | 5 web tests + local real-API E2E; full `pnpm check` xanh        |
+| 9. History/export/backup         | Hoàn tất                 | `feat(history): add stable history exports and backup`          | 74 tests + export/history E2E; full `pnpm check` xanh           |
+| 10. PWA/offline                  | Hoàn tất                 | `feat(pwa): add read-only offline experience`                   | 76 tests + 2 PWA/offline E2E; full `pnpm check` xanh            |
+| 11. Quality/docs                 | Hoàn tất                 | `test(release): complete production quality gates`              | 76 tests + 3 E2E + audit production; full gates xanh            |
+| 11.5. Local UAT refinement       | Hoàn tất                 | `fix(uat): harden local operator workflow`                      | 80 tests + 3 E2E + local operator simulation xanh               |
+| 11.6. First-use UX refinement    | Hoàn tất                 | `feat(uat): simplify first-use operator workflow`               | 85 tests + 3 E2E + audit production; full gates xanh            |
+| 11.7. Responsive modal UX        | Hoàn tất                 | `fix(web): open list actions in responsive dialogs`             | 87 tests + 3 E2E + audit production; Browser smoke xanh         |
+| 11.8. Weekly-assistant UI/UX     | Hoàn tất                 | `feat(web): refocus UI around weekly duty workflow`             | 89 tests + 3 E2E + audit production; Browser smoke xanh         |
+| 11.9. Draft recovery             | Hoàn tất                 | `fix(web): make saved drafts resumable`                         | 91 tests + 3 E2E + audit production; Browser smoke xanh         |
+| 11.10. Draft deletion            | Hoàn tất                 | `feat(duty-weeks): allow safe draft deletion`                   | 93 tests + 3 E2E + audit production; Browser smoke xanh         |
+| 11.11. Unified application icon  | Hoàn tất                 | `chore(pwa): use maskable artwork as favicon`                   | 93 tests + 3 E2E + audit production; PWA gate xanh              |
+| 11.12. Lifecycle/history freeze  | Hoàn tất                 | Chưa commit                                                     | 98 tests + 3 E2E + audit production; Browser smoke xanh         |
+| 11.13. Current-week visual       | Hoàn tất                 | Chưa commit                                                     | 100 tests + 3 E2E + audit production; responsive E2E xanh       |
+| 11.14. Classroom workspace       | Hoàn tất                 | Chưa commit                                                     | 101 tests + 3 E2E + audit production; Browser smoke xanh        |
+| 12. Production deployment        | Hoàn tất                 | `chore(deploy): finalize production deployment`                 | Production topology/product/deploy/rollback và final gates xanh |
+| 12.1. Startup performance        | Hoàn tất                 | `fix(performance): remove production startup waterfall`         | 107 tests + E2E 3/3 + CI/deploy/Browser production xanh         |
+| 12.2. Draft table export         | Hoàn tất                 | `feat(web): export draft assignments as PNG table`              | 108 tests + E2E 3/3 + CI/Vercel/PWA production xanh             |
+| 12.3. Teacher-assigned duty      | Hoàn tất                 | `feat(duty-weeks): support teacher-assigned students`           | 113 tests + E2E 3/3 + CI/Vercel/deploy production xanh          |
+| 12.4. Public PWA install landing | Hoàn tất                 | `feat(pwa): add public install landing`                         | 121 tests + E2E 4/4 + CI/Vercel/Browser production xanh         |
 
 ## Quyết định
 
@@ -117,6 +128,7 @@
 - Availability có một nguồn: absence theo tuần hoặc ba loại restriction bền vững.
 - Fairness baseline giữ tối đa tám eligible completed weeks.
 - Học sinh ngoài tổ chỉ được vào lịch qua nguồn `TEACHER_ASSIGNED`; nguồn này chiếm slot thật, giữ hard constraints và không cấp fairness credit.
+- `/install` là route public riêng, giữ canonical URL/query khi chia sẻ; manifest và standalone entry tiếp tục là `/`.
 
 ## Discoveries
 
@@ -172,10 +184,11 @@
 - Production startup performance refinement: proxy Vercel chạy tại `hkg1` thay cho `iad1`; session lookup còn một aggregate, bootstrap gom user/classroom, login hydrate cache, app-shell skeleton thay full-page loader, current-week/drafts dùng một overview request và các route được code-split. Main startup chunk giảm từ 520,624 xuống 384,430 byte. Trên phiên production thật, authenticated shell đạt trung vị 348 ms và nội dung tuần 958 ms, so với baseline 2.038 giây và 2.788–3.282 giây; viewport 390 × 844 không tràn. Full `pnpm check` xanh với 107 tests, Playwright 3/3, audit sạch, CI `33238366519` và deploy `33238380208` xanh.
 - Mobile draft table export refinement: bước Kiểm tra phân công có card tải bảng trước phần cân bằng và danh sách chỉnh sửa; PNG ghi rõ `BẢNG KIỂM TRA PHÂN CÔNG · BẢN NHÁP` cùng filename `-ban-nhap.png`, còn export chính thức không đổi. Full `pnpm check` xanh với 108 tests; E2E real-backend 360 px tải file draft thật rồi tiếp tục publish/complete/export, Playwright 3/3 và audit sạch. Commit `054dcae`, CI `33239565970`, Vercel asset và PWA update production đều xanh; không tạo draft production chỉ để smoke.
 - Teacher-assigned duty refinement: assignment source `TEACHER_ASSIGNED` cho phép giáo viên ghim học sinh ngoài tổ vào đúng một slot thật và sống qua regenerate; auto scheduler không mở rộng candidate pool, còn vắng mặt, participation, restrictions và eligibility giới tính tiếp tục là hard constraints. Completion vẫn lưu actual performer nhưng loại lượt chỉ định khỏi fairness workload, opportunity, actual points và recent history; người thuộc tổ trực làm thay vẫn được tính bình thường. UI mobile phân nhóm lựa chọn theo tổ, ghi rõ không tính điểm cân bằng và hướng dẫn thêm công việc phát sinh nếu không muốn giảm phần việc của tổ trực. Full `pnpm check` xanh với 113 tests, Playwright real-backend 3/3 tại 360 px và audit production sạch. Commit `7545b84`, CI `33242401490`, Vercel production và API deploy `33242404967` xanh; smoke public xác nhận frontend, live/ready, no-store, redirect và bundle production mà không sửa dữ liệu UAT.
+- Public PWA install landing refinement: `/install` lazy-load độc lập app shell/auth bootstrap, dùng deferred native prompt một lần khi Chromium cho phép, hướng dẫn truy cập được cho iOS/in-app/fallback và replace về `/` khi đã chạy standalone. QR/share/copy cùng dùng canonical install URL và giữ query; landing assets browser-only không bị đưa vào app-shell precache. Browser smoke desktop/tablet/mobile tại 10 viewport không tràn ngang, phone/QR chỉ render desktop và bottom sheet giữ focus/Escape/scroll lock; visual refinement cuối đưa headline mobile về đúng hai dòng. Full `pnpm check` xanh với 121 tests, Playwright 4/4 và audit production sạch. Commit `e49362d`, CI `33244560566` và Vercel deployment `GhUN3FPUTcejToBUVcMJx18j2Gu9` xanh; production Browser smoke xác nhận PWA update, canonical QR, responsive desktop/mobile, API live/ready và proxy no-store mà không sửa dữ liệu UAT. API không đổi nên không chạy workflow deploy VPS.
 
 ## Remaining work
 
-Không còn hạng mục Refinement 12.3 ở phần repository. Các lần vận hành tiếp tục dùng manual `Deploy API`, forward-only migration, readiness gate và rollback không down-migrate theo runbook.
+Không còn hạng mục Refinement 12.4 ở repository hoặc production. Các lần vận hành API tiếp tục dùng manual `Deploy API`, forward-only migration, readiness gate và rollback không down-migrate theo runbook.
 
 ## Known issues
 
