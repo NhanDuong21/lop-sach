@@ -24,7 +24,11 @@ export default defineConfig({
         { name: 'weekly-workflow', testMatch: 'weekly-workflow.spec.ts' },
         {
           name: 'quality-gates',
-          testMatch: ['offline-current-week.spec.ts', 'impossible-schedule.spec.ts'],
+          testMatch: [
+            'offline-current-week.spec.ts',
+            'impossible-schedule.spec.ts',
+            'install-landing.spec.ts',
+          ],
           dependencies: ['weekly-workflow'],
         },
       ],

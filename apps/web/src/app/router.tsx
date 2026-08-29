@@ -1,4 +1,5 @@
 export const APP_ROUTES = [
+  '/install',
   '/login',
   '/onboarding',
   '/',

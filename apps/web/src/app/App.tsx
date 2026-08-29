@@ -41,9 +41,13 @@ const OnboardingPage = lazy(async () => ({
 const SettingsPage = lazy(async () => ({
   default: (await import('../features/settings/SettingsPage.js')).SettingsPage,
 }));
+const InstallLandingPage = lazy(async () => ({
+  default: (await import('../features/pwa-install/InstallLandingPage.js')).InstallLandingPage,
+}));
 
 function preloadRoute(pathname: string): void {
-  if (pathname === '/') void import('../features/current-week/CurrentWeekPage.js');
+  if (pathname === '/install') void import('../features/pwa-install/InstallLandingPage.js');
+  else if (pathname === '/') void import('../features/current-week/CurrentWeekPage.js');
   else if (pathname === '/weeks/new') void import('../features/duty-weeks/NewWeekPage.js');
   else if (pathname.startsWith('/weeks/')) void import('../features/duty-weeks/WeekEditorPage.js');
   else if (pathname === '/class/students') void import('../features/students/StudentsPage.js');
@@ -64,12 +68,11 @@ function RoutePending({
   return <Suspense fallback={<LoadingState label={label} />}>{children}</Suspense>;
 }
 
-export function App(): React.JSX.Element {
+function SessionApp(): React.JSX.Element {
   const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
   const online = useOnlineState();
-  useEffect(() => preloadRoute(location.pathname), [location.pathname]);
   const bootstrap = useQuery({
     queryKey: ['auth', 'bootstrap'],
     queryFn: async () => {
@@ -225,4 +228,23 @@ export function App(): React.JSX.Element {
       </Route>
     </Routes>
   );
+}
+
+export function App(): React.JSX.Element {
+  const location = useLocation();
+  useEffect(() => preloadRoute(location.pathname), [location.pathname]);
+  if (location.pathname === '/install')
+    return (
+      <Routes>
+        <Route
+          path="/install"
+          element={
+            <RoutePending label="Đang mở trang cài đặt">
+              <InstallLandingPage />
+            </RoutePending>
+          }
+        />
+      </Routes>
+    );
+  return <SessionApp />;
 }

@@ -17,6 +17,7 @@ export default defineConfig({
         cacheId: 'lop-sach-static',
         inlineWorkboxRuntime: true,
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,txt}'],
+        globIgnores: ['landing/**'],
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//u],
         cleanupOutdatedCaches: true,

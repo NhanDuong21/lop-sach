@@ -29,6 +29,7 @@ test('installs the app shell without caching API or auth responses', async ({ pa
   expect(cacheState.urls.some((path) => path.startsWith('/api/'))).toBe(false);
   expect(cacheState.urls).toContain('/index.html');
   expect(cacheState.urls.some((path) => path.startsWith('/assets/'))).toBe(true);
+  expect(cacheState.urls.some((path) => path.startsWith('/landing/'))).toBe(false);
   expect(cacheState.manifestHref).toBe('http://127.0.0.1:4173/manifest.webmanifest');
   expect(cacheState.faviconHref).toBe('http://127.0.0.1:4173/icons/icon-maskable-512.png');
   expect(cacheState.urls).not.toContain('/icons/icon.svg');

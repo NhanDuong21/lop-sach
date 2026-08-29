@@ -90,6 +90,17 @@ describe('App startup', () => {
     expect(login).not.toHaveBeenCalled();
   });
 
+  it('renders the install landing as a public route without starting auth bootstrap', async () => {
+    vi.mocked(getAuthBootstrap).mockReturnValue(new Promise(() => undefined));
+    renderApp('/install');
+
+    expect(
+      await screen.findByRole('heading', { name: /Ứng dụng phân công trực nhật lớp/u }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Đăng xuất' })).not.toBeInTheDocument();
+    expect(getAuthBootstrap).not.toHaveBeenCalled();
+  });
+
   it('hydrates the classroom cache from one bootstrap request', async () => {
     vi.mocked(getAuthBootstrap).mockResolvedValue(bootstrap);
     renderApp('/');

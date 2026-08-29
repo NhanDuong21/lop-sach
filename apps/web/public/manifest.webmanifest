@@ -1,7 +1,7 @@
 {
   "name": "Lớp Sạch",
   "short_name": "Lớp Sạch",
-  "description": "Phân công trực nhật minh bạch và cân bằng cho lớp.",
+  "description": "Ứng dụng phân công trực nhật và quản lý hoạt động lớp.",
   "lang": "vi",
   "start_url": "/",
   "scope": "/",

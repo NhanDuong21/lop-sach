@@ -10,6 +10,7 @@ export function ModalDialog({
   title,
   description,
   size = 'default',
+  className = '',
   closeDisabled = false,
   onClose,
   children,
@@ -18,6 +19,7 @@ export function ModalDialog({
   readonly title: string;
   readonly description?: string;
   readonly size?: 'small' | 'default' | 'wide' | 'full';
+  readonly className?: string;
   readonly closeDisabled?: boolean;
   readonly onClose: () => void;
 }>): React.JSX.Element | null {
@@ -78,7 +80,7 @@ export function ModalDialog({
     <div className="dialog-backdrop" role="presentation">
       <section
         ref={dialogRef}
-        className={`modal-dialog modal-dialog-${size}`}
+        className={`modal-dialog modal-dialog-${size} ${className}`.trim()}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
